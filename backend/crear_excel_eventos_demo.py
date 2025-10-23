@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Genera Excel demo con estructura de eventos
+Genera Excel demo con estructura de eventos (VERSIÓN 2 CON FALTANTES)
 """
 
 import openpyxl
@@ -19,33 +19,13 @@ def crear_excel_eventos():
     ws_eventos.title = "01_Eventos"
     
     headers_eventos = [
-        'ID Evento',
-        'Cliente Nombre',
-        'Cliente Teléfono',
-        'Cliente Email',
-        'Nombre Evento',
-        'Tipo Evento',
-        'Fecha Evento',
-        'Hora Evento',
-        'Lugar Evento',
-        'Cantidad Personas',
-        'Estado',
-        'Costo Insumos',
-        'Costo Mano Obra',
-        'Costo Transporte',
-        'Costo Otros',
-        'Costo Total',
-        'Margen %',
-        'Precio Propuesta',
-        'Precio Final',
-        'Anticipo',
-        'Saldo',
-        'Pagado',
-        'Insumos Reservados',
-        'Insumos Descontados',
-        'Insumos Faltantes',
-        'Notas Cotización',
-        'Fecha Cotización'
+        'ID Evento', 'Cliente Nombre', 'Cliente Teléfono', 'Cliente Email',
+        'Nombre Evento', 'Tipo Evento', 'Fecha Evento', 'Hora Evento',
+        'Lugar Evento', 'Cantidad Personas', 'Estado', 'Costo Insumos',
+        'Costo Mano Obra', 'Costo Transporte', 'Costo Otros', 'Costo Total',
+        'Margen %', 'Precio Propuesta', 'Precio Final', 'Anticipo', 'Saldo',
+        'Pagado', 'Insumos Reservados', 'Insumos Descontados', 'Insumos Faltantes',
+        'Notas Cotización', 'Fecha Cotización'
     ]
     
     ws_eventos.append(headers_eventos)
@@ -59,113 +39,46 @@ def crear_excel_eventos():
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
     
-    # Datos demo
-    hoy = datetime.now()
-    
-    datos_eventos = [
-        # Evento 1: Boda
-        [
-            'EV001',
-            'Sofía Martínez',
-            '+569 8765 4321',
-            'sofia.martinez@email.com',
-            'Boda Sofía & Diego',
-            'Boda',
-            (hoy + timedelta(days=45)).strftime('%Y-%m-%d'),
-            '18:00',
-            'Parque Araucano - Santiago',
-            150,
-            'Confirmado',
-            850000,
-            300000,
-            50000,
-            100000,
-            1300000,
-            35,
-            1755000,
-            1755000,
-            500000,
-            1255000,
-            False,
-            True,
-            False,
-            False,
-            'Boda de jardín, requiere arreglos florales grandes',
-            hoy.strftime('%Y-%m-%d')
-        ],
-        # Evento 2: Cumpleaños
-        [
-            'EV002',
-            'Roberto Silva',
-            '+569 1234 5678',
-            'roberto.silva@email.com',
-            'Cumpleaños 50 años Roberto',
-            'Cumpleaños',
-            (hoy + timedelta(days=20)).strftime('%Y-%m-%d'),
-            '20:00',
-            'Salón Los Pinos',
-            80,
-            'Propuesta Enviada',
-            380000,
-            150000,
-            30000,
-            40000,
-            600000,
-            30,
-            780000,
-            0,
-            0,
-            0,
-            False,
-            False,
-            False,
-            False,
-            'Centro de mesa elegantes, colores dorado y blanco',
-            hoy.strftime('%Y-%m-%d')
-        ],
-        # Evento 3: Corporativo
-        [
-            'EV003',
-            'Empresa TechCorp',
-            '+562 2345 6789',
-            'eventos@techcorp.cl',
-            'Aniversario 10 años TechCorp',
-            'Corporativo',
-            (hoy + timedelta(days=60)).strftime('%Y-%m-%d'),
-            '19:00',
-            'Hotel W Santiago',
-            200,
-            'Cotización',
-            1200000,
-            450000,
-            80000,
-            150000,
-            1880000,
-            40,
-            2632000,
-            0,
-            0,
-            0,
-            False,
-            False,
-            False,
-            False,
-            'Evento corporativo formal, colores azul y plata',
-            hoy.strftime('%Y-%m-%d')
-        ]
+    # Datos de eventos
+    eventos_data = [
+        # EV001: Boda - En cotización
+        ['EV001', 'María González', '+56912345678', 'maria.gonzalez@email.com', 
+         'Boda María & Juan', 'Boda', '2025-11-15', '18:00', 
+         'Hotel Plaza, Santiago', 150, 'Cotización', 0, 80000, 50000, 0, 130000,
+         30, 169000, 0, 0, 169000, False, False, False, False, 
+         'Cliente solicita flores blancas y rosadas', '2025-10-23'],
+        
+        # EV002: Corporativo - Propuesta enviada
+        ['EV002', 'Empresa TechCorp', '+56987654321', 'eventos@techcorp.cl', 
+         'Aniversario 10 años TechCorp', 'Corporativo', '2025-12-01', '19:30', 
+         'Centro de Eventos Espacio Riesco', 200, 'Propuesta Enviada', 380000, 120000, 80000, 50000,
+         630000, 25, 787500, 0, 0, 787500, False, False, False, False, 
+         'Evento corporativo formal, colores azul y blanco', '2025-10-20'],
+        
+        # EV003: Cumpleaños - Confirmado
+        ['EV003', 'Carolina Pérez', '+56923456789', 'caro.perez@gmail.com', 
+         'Cumpleaños 30 de Carolina', 'Cumpleaños', '2025-10-30', '20:00', 
+         'Restaurant El Jardín, Providencia', 80, 'Confirmado', 150000, 50000, 30000, 20000,
+         250000, 35, 337500, 337500, 100000, 237500, False, True, False, False, 
+         'Temática tropical, muchas flores coloridas', '2025-10-15'],
+        
+        # EV004: Baby Shower - RETIRADO CON FALTANTES ⚠️
+        ['EV004', 'Andrea Morales', '+56934567890', 'andrea.morales@hotmail.com', 
+         'Baby Shower Sofía', 'Baby Shower', '2025-10-20', '16:00', 
+         'Salón de Eventos La Rosaleda', 60, 'Retirado', 95000, 35000, 25000, 10000,
+         165000, 30, 214500, 214500, 214500, 0, True, True, True, True, 
+         '⚠️ FALTAN: 2 maceteros PE002, 3 velas PE006 - Cliente debe devolver', '2025-10-05'],
+        
+        # EV005: Graduación - En preparación
+        ['EV005', 'Universidad Central', '+56945678901', 'ceremonias@ucentral.cl', 
+         'Ceremonia Graduación 2025', 'Graduación', '2025-11-05', '11:00', 
+         'Auditorio Universidad Central', 300, 'En Preparación', 280000, 90000, 60000, 40000,
+         470000, 20, 564000, 564000, 200000, 364000, False, True, True, False, 
+         'Arreglos elegantes para escenario y pasillo', '2025-10-10']
     ]
     
-    for fila in datos_eventos:
-        ws_eventos.append(fila)
-    
-    # Ajustar anchos
-    anchos = {'A': 12, 'B': 20, 'C': 18, 'D': 25, 'E': 30, 'F': 15, 'G': 15, 'H': 12,
-              'I': 30, 'J': 15, 'K': 18, 'L': 15, 'M': 18, 'N': 15, 'O': 12, 'P': 15,
-              'Q': 12, 'R': 18, 'S': 15, 'T': 12, 'U': 12, 'V': 10, 'W': 18, 'X': 18,
-              'Y': 18, 'Z': 40, 'AA': 18}
-    
-    for col, width in anchos.items():
-        ws_eventos.column_dimensions[col].width = width
+    for evento in eventos_data:
+        ws_eventos.append(evento)
     
     # ========================================
     # HOJA 2: INSUMOS DE EVENTOS
@@ -173,18 +86,9 @@ def crear_excel_eventos():
     ws_insumos = wb.create_sheet("02_Insumos_Eventos")
     
     headers_insumos = [
-        'ID Evento',
-        'Tipo Insumo',
-        'ID Insumo',
-        'Nombre',
-        'Cantidad',
-        'Costo Unitario',
-        'Costo Total',
-        'Reservado',
-        'Descontado',
-        'Devuelto',
-        'Cantidad Faltante',
-        'Notas'
+        'Evento ID', 'Tipo Insumo', 'ID/Código Insumo', 'Nombre Insumo',
+        'Cantidad', 'Costo Unitario', 'Costo Total', 'Reservado', 
+        'Descontado Stock', 'Devuelto', 'Cantidad Faltante', 'Notas'
     ]
     
     ws_insumos.append(headers_insumos)
@@ -194,226 +98,212 @@ def crear_excel_eventos():
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
     
-    # Datos insumos
-    datos_insumos = [
-        # Evento 1 - Boda
-        ['EV001', 'producto', 'PR001', 'Passion Roja (15 arreglos)', 15, 25000, 375000, True, False, False, 0, 'Centros de mesa'],
-        ['EV001', 'producto', 'PR006', 'Dulce Lirio (10 arreglos)', 10, 55000, 550000, True, False, False, 0, 'Arreglos altar'],
-        ['EV001', 'producto_evento', 'PE001', 'Mantel Blanco 3x3m', 20, 8000, 160000, True, False, False, 0, 'Para mesas'],
-        ['EV001', 'producto_evento', 'PE005', 'Vela Pilar Grande', 30, 3000, 90000, True, False, False, 0, 'Iluminación'],
-        ['EV001', 'contenedor', 'CT003', 'Florero Vidrio Grande', 25, 5000, 125000, True, False, False, 0, 'Para centros de mesa'],
+    # Insumos de eventos
+    insumos_data = [
+        # EV003: Cumpleaños (confirmado, reservado)
+        ['EV003', 'producto_evento', 'PE001', 'Mantel Redondo Blanco 3m', 10, 5000, 50000, True, False, False, 0, ''],
+        ['EV003', 'producto_evento', 'PE005', 'Vela Pilar Grande Blanca', 20, 2000, 40000, True, False, False, 0, ''],
+        ['EV003', 'flor', 'FL001', 'Rosa Roja Premium', 100, 800, 80000, True, False, False, 0, 'Para centros de mesa'],
+        ['EV003', 'contenedor', 'CT001', 'Florero Vidrio Redondo Pequeño', 10, 3000, 30000, True, False, False, 0, ''],
+        ['EV003', 'otro', '', 'Mano de Obra - Decoración', 1, 50000, 50000, False, False, False, 0, '6 horas de trabajo'],
+        ['EV003', 'otro', '', 'Transporte y Montaje', 1, 30000, 30000, False, False, False, 0, 'Camioneta + ayudante'],
         
-        # Evento 2 - Cumpleaños
-        ['EV002', 'producto', 'PR004', 'Elegancia Rosa (12 arreglos)', 12, 35000, 420000, False, False, False, 0, 'Decoración mesas'],
-        ['EV002', 'producto_evento', 'PE002', 'Mantel Dorado 2.5x2.5m', 10, 10000, 100000, False, False, False, 0, 'Mesas principales'],
-        ['EV002', 'producto_evento', 'PE006', 'Vela Flotante', 50, 1500, 75000, False, False, False, 0, 'Ambiente'],
+        # EV004: Baby Shower (FINALIZADO CON FALTANTES ⚠️)
+        ['EV004', 'producto_evento', 'PE002', 'Macetero Terracota Mediano', 5, 4000, 20000, True, True, False, 2, '⚠️ FALTAN 2 maceteros'],
+        ['EV004', 'producto_evento', 'PE006', 'Vela Pilar Pequeña Rosada', 10, 1500, 15000, True, True, False, 3, '⚠️ FALTAN 3 velas'],
+        ['EV004', 'producto_evento', 'PE001', 'Mantel Redondo Blanco 3m', 6, 5000, 30000, True, True, True, 0, 'Devueltos OK'],
+        ['EV004', 'flor', 'FL005', 'Clavel Blanco', 80, 400, 32000, True, True, True, 0, 'Usados en arreglos'],
+        ['EV004', 'contenedor', 'CT003', 'Canasto Mimbre Natural', 8, 2500, 20000, True, True, True, 0, 'Devueltos OK'],
+        ['EV004', 'otro', '', 'Mano de Obra - Montaje', 1, 35000, 35000, False, True, True, 0, '4 horas'],
+        ['EV004', 'otro', '', 'Transporte', 1, 25000, 25000, False, True, True, 0, 'Ida y retiro'],
         
-        # Evento 3 - Corporativo
-        ['EV003', 'producto', 'PR009', 'Ramo Clásico (30 arreglos)', 30, 50000, 1500000, False, False, False, 0, 'Centros de mesa'],
-        ['EV003', 'producto_evento', 'PE003', 'Mantel Azul 3x3m', 25, 9000, 225000, False, False, False, 0, 'Mesas corporativas'],
-        ['EV003', 'producto_evento', 'PE007', 'Camino de Mesa Plateado', 25, 5000, 125000, False, False, False, 0, 'Decoración'],
+        # EV005: Graduación (en preparación)
+        ['EV005', 'producto_evento', 'PE007', 'Arco Floral Grande', 2, 50000, 100000, True, True, False, 0, 'Para escenario'],
+        ['EV005', 'producto_evento', 'PE001', 'Mantel Redondo Blanco 3m', 30, 5000, 150000, True, True, False, 0, ''],
+        ['EV005', 'flor', 'FL001', 'Rosa Roja Premium', 200, 800, 160000, True, True, False, 0, 'Para arreglos principales'],
+        ['EV005', 'flor', 'FL002', 'Lirio Blanco', 100, 1200, 120000, True, True, False, 0, 'Complemento arreglos'],
+        ['EV005', 'contenedor', 'CT001', 'Florero Vidrio Redondo Pequeño', 40, 3000, 120000, True, True, False, 0, ''],
+        ['EV005', 'otro', '', 'Mano de Obra - Equipo Completo', 1, 90000, 90000, False, True, False, 0, '2 personas x 5 horas'],
+        ['EV005', 'otro', '', 'Transporte Camión Grande', 1, 60000, 60000, False, True, False, 0, 'Incluye ayudantes'],
     ]
     
-    for fila in datos_insumos:
-        ws_insumos.append(fila)
-    
-    # Ajustar anchos
-    ws_insumos.column_dimensions['A'].width = 12
-    ws_insumos.column_dimensions['B'].width = 18
-    ws_insumos.column_dimensions['C'].width = 12
-    ws_insumos.column_dimensions['D'].width = 35
-    ws_insumos.column_dimensions['E'].width = 10
-    ws_insumos.column_dimensions['F'].width = 15
-    ws_insumos.column_dimensions['G'].width = 15
-    ws_insumos.column_dimensions['H'].width = 12
-    ws_insumos.column_dimensions['I'].width = 12
-    ws_insumos.column_dimensions['J'].width = 12
-    ws_insumos.column_dimensions['K'].width = 15
-    ws_insumos.column_dimensions['L'].width = 30
+    for insumo in insumos_data:
+        ws_insumos.append(insumo)
     
     # ========================================
     # HOJA 3: PRODUCTOS DE EVENTOS
     # ========================================
-    ws_productos_evento = wb.create_sheet("03_Productos_Evento")
+    ws_productos = wb.create_sheet("03_Productos_Evento")
     
     headers_productos = [
-        'Código',
-        'Nombre',
-        'Categoría',
-        'Stock',
-        'En Evento',
-        'Disponible',
-        'Costo Compra',
-        'Costo Alquiler',
-        'Descripción',
-        'Medidas',
-        'Color',
-        'Material'
+        'Código', 'Nombre', 'Categoría', 'Stock Total', 'En Evento',
+        'Disponible', 'Costo Compra', 'Costo Alquiler', 'Descripción',
+        'Medidas', 'Color', 'Material'
     ]
     
-    ws_productos_evento.append(headers_productos)
+    ws_productos.append(headers_productos)
     
-    for cell in ws_productos_evento[1]:
+    for cell in ws_productos[1]:
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center')
     
-    # Datos productos de eventos
-    datos_productos_evento = [
-        # Mantelería
-        ['PE001', 'Mantel Blanco 3x3m', 'Mantelería', 30, 20, 10, 8000, 3000, 'Mantel blanco para mesas cuadradas', '3x3 metros', 'Blanco', 'Poliéster'],
-        ['PE002', 'Mantel Dorado 2.5x2.5m', 'Mantelería', 15, 0, 15, 10000, 4000, 'Mantel dorado elegante', '2.5x2.5 metros', 'Dorado', 'Satén'],
-        ['PE003', 'Mantel Azul 3x3m', 'Mantelería', 20, 0, 20, 9000, 3500, 'Mantel azul corporativo', '3x3 metros', 'Azul', 'Poliéster'],
-        ['PE004', 'Camino de Mesa Blanco', 'Mantelería', 40, 0, 40, 3000, 1500, 'Camino de mesa decorativo', '3x0.5 metros', 'Blanco', 'Lino'],
+    productos_data = [
+        # Manteles
+        ['PE001', 'Mantel Redondo Blanco 3m', 'Mantelería', 50, 10, 40, 8000, 5000, 'Mantel redondo blanco de tela', '3m diámetro', 'Blanco', 'Tela'],
+        ['PE002', 'Macetero Terracota Mediano', 'Contenedores', 20, 5, 13, 6000, 4000, 'Macetero de terracota artesanal', '25cm alto', 'Natural', 'Terracota'],
+        ['PE003', 'Mantel Rectangular Marfil', 'Mantelería', 40, 0, 40, 10000, 6000, 'Mantel rectangular marfil', '2m x 3m', 'Marfil', 'Tela'],
+        ['PE004', 'Mantel Cuadrado Negro', 'Mantelería', 30, 0, 30, 9000, 5500, 'Mantel cuadrado elegante', '2m x 2m', 'Negro', 'Tela'],
         
-        # Iluminación
-        ['PE005', 'Vela Pilar Grande', 'Iluminación', 100, 30, 70, 3000, 0, 'Vela pilar decorativa grande', '15cm alto x 10cm diámetro', 'Blanco', 'Cera'],
-        ['PE006', 'Vela Flotante', 'Iluminación', 200, 0, 200, 1500, 0, 'Velas pequeñas flotantes', '5cm diámetro', 'Blanco', 'Cera'],
-        ['PE007', 'Camino de Mesa Plateado', 'Mantelería', 30, 0, 30, 5000, 2000, 'Camino con detalles plateados', '3x0.5 metros', 'Plateado', 'Satén'],
+        # Velas
+        ['PE005', 'Vela Pilar Grande Blanca', 'Iluminación', 100, 20, 80, 3000, 2000, 'Vela pilar decorativa grande', '15cm alto', 'Blanco', 'Cera'],
+        ['PE006', 'Vela Pilar Pequeña Rosada', 'Iluminación', 80, 10, 67, 2000, 1500, 'Vela pilar pequeña rosada', '10cm alto', 'Rosado', 'Cera'],
         
-        # Mobiliario
-        ['PE008', 'Triángulo Floral Grande', 'Decoración', 10, 0, 10, 45000, 15000, 'Estructura triangular para arreglos', '2m altura', 'Dorado', 'Metal'],
-        ['PE009', 'Arco Floral Redondo', 'Decoración', 5, 0, 5, 80000, 25000, 'Arco circular para bodas', '2.5m diámetro', 'Blanco', 'Metal'],
-        ['PE010', 'Base Cilíndrica Grande', 'Decoración', 15, 0, 15, 25000, 8000, 'Cilindro decorativo alto', '1m altura x 30cm diámetro', 'Transparente', 'Acrílico'],
-        
-        # Otros
-        ['PE011', 'Servilleta Lino Blanca', 'Mantelería', 200, 0, 200, 1500, 500, 'Servilleta de lino premium', '45x45cm', 'Blanco', 'Lino'],
-        ['PE012', 'Centro de Mesa Espejo', 'Decoración', 25, 0, 25, 4000, 1500, 'Espejo redondo decorativo', '30cm diámetro', 'Espejo', 'Vidrio'],
+        # Decoración
+        ['PE007', 'Arco Floral Grande', 'Estructura', 5, 2, 3, 80000, 50000, 'Arco metálico para flores', '2.5m x 2m', 'Blanco', 'Metal'],
+        ['PE008', 'Triángulo Decorativo Largo', 'Estructura', 10, 0, 10, 45000, 30000, 'Triángulo decorativo metálico', '1.8m alto', 'Dorado', 'Metal'],
+        ['PE009', 'Base para Centros de Mesa', 'Soporte', 60, 0, 60, 5000, 3000, 'Base espejo circular', '30cm diámetro', 'Espejo', 'Vidrio'],
+        ['PE010', 'Cortina de Luces LED', 'Iluminación', 15, 0, 15, 25000, 15000, 'Cortina LED blanco cálido', '3m x 3m', 'Blanco', 'Cable LED'],
+        ['PE011', 'Letras Decorativas Grandes', 'Decoración', 8, 0, 8, 35000, 20000, 'Letras iluminadas LOVE/HAPPY', '80cm alto', 'Blanco', 'MDF'],
+        ['PE012', 'Mesa Auxiliar Plegable', 'Mobiliario', 20, 0, 20, 15000, 8000, 'Mesa plegable para buffet', '1.5m x 0.8m', 'Blanco', 'Metal/Plástico'],
     ]
     
-    for fila in datos_productos_evento:
-        ws_productos_evento.append(fila)
-    
-    # Ajustar anchos
-    for col, width in [('A', 10), ('B', 30), ('C', 15), ('D', 8), ('E', 10), ('F', 12),
-                       ('G', 14), ('H', 14), ('I', 40), ('J', 20), ('K', 12), ('L', 12)]:
-        ws_productos_evento.column_dimensions[col].width = width
+    for producto in productos_data:
+        # Calcular disponible
+        stock = producto[3]
+        en_evento = producto[4]
+        disponible = stock - en_evento
+        producto[5] = disponible
+        ws_productos.append(producto)
     
     # ========================================
     # HOJA 4: INSTRUCCIONES
     # ========================================
-    ws_instrucciones = wb.create_sheet("📖 INSTRUCCIONES")
+    ws_instrucciones = wb.create_sheet("INSTRUCCIONES")
     
     instrucciones = [
-        ['SISTEMA DE GESTIÓN DE EVENTOS'],
+        ['SISTEMA DE GESTIÓN DE EVENTOS - LAS LIRA'],
         [''],
-        ['Este archivo contiene la estructura de datos para eventos de Las-Lira.'],
+        ['📋 ESTRUCTURA DEL ARCHIVO'],
         [''],
-        ['📋 HOJA 1: EVENTOS'],
-        ['- Lista de todos los eventos con sus estados y costos'],
-        ['- Estados: Cotización → Propuesta → Confirmado → En Preparación → En Evento → Finalizado → Retirado'],
-        ['- Costos separados: insumos, mano de obra, transporte, otros'],
-        ['- Margen % para calcular precio de venta'],
-        ['- Control de pagos: anticipo, saldo, pagado'],
-        ['- Control de insumos: reservados, descontados, faltantes'],
+        ['Hoja 1: 01_Eventos'],
+        ['  • Contiene todos los eventos con información completa'],
+        ['  • Estados: Cotización → Propuesta → Confirmado → En Preparación → En Evento → Finalizado → Retirado'],
+        ['  • Cada evento tiene ID único (EV001, EV002, etc.)'],
         [''],
-        ['📦 HOJA 2: INSUMOS DE EVENTOS'],
-        ['- Cada evento tiene múltiples insumos'],
-        ['- Tipos: flor, contenedor, producto, producto_evento, otro'],
-        ['- Control individual: cantidad, costo, reservado, descontado, devuelto'],
-        ['- Cantidad faltante: lo que no se devolvió'],
+        ['Hoja 2: 02_Insumos_Eventos'],
+        ['  • Detalle de todos los insumos utilizados por evento'],
+        ['  • Tipos de insumo: flor, contenedor, producto, producto_evento, otro'],
+        ['  • Control de reserva, descuento de stock y devolución'],
+        ['  • ⚠️ Cantidad Faltante: Si >0 significa que NO fue devuelto'],
         [''],
-        ['🎨 HOJA 3: PRODUCTOS DE EVENTOS'],
-        ['- Productos específicos para eventos (manteles, velas, triángulos, etc)'],
-        ['- Categorías: Mantelería, Iluminación, Decoración, Mobiliario'],
-        ['- Stock separado de flores y contenedores normales'],
-        ['- Costo compra vs costo alquiler'],
-        ['- Control de "En Evento" para reservas'],
+        ['Hoja 3: 03_Productos_Evento'],
+        ['  • Catálogo de productos específicos para eventos'],
+        ['  • Incluye: manteles, velas, arcos, estructuras, iluminación'],
+        ['  • Control de stock: Total, En Evento, Disponible'],
+        ['  • Costo Compra vs Costo Alquiler'],
         [''],
-        ['🔄 FLUJO DE TRABAJO:'],
+        ['🔴 EVENTO CON INSUMOS FALTANTES - EJEMPLO'],
         [''],
-        ['1. COTIZACIÓN:'],
-        ['   • Crear evento con datos del cliente'],
-        ['   • Agregar insumos necesarios'],
-        ['   • Calcular costos'],
-        ['   • Definir margen deseado'],
-        ['   • Estado: "Cotización"'],
+        ['EV004 - Baby Shower Sofía (Andrea Morales)'],
+        ['  • Estado: Retirado'],
+        ['  • Insumos Faltantes: TRUE ⚠️'],
+        ['  • Faltantes específicos:'],
+        ['    - 2 Maceteros Terracota Mediano (PE002)'],
+        ['    - 3 Velas Pilar Pequeña Rosada (PE006)'],
+        ['  • Acción: Cliente debe devolver los insumos faltantes'],
+        ['  • Sistema muestra advertencia en la interfaz'],
         [''],
-        ['2. PROPUESTA:'],
-        ['   • Revisar cotización'],
-        ['   • Ajustar márgenes si es necesario'],
-        ['   • Generar presupuesto (PDF/Excel)'],
-        ['   • Enviar al cliente'],
-        ['   • Estado: "Propuesta Enviada"'],
+        ['📊 FLUJO DE TRABAJO'],
         [''],
-        ['3. CONFIRMACIÓN:'],
-        ['   • Cliente acepta'],
-        ['   • Confirmar fecha del evento'],
-        ['   • RESERVAR INSUMOS (cantidad_en_evento++)'],
-        ['   • No descuenta stock todavía'],
-        ['   • Solicitar anticipo'],
-        ['   • Estado: "Confirmado"'],
+        ['1. COTIZACIÓN'],
+        ['   • Crear evento con datos básicos del cliente'],
+        ['   • Agregar insumos estimados'],
+        ['   • Calcular costo total + margen → precio propuesta'],
         [''],
-        ['4. PREPARACIÓN:'],
-        ['   • Opción: descontar stock ahora o al finalizar'],
-        ['   • Preparar insumos'],
-        ['   • Coordinar logística'],
-        ['   • Estado: "En Preparación"'],
+        ['2. PROPUESTA ENVIADA'],
+        ['   • Cambiar estado cuando se envía presupuesto al cliente'],
         [''],
-        ['5. EVENTO:'],
+        ['3. CONFIRMADO'],
+        ['   • Cliente acepta la propuesta'],
+        ['   • ACCIÓN: Reservar insumos (cantidad_en_evento)'],
+        ['   • Insumos Reservados = TRUE'],
+        [''],
+        ['4. EN PREPARACIÓN'],
+        ['   • Preparando arreglos y decoración'],
+        ['   • OPCIONAL: Descontar stock si se van a usar'],
+        ['   • Insumos Descontados = TRUE'],
+        [''],
+        ['5. EN EVENTO'],
         ['   • Día del evento'],
-        ['   • Insumos en uso'],
-        ['   • Estado: "En Evento"'],
         [''],
-        ['6. FINALIZADO:'],
-        ['   • Evento terminó'],
-        ['   • Presionar "Evento Finalizado"'],
-        ['   • Estado: "Finalizado"'],
+        ['6. FINALIZADO'],
+        ['   • Evento terminado'],
         [''],
-        ['7. RETIRO:'],
-        ['   • Recoger insumos'],
-        ['   • CHEQUEAR QUÉ VOLVIÓ Y QUÉ NO'],
-        ['   • Marcar devuelto o faltante'],
-        ['   • Si hay faltantes:'],
-        ['     - Agregar a lista_faltantes'],
-        ['     - Marcar insumos_faltantes = True'],
-        ['     - Marcar cliente con "Insumo faltante en evento"'],
-        ['   • Liberar insumos (cantidad_en_evento--)'],
-        ['   • Estado: "Retirado"'],
+        ['7. RETIRADO'],
+        ['   • Insumos fueron retirados del lugar'],
+        ['   • ACCIÓN: Marcar qué se devolvió y qué falta'],
+        ['   • Si hay faltantes: Insumos Faltantes = TRUE'],
+        ['   • Sistema marca cliente con "insumo faltante en evento"'],
         [''],
-        ['💡 CARACTERÍSTICAS ESPECIALES:'],
+        ['💡 CÁLCULO AUTOMÁTICO DE COSTOS'],
         [''],
-        ['CONTROL DE STOCK SEPARADO:'],
-        ['• Flores: cantidad_stock - cantidad_en_uso - cantidad_en_evento = disponible'],
-        ['• Contenedores: stock - en_uso - en_evento = disponible'],
-        ['• Productos Evento: stock - en_evento = disponible'],
+        ['Costo Total = Costo Insumos + Costo Mano Obra + Costo Transporte + Costo Otros'],
+        ['Precio Propuesta = Costo Total × (1 + Margen% / 100)'],
+        ['Saldo = Precio Final - Anticipo'],
         [''],
-        ['MARCADORES DE CLIENTE:'],
-        ['• Si insumos_faltantes = True → cliente marcado'],
-        ['• Útil para decidir si trabajar con ese cliente de nuevo'],
+        ['🔍 TIPOS DE INSUMO'],
         [''],
-        ['FLEXIBILIDAD:'],
-        ['• Puedes descontar stock al confirmar O al finalizar'],
-        ['• Puedes modificar cotización hasta confirmar'],
-        ['• Puedes agregar insumos durante el evento'],
+        ['• flor: Referencia a tabla Flores (ej: FL001)'],
+        ['• contenedor: Referencia a tabla Contenedores (ej: CT001)'],
+        ['• producto: Referencia a tabla Productos/Arreglos (ej: PR001)'],
+        ['• producto_evento: Referencia a ProductoEvento (ej: PE001)'],
+        ['• otro: Texto libre (mano de obra, transporte, otros servicios)'],
         [''],
-        [f'Generado: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'],
+        ['⚡ IMPORTACIÓN'],
+        [''],
+        ['Para importar estos datos al sistema:'],
+        ['  1. Guardar este archivo como ESTRUCTURA_EVENTOS.xlsx'],
+        ['  2. Colocar en carpeta backend/'],
+        ['  3. Ejecutar: python3 importar_eventos_demo.py'],
+        [''],
+        ['El sistema importará:'],
+        ['  • Productos de eventos (si no existen)'],
+        ['  • Eventos completos'],
+        ['  • Insumos asociados a cada evento'],
+        [''],
+        ['⚠️ ADVERTENCIAS EN LA INTERFAZ'],
+        [''],
+        ['Cuando un evento tiene "Insumos Faltantes = TRUE":'],
+        ['  • Se muestra alerta visual (icono ⚠️ rojo)'],
+        ['  • Tooltip con detalle de lo que falta'],
+        ['  • El cliente queda marcado como "Insumo Faltante en Evento"'],
+        ['  • Se bloquean nuevos eventos para ese cliente hasta devolución'],
+        [''],
+        ['📧 CONTACTO SOPORTE'],
+        [''],
+        ['Sistema desarrollado para Las Lira Florería'],
+        ['Octubre 2025'],
     ]
     
-    for fila in instrucciones:
-        ws_instrucciones.append(fila)
+    for row in instrucciones:
+        ws_instrucciones.append(row)
     
-    ws_instrucciones['A1'].font = Font(bold=True, size=16, color="4472C4")
-    ws_instrucciones.column_dimensions['A'].width = 90
+    # Ajustar anchos
+    ws_instrucciones.column_dimensions['A'].width = 100
     
-    # Guardar
+    # Guardar archivo
     filename = 'ESTRUCTURA_EVENTOS.xlsx'
     wb.save(filename)
-    print(f"✅ Excel generado: {filename}")
-    print(f"\n📋 Contenido:")
-    print(f"   • Hoja 1: 01_Eventos (3 eventos demo)")
-    print(f"   • Hoja 2: 02_Insumos_Eventos (insumos por evento)")
-    print(f"   • Hoja 3: 03_Productos_Evento (12 productos específicos)")
-    print(f"   • Hoja 4: 📖 INSTRUCCIONES (flujo completo)")
-    print(f"\n🎯 Tipos de Eventos Demo:")
-    print(f"   • EV001: Boda (150 personas, confirmado)")
-    print(f"   • EV002: Cumpleaños (80 personas, propuesta)")
-    print(f"   • EV003: Corporativo (200 personas, cotización)")
-    print(f"\n📦 Productos Evento:")
-    print(f"   • Mantelería (manteles, caminos de mesa, servilletas)")
-    print(f"   • Iluminación (velas pilar, flotantes)")
-    print(f"   • Decoración (triángulos, arcos, bases, espejos)")
+    print(f"✅ Archivo creado: {filename}")
+    print(f"📊 Eventos: {len(eventos_data)}")
+    print(f"📦 Insumos: {len(insumos_data)}")
+    print(f"🎁 Productos: {len(productos_data)}")
+    print()
+    print("⚠️  EVENTO CON FALTANTES: EV004 (2 maceteros + 3 velas)")
+    print()
+    print("🚀 Para importar:")
+    print("   python3 importar_eventos_demo.py")
 
 if __name__ == "__main__":
     crear_excel_eventos()
-

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Calendar, Users, DollarSign, Package, Plus, X, CheckCircle, Clock, FileText } from 'lucide-react'
+import { Calendar, Users, DollarSign, Package, Plus, X, CheckCircle, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react'
 
 const API_URL = 'http://localhost:8000/api'
 
@@ -24,11 +24,27 @@ const TIPOS_EVENTO = [
   'Otro'
 ]
 
+const TIPOS_COSTO = [
+  { value: 'flor', label: '🌸 Flor (del inventario)' },
+  { value: 'contenedor', label: '🏺 Contenedor (del inventario)' },
+  { value: 'producto', label: '💐 Arreglo (del catálogo)' },
+  { value: 'producto_evento', label: '🎁 Producto Evento (manteles, velas, etc.)' },
+  { value: 'mano_obra', label: '👷 Mano de Obra (HH)' },
+  { value: 'transporte', label: '🚚 Transporte' },
+  { value: 'otro', label: '📦 Otro' }
+]
+
 function EventosPage() {
   const [eventos, setEventos] = useState([])
   const [loading, setLoading] = useState(true)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [eventoSeleccionado, setEventoSeleccionado] = useState(null)
+  
+  // Catálogos para los selectores
+  const [flores, setFlores] = useState([])
+  const [contenedores, setContenedores] = useState([])
+  const [productos, setProductos] = useState([])
+  const [productosEvento, setProductosEvento] = useState([])
   
   // Form state
   const [formData, setFormData] = useState({
@@ -42,14 +58,24 @@ function EventosPage() {
     lugar_evento: '',
     cantidad_personas: 0,
     margen_porcentaje: 30,
-    costo_mano_obra: 0,
-    costo_transporte: 0,
-    costo_otros: 0,
     notas_cotizacion: ''
   })
   
+  // Líneas de costos dinámicas
+  const [lineasCosto, setLineasCosto] = useState([
+    {
+      id: Date.now(),
+      tipo: 'mano_obra',
+      item_id: null,
+      nombre: '',
+      cantidad: 1,
+      costo_unitario: 0
+    }
+  ])
+  
   useEffect(() => {
     cargarEventos()
+    cargarCatalogos()
   }, [])
   
   const cargarEventos = async () => {
@@ -67,14 +93,153 @@ function EventosPage() {
     }
   }
   
+  const cargarCatalogos = async () => {
+    try {
+      const [resFlores, resContenedores, resProductos, resProductosEvento] = await Promise.all([
+        axios.get(`${API_URL}/inventario/flores`),
+        axios.get(`${API_URL}/inventario/contenedores`),
+        axios.get(`${API_URL}/productos`),
+        axios.get(`${API_URL}/eventos/productos-evento`)
+      ])
+      
+      if (resFlores.data.success) setFlores(resFlores.data.data)
+      if (resContenedores.data.success) setContenedores(resContenedores.data.data)
+      if (resProductos.data.success) setProductos(resProductos.data.data)
+      if (resProductosEvento.data.success) setProductosEvento(resProductosEvento.data.data)
+    } catch (err) {
+      console.error('Error cargando catálogos:', err)
+    }
+  }
+  
+  const agregarLineaCosto = () => {
+    setLineasCosto([...lineasCosto, {
+      id: Date.now(),
+      tipo: 'mano_obra',
+      item_id: null,
+      nombre: '',
+      cantidad: 1,
+      costo_unitario: 0
+    }])
+  }
+  
+  const eliminarLineaCosto = (id) => {
+    if (lineasCosto.length === 1) {
+      alert('⚠️ Debe haber al menos una línea de costo')
+      return
+    }
+    setLineasCosto(lineasCosto.filter(linea => linea.id !== id))
+  }
+  
+  const actualizarLineaCosto = (id, campo, valor) => {
+    setLineasCosto(lineasCosto.map(linea => {
+      if (linea.id === id) {
+        const nuevaLinea = { ...linea, [campo]: valor }
+        
+        // Si cambia el tipo, resetear item_id y nombre
+        if (campo === 'tipo') {
+          nuevaLinea.item_id = null
+          nuevaLinea.nombre = ''
+          nuevaLinea.costo_unitario = 0
+        }
+        
+        // Si selecciona un item del inventario, auto-llenar costo
+        if (campo === 'item_id') {
+          let itemSeleccionado = null
+          if (linea.tipo === 'flor') {
+            itemSeleccionado = flores.find(f => f.id === valor)
+            if (itemSeleccionado) {
+              nuevaLinea.nombre = itemSeleccionado.nombre
+              nuevaLinea.costo_unitario = itemSeleccionado.costo_unitario
+            }
+          } else if (linea.tipo === 'contenedor') {
+            itemSeleccionado = contenedores.find(c => c.id === valor)
+            if (itemSeleccionado) {
+              nuevaLinea.nombre = itemSeleccionado.nombre
+              nuevaLinea.costo_unitario = itemSeleccionado.costo
+            }
+          } else if (linea.tipo === 'producto') {
+            itemSeleccionado = productos.find(p => p.id === valor)
+            if (itemSeleccionado) {
+              nuevaLinea.nombre = itemSeleccionado.nombre
+              nuevaLinea.costo_unitario = itemSeleccionado.costo_estimado || 0
+            }
+          } else if (linea.tipo === 'producto_evento') {
+            itemSeleccionado = productosEvento.find(pe => pe.codigo === valor)
+            if (itemSeleccionado) {
+              nuevaLinea.nombre = itemSeleccionado.nombre
+              nuevaLinea.costo_unitario = itemSeleccionado.costo_alquiler || itemSeleccionado.costo_compra || 0
+            }
+          }
+        }
+        
+        return nuevaLinea
+      }
+      return linea
+    }))
+  }
+  
+  const calcularCostoTotal = () => {
+    return lineasCosto.reduce((total, linea) => {
+      return total + (linea.cantidad * linea.costo_unitario)
+    }, 0)
+  }
+  
+  const calcularPrecioPropuesta = () => {
+    const costoTotal = calcularCostoTotal()
+    const margen = formData.margen_porcentaje / 100
+    return costoTotal * (1 + margen)
+  }
+  
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Validar que haya al menos una línea con costo
+    const totalCosto = calcularCostoTotal()
+    if (totalCosto === 0) {
+      alert('⚠️ Debe agregar al menos un costo al evento')
+      return
+    }
+    
     try {
-      const response = await axios.post(`${API_URL}/eventos`, formData)
+      // 1. Crear evento
+      const eventoPay load = {
+        ...formData,
+        costo_total: totalCosto,
+        precio_propuesta: calcularPrecioPropuesta()
+      }
+      
+      const response = await axios.post(`${API_URL}/eventos`, eventoPayload)
       
       if (response.data.success) {
-        alert(`✅ Evento creado: ${response.data.data.id}`)
+        const eventoId = response.data.data.id
+        
+        // 2. Agregar cada línea de costo como insumo
+        for (const linea of lineasCosto) {
+          const insumoPayload = {
+            tipo_insumo: linea.tipo,
+            cantidad: linea.cantidad,
+            costo_unitario: linea.costo_unitario,
+            notas: ''
+          }
+          
+          // Asignar referencia según tipo
+          if (linea.tipo === 'flor' && linea.item_id) {
+            insumoPayload.flor_id = linea.item_id
+          } else if (linea.tipo === 'contenedor' && linea.item_id) {
+            insumoPayload.contenedor_id = linea.item_id
+          } else if (linea.tipo === 'producto' && linea.item_id) {
+            insumoPayload.producto_id = linea.item_id
+          } else if (linea.tipo === 'producto_evento' && linea.item_id) {
+            const pe = productosEvento.find(p => p.codigo === linea.item_id)
+            if (pe) insumoPayload.producto_evento_id = pe.id
+          } else {
+            insumoPayload.nombre_otro = linea.nombre
+          }
+          
+          await axios.post(`${API_URL}/eventos/${eventoId}/insumos`, insumoPayload)
+        }
+        
+        alert(`✅ Evento creado: ${eventoId}`)
         setMostrarFormulario(false)
         resetForm()
         cargarEventos()
@@ -97,11 +262,17 @@ function EventosPage() {
       lugar_evento: '',
       cantidad_personas: 0,
       margen_porcentaje: 30,
-      costo_mano_obra: 0,
-      costo_transporte: 0,
-      costo_otros: 0,
       notas_cotizacion: ''
     })
+    
+    setLineasCosto([{
+      id: Date.now(),
+      tipo: 'mano_obra',
+      item_id: null,
+      nombre: '',
+      cantidad: 1,
+      costo_unitario: 0
+    }])
   }
   
   const getEstadoColor = (estado) => {
@@ -115,6 +286,94 @@ function EventosPage() {
       'Retirado': 'bg-gray-200 text-gray-600'
     }
     return colores[estado] || 'bg-gray-100 text-gray-800'
+  }
+  
+  const renderSelectorItem = (linea) => {
+    const tipo = linea.tipo
+    
+    if (tipo === 'flor') {
+      return (
+        <select
+          value={linea.item_id || ''}
+          onChange={(e) => actualizarLineaCosto(linea.id, 'item_id', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          required
+        >
+          <option value="">Seleccione una flor...</option>
+          {flores.map(flor => (
+            <option key={flor.id} value={flor.id}>
+              {flor.nombre} - ${flor.costo_unitario.toLocaleString()} (Stock: {flor.cantidad_disponible})
+            </option>
+          ))}
+        </select>
+      )
+    }
+    
+    if (tipo === 'contenedor') {
+      return (
+        <select
+          value={linea.item_id || ''}
+          onChange={(e) => actualizarLineaCosto(linea.id, 'item_id', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          required
+        >
+          <option value="">Seleccione un contenedor...</option>
+          {contenedores.map(cont => (
+            <option key={cont.id} value={cont.id}>
+              {cont.nombre} - ${cont.costo.toLocaleString()} (Stock: {cont.cantidad_disponible})
+            </option>
+          ))}
+        </select>
+      )
+    }
+    
+    if (tipo === 'producto') {
+      return (
+        <select
+          value={linea.item_id || ''}
+          onChange={(e) => actualizarLineaCosto(linea.id, 'item_id', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          required
+        >
+          <option value="">Seleccione un arreglo...</option>
+          {productos.map(prod => (
+            <option key={prod.id} value={prod.id}>
+              {prod.nombre} - ${(prod.costo_estimado || 0).toLocaleString()}
+            </option>
+          ))}
+        </select>
+      )
+    }
+    
+    if (tipo === 'producto_evento') {
+      return (
+        <select
+          value={linea.item_id || ''}
+          onChange={(e) => actualizarLineaCosto(linea.id, 'item_id', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          required
+        >
+          <option value="">Seleccione un producto evento...</option>
+          {productosEvento.map(pe => (
+            <option key={pe.codigo} value={pe.codigo}>
+              {pe.nombre} - Alquiler ${(pe.costo_alquiler || 0).toLocaleString()} (Disponible: {pe.cantidad_disponible})
+            </option>
+          ))}
+        </select>
+      )
+    }
+    
+    // Para mano_obra, transporte, otro
+    return (
+      <input
+        type="text"
+        value={linea.nombre}
+        onChange={(e) => actualizarLineaCosto(linea.id, 'nombre', e.target.value)}
+        placeholder="Ej: Montaje y desmontaje 4 horas"
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        required
+      />
+    )
   }
   
   return (
@@ -241,7 +500,12 @@ function EventosPage() {
                     <div className="flex items-center">
                       <Calendar className="h-5 w-5 text-gray-400 mr-3" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{evento.nombre_evento}</div>
+                        <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                          {evento.nombre_evento}
+                          {evento.insumos_faltantes && (
+                            <AlertTriangle className="h-4 w-4 text-red-500" title="⚠️ Insumos faltantes" />
+                          )}
+                        </div>
                         <div className="text-sm text-gray-500">{evento.tipo_evento}</div>
                       </div>
                     </div>
@@ -287,8 +551,8 @@ function EventosPage() {
       {/* Modal Formulario Nueva Cotización */}
       {mostrarFormulario && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setMostrarFormulario(false)}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
               <h2 className="text-2xl font-bold text-gray-900">Nueva Cotización de Evento</h2>
               <button onClick={() => setMostrarFormulario(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-6 w-6" />
@@ -407,53 +671,124 @@ function EventosPage() {
                 </div>
               </div>
               
-              {/* Costos */}
+              {/* Líneas de Costos Dinámicas */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary-600" />
-                  Costos Estimados
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mano de Obra</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.costo_mano_obra}
-                      onChange={(e) => setFormData({...formData, costo_mano_obra: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Transporte</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.costo_transporte}
-                      onChange={(e) => setFormData({...formData, costo_transporte: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Otros Costos</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.costo_otros}
-                      onChange={(e) => setFormData({...formData, costo_otros: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Margen Deseado (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.margen_porcentaje}
-                      onChange={(e) => setFormData({...formData, margen_porcentaje: parseFloat(e.target.value) || 30})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary-600" />
+                    Detalle de Costos
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={agregarLineaCosto}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 text-sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Línea
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {lineasCosto.map((linea, index) => (
+                    <div key={linea.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="grid grid-cols-12 gap-3 items-start">
+                        <div className="col-span-12 md:col-span-1 flex items-center">
+                          <span className="text-sm font-medium text-gray-700">#{index + 1}</span>
+                        </div>
+                        
+                        <div className="col-span-12 md:col-span-3">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Tipo de Costo *</label>
+                          <select
+                            value={linea.tipo}
+                            onChange={(e) => actualizarLineaCosto(linea.id, 'tipo', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                          >
+                            {TIPOS_COSTO.map(tipo => (
+                              <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            {['flor', 'contenedor', 'producto', 'producto_evento'].includes(linea.tipo) ? 'Seleccione del inventario *' : 'Descripción *'}
+                          </label>
+                          {renderSelectorItem(linea)}
+                        </div>
+                        
+                        <div className="col-span-6 md:col-span-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Cantidad *</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={linea.cantidad}
+                            onChange={(e) => actualizarLineaCosto(linea.id, 'cantidad', parseInt(e.target.value) || 1)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                          />
+                        </div>
+                        
+                        <div className="col-span-6 md:col-span-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Costo Unit. *</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={linea.costo_unitario}
+                            onChange={(e) => actualizarLineaCosto(linea.id, 'costo_unitario', parseFloat(e.target.value) || 0)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                            disabled={['flor', 'contenedor', 'producto', 'producto_evento'].includes(linea.tipo) && linea.item_id}
+                          />
+                        </div>
+                        
+                        <div className="col-span-10 md:col-span-2 flex items-center">
+                          <div className="w-full">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Total</label>
+                            <div className="text-sm font-bold text-gray-900 px-3 py-2 bg-white rounded-lg border border-gray-300">
+                              ${(linea.cantidad * linea.costo_unitario).toLocaleString('es-CL')}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="col-span-2 md:col-span-1 flex items-end justify-center">
+                          <button
+                            type="button"
+                            onClick={() => eliminarLineaCosto(linea.id)}
+                            className="text-red-600 hover:text-red-800 p-2"
+                            title="Eliminar línea"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Resumen de Costos */}
+                <div className="mt-6 bg-primary-50 border-2 border-primary-200 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Costo Total</label>
+                      <div className="text-2xl font-bold text-gray-900">
+                        ${calcularCostoTotal().toLocaleString('es-CL')}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Margen Deseado (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.margen_porcentaje}
+                        onChange={(e) => setFormData({...formData, margen_porcentaje: parseFloat(e.target.value) || 30})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Precio Propuesta</label>
+                      <div className="text-2xl font-bold text-primary-700">
+                        ${calcularPrecioPropuesta().toLocaleString('es-CL')}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -495,4 +830,3 @@ function EventosPage() {
 }
 
 export default EventosPage
-
