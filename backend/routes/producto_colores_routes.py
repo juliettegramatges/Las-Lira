@@ -257,17 +257,14 @@ def obtener_configuracion_completa(producto_id):
                 if not cf.activo:
                     continue
                 
+                # Convertir a dict y agregar campos adicionales
+                cf_dict = cf.to_dict()
+                
                 flor_info = {
-                    'id': cf.id,
-                    'flor_id': cf.flor_id,
-                    'flor_nombre': cf.flor_nombre,
-                    'flor_costo': cf.flor_costo,
-                    'flor_stock': cf.flor_stock,
-                    'flor_unidad': cf.flor_unidad,
-                    'es_predeterminada': cf.es_predeterminada,
+                    **cf_dict,
                     'cantidad_necesaria': color.cantidad_flores_sugerida,
-                    'hay_stock_suficiente': cf.flor_stock >= color.cantidad_flores_sugerida,
-                    'costo_color': float(cf.flor_costo) * color.cantidad_flores_sugerida
+                    'hay_stock_suficiente': cf_dict['flor_stock'] >= color.cantidad_flores_sugerida,
+                    'costo_color': float(cf_dict['flor_costo']) * color.cantidad_flores_sugerida
                 }
                 
                 flores_disponibles.append(flor_info)
@@ -277,7 +274,7 @@ def obtener_configuracion_completa(producto_id):
                     tiene_stock_color = True
                 
                 # Guardar la predeterminada para el cálculo
-                if cf.es_predeterminada:
+                if cf_dict['es_predeterminada']:
                     flor_predeterminada = flor_info
             
             # Si no hay stock para este color, no hay stock total
@@ -299,6 +296,8 @@ def obtener_configuracion_completa(producto_id):
             
             colores_detallados.append(color_detallado)
         
+        precio_venta_float = float(producto.precio_venta) if producto.precio_venta else 0
+        
         return jsonify({
             'success': True,
             'data': {
@@ -307,8 +306,8 @@ def obtener_configuracion_completa(producto_id):
                 'tiene_configuracion': len(colores) > 0,
                 'hay_stock_completo': hay_stock_total,
                 'costo_estimado_flores': costo_total_estimado,
-                'precio_venta': float(producto.precio_venta) if producto.precio_venta else 0,
-                'margen_estimado': float(producto.precio_venta - costo_total_estimado) if producto.precio_venta else 0
+                'precio_venta': precio_venta_float,
+                'margen_estimado': precio_venta_float - costo_total_estimado
             }
         })
         
