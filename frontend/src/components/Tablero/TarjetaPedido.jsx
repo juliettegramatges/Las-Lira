@@ -64,9 +64,9 @@ function TarjetaPedido({ pedido, onRecargar }) {
           <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-mono">
             {pedido.id}
           </span>
-          {pedido.canal === 'Shopify' && pedido.nro_pedido_shopify && (
+          {pedido.canal === 'Shopify' && pedido.shopify_order_number && (
             <span className="px-2 py-1 bg-green-50 text-green-700 rounded font-mono">
-              🛍️ {pedido.nro_pedido_shopify}
+              🛍️ {pedido.shopify_order_number}
             </span>
           )}
         </div>
