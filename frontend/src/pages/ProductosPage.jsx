@@ -46,7 +46,7 @@ function ProductosPage() {
     try {
       setUploadingFoto(true)
       const formData = new FormData()
-      formData.append('imagen', file)
+      formData.append('file', file)  // ✅ Cambiado de 'imagen' a 'file'
       
       const response = await axios.post(
         `${API_URL}/upload/producto/${productoId}/foto`,

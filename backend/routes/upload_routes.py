@@ -152,6 +152,11 @@ def actualizar_foto_contenedor(contenedor_id):
 def actualizar_foto_producto(producto_id):
     """Actualizar foto de un producto"""
     try:
+        # DEBUG: Ver qué está llegando
+        print(f"DEBUG: Content-Type: {request.content_type}")
+        print(f"DEBUG: Files: {list(request.files.keys())}")
+        print(f"DEBUG: Form: {list(request.form.keys())}")
+        
         producto = Producto.query.get(producto_id)
         if not producto:
             return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
