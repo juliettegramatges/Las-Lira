@@ -81,15 +81,20 @@ def actualizar_foto_flor(flor_id):
         # Si viene archivo
         if 'file' in request.files:
             file = request.files['file']
-            if file and allowed_file(file.filename):
+            if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(f"flor_{flor_id}_{file.filename}")
                 filepath = os.path.join(UPLOAD_FOLDER, filename)
                 file.save(filepath)
                 flor.foto_url = filename
+            else:
+                return jsonify({'success': False, 'error': 'Archivo no válido'}), 400
         
-        # Si viene URL
-        elif request.json and 'foto_url' in request.json:
-            flor.foto_url = request.json['foto_url']
+        # Si viene URL o null (para eliminar)
+        elif request.content_type and 'application/json' in request.content_type:
+            if request.json and 'foto_url' in request.json:
+                flor.foto_url = request.json['foto_url']
+        else:
+            return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
         
         db.session.commit()
         
@@ -115,15 +120,20 @@ def actualizar_foto_contenedor(contenedor_id):
         # Si viene archivo
         if 'file' in request.files:
             file = request.files['file']
-            if file and allowed_file(file.filename):
+            if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(f"contenedor_{contenedor_id}_{file.filename}")
                 filepath = os.path.join(UPLOAD_FOLDER, filename)
                 file.save(filepath)
                 contenedor.foto_url = filename
+            else:
+                return jsonify({'success': False, 'error': 'Archivo no válido'}), 400
         
-        # Si viene URL
-        elif request.json and 'foto_url' in request.json:
-            contenedor.foto_url = request.json['foto_url']
+        # Si viene URL o null (para eliminar)
+        elif request.content_type and 'application/json' in request.content_type:
+            if request.json and 'foto_url' in request.json:
+                contenedor.foto_url = request.json['foto_url']
+        else:
+            return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
         
         db.session.commit()
         
@@ -149,15 +159,20 @@ def actualizar_foto_producto(producto_id):
         # Si viene archivo
         if 'file' in request.files:
             file = request.files['file']
-            if file and allowed_file(file.filename):
+            if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(f"producto_{producto_id}_{file.filename}")
                 filepath = os.path.join(UPLOAD_FOLDER, filename)
                 file.save(filepath)
                 producto.imagen_url = filename
+            else:
+                return jsonify({'success': False, 'error': 'Archivo no válido'}), 400
         
-        # Si viene URL
-        elif request.json and 'imagen_url' in request.json:
-            producto.imagen_url = request.json['imagen_url']
+        # Si viene URL o null (para eliminar)
+        elif request.content_type and 'application/json' in request.content_type:
+            if request.json and 'imagen_url' in request.json:
+                producto.imagen_url = request.json['imagen_url']
+        else:
+            return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
         
         db.session.commit()
         
