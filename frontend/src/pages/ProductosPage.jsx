@@ -1026,10 +1026,13 @@ function ProductosPage() {
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               e.target.style.display = 'none'
-                              e.target.nextSibling.style.display = 'flex'
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = 'flex'
+                              }
                             }}
                           />
-                        ) : (
+                        ) : null}
+                        {!productoDetalle.imagen_url && (
                           <div className="flex items-center justify-center w-full h-full">
                             <Flower2 className="h-16 w-16 text-primary-600" />
                           </div>
