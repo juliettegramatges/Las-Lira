@@ -24,6 +24,13 @@ function PedidosPage() {
   const [historialPedidos, setHistorialPedidos] = useState([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
   
+  // Estados para insumos
+  const [receta, setReceta] = useState([])
+  const [insumosModificados, setInsumosModificados] = useState([])
+  const [loadingReceta, setLoadingReceta] = useState(false)
+  const [flores, setFlores] = useState([])
+  const [contenedores, setContenedores] = useState([])
+  
   // Estado del formulario
   const [formData, setFormData] = useState({
     canal: 'WhatsApp',
@@ -75,6 +82,18 @@ function PedidosPage() {
         setProductos(prodResponse.data.data)
       }
       
+      // Cargar flores
+      const floresResponse = await axios.get(`${API_URL}/inventario/flores`)
+      if (floresResponse.data.success) {
+        setFlores(floresResponse.data.data)
+      }
+      
+      // Cargar contenedores
+      const contResponse = await axios.get(`${API_URL}/inventario/contenedores`)
+      if (contResponse.data.success) {
+        setContenedores(contResponse.data.data)
+      }
+      
       // Cargar comunas
       const comunasResponse = await axios.get(`${API_URL}/rutas/comunas`)
       if (comunasResponse.data.success) {
@@ -94,7 +113,7 @@ function PedidosPage() {
     }))
   }
   
-  const handleProductoChange = (productoId) => {
+  const handleProductoChange = async (productoId) => {
     const productoSeleccionado = productos.find(p => p.id === productoId)
     setFormData(prev => ({
       ...prev,
@@ -102,6 +121,36 @@ function PedidosPage() {
       arreglo_pedido: productoSeleccionado?.nombre || prev.arreglo_pedido,
       precio_ramo: productoSeleccionado?.precio_venta || prev.precio_ramo
     }))
+    
+    // Cargar recetario del producto
+    if (productoId) {
+      try {
+        setLoadingReceta(true)
+        const response = await axios.get(`${API_URL}/productos/${productoId}/receta`)
+        if (response.data.success) {
+          // Convertir receta a formato editable para insumos
+          const insumosIniciales = response.data.receta.map(item => ({
+            insumo_tipo: item.tipo_insumo === 'Flor' ? 'Flor' : 'Contenedor',
+            insumo_id: item.insumo_id,
+            insumo_nombre: item.insumo_nombre,
+            insumo_color: item.color,
+            insumo_foto: item.foto_url,
+            cantidad: item.cantidad,
+            costo_unitario: item.costo_unitario,
+            stock_disponible: item.stock_disponible
+          }))
+          setReceta(insumosIniciales)
+          setInsumosModificados(JSON.parse(JSON.stringify(insumosIniciales))) // Copia profunda
+        }
+      } catch (err) {
+        console.error('Error al cargar recetario:', err)
+      } finally {
+        setLoadingReceta(false)
+      }
+    } else {
+      setReceta([])
+      setInsumosModificados([])
+    }
   }
   
   // Plazos de pago según tipo de cliente
@@ -223,6 +272,66 @@ function PedidosPage() {
     }
   }
   
+  // Funciones para modificar insumos
+  const handleCantidadInsumo = (index, nuevaCantidad) => {
+    const nuevosInsumos = [...insumosModificados]
+    nuevosInsumos[index].cantidad = parseInt(nuevaCantidad) || 0
+    setInsumosModificados(nuevosInsumos)
+  }
+  
+  const handleCambiarInsumo = (index, nuevoInsumoId, tipo) => {
+    const nuevosInsumos = [...insumosModificados]
+    
+    if (tipo === 'Flor') {
+      const florSeleccionada = flores.find(f => f.id === nuevoInsumoId)
+      if (florSeleccionada) {
+        nuevosInsumos[index] = {
+          ...nuevosInsumos[index],
+          insumo_id: florSeleccionada.id,
+          insumo_nombre: florSeleccionada.tipo,
+          insumo_color: florSeleccionada.color,
+          insumo_foto: florSeleccionada.foto_url,
+          costo_unitario: florSeleccionada.costo_unitario,
+          stock_disponible: florSeleccionada.cantidad_disponible
+        }
+      }
+    } else if (tipo === 'Contenedor') {
+      const contenedorSeleccionado = contenedores.find(c => c.id === nuevoInsumoId)
+      if (contenedorSeleccionado) {
+        nuevosInsumos[index] = {
+          ...nuevosInsumos[index],
+          insumo_id: contenedorSeleccionado.id,
+          insumo_nombre: contenedorSeleccionado.tipo,
+          insumo_color: contenedorSeleccionado.material,
+          insumo_foto: contenedorSeleccionado.foto_url,
+          costo_unitario: contenedorSeleccionado.costo_unitario,
+          stock_disponible: contenedorSeleccionado.cantidad_disponible
+        }
+      }
+    }
+    
+    setInsumosModificados(nuevosInsumos)
+  }
+  
+  const handleEliminarInsumo = (index) => {
+    const nuevosInsumos = insumosModificados.filter((_, i) => i !== index)
+    setInsumosModificados(nuevosInsumos)
+  }
+  
+  const handleAgregarInsumo = (tipo) => {
+    const nuevoInsumo = {
+      insumo_tipo: tipo,
+      insumo_id: '',
+      insumo_nombre: '',
+      insumo_color: '',
+      insumo_foto: '',
+      cantidad: 1,
+      costo_unitario: 0,
+      stock_disponible: 0
+    }
+    setInsumosModificados([...insumosModificados, nuevoInsumo])
+  }
+  
   const handleSubmitPedido = async (e) => {
     e.preventDefault()
     
@@ -277,7 +386,21 @@ function PedidosPage() {
       const response = await axios.post(`${API_URL}/pedidos`, pedidoData)
       
       if (response.data.success) {
-        alert('✅ Pedido creado exitosamente: ' + response.data.data.id)
+        const nuevoPedidoId = response.data.data.id
+        
+        // Si hay insumos modificados, guardarlos
+        if (insumosModificados.length > 0) {
+          try {
+            await axios.post(`${API_URL}/pedidos/${nuevoPedidoId}/insumos`, {
+              insumos: insumosModificados
+            })
+          } catch (insumosErr) {
+            console.error('Error al guardar insumos:', insumosErr)
+            alert('⚠️ Pedido creado pero error al guardar insumos: ' + (insumosErr.response?.data?.error || insumosErr.message))
+          }
+        }
+        
+        alert('✅ Pedido creado exitosamente: ' + nuevoPedidoId)
         setMostrarFormulario(false)
         setClienteEncontrado(null)
         setPlazoPagoManual(false)
@@ -285,6 +408,8 @@ function PedidosPage() {
         setMostrarSugerencias(false)
         setHistorialPedidos([])
         setCargandoHistorial(false)
+        setReceta([])
+        setInsumosModificados([])
         setFormData({
           canal: 'WhatsApp',
           shopify_order_number: '',
