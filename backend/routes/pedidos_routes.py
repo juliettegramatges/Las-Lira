@@ -217,17 +217,35 @@ def actualizar_estado(pedido_id):
         
         pedido.estado = nuevo_estado
         
-        # Actualizar etiqueta de día si es necesario
+        # 🔥 NUEVO: Actualizar fecha_entrega según la columna a la que se mueve
+        from datetime import datetime, timedelta
         from backend.utils.fecha_helpers import obtener_dia_semana
+        
+        hoy = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+        
+        # Si se mueve a columnas específicas, actualizar la fecha de entrega
+        if nuevo_estado == 'Entregas de Hoy':
+            pedido.fecha_entrega = hoy
+            print(f"📅 Actualizando fecha_entrega de {pedido.id} → HOY ({hoy.date()})")
+        elif nuevo_estado == 'Entregas para Mañana':
+            pedido.fecha_entrega = hoy + timedelta(days=1)
+            print(f"📅 Actualizando fecha_entrega de {pedido.id} → MAÑANA ({(hoy + timedelta(days=1)).date()})")
+        
+        # Actualizar etiqueta de día según la fecha (ya actualizada si corresponde)
         if pedido.fecha_entrega:
-            pedido.dia_entrega = obtener_dia_semana(pedido.fecha_entrega)
+            dia_calculado = obtener_dia_semana(pedido.fecha_entrega)
+            pedido.dia_entrega = dia_calculado
+            print(f"🔄 {pedido.id}: estado={nuevo_estado}, fecha_entrega={pedido.fecha_entrega.date()}, dia_entrega={dia_calculado}")
         
         db.session.commit()
         
+        pedido_dict = pedido.to_dict()
+        print(f"✅ Pedido actualizado: dia_entrega={pedido_dict.get('dia_entrega')}, fecha_entrega={pedido_dict.get('fecha_entrega')}")
+        
         return jsonify({
             'success': True,
-            'data': pedido.to_dict(),
-            'message': f'Estado actualizado a: {nuevo_estado}'
+            'data': pedido_dict,
+            'message': f'Estado y fecha actualizados a: {nuevo_estado}'
         })
         
     except Exception as e:
