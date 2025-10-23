@@ -768,10 +768,6 @@ function PedidosPage() {
                             setMostrarSugerencias(true)
                           }
                         }}
-                        onBlur={() => {
-                          // Delay para permitir que el click en el dropdown se procese primero
-                          setTimeout(() => setMostrarSugerencias(false), 200)
-                        }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Escribe el nombre para buscar..."
                         autoComplete="off"
