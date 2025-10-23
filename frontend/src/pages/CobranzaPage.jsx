@@ -73,6 +73,22 @@ const CobranzaPage = () => {
     return <AlertCircle className="h-4 w-4 text-orange-600" />
   }
 
+  const calcularDiasFaltantes = (fechaMaximaPago) => {
+    if (!fechaMaximaPago) return null
+    
+    const hoy = new Date()
+    const fechaLimite = new Date(fechaMaximaPago)
+    const diferencia = Math.ceil((fechaLimite - hoy) / (1000 * 60 * 60 * 24))
+    
+    return diferencia
+  }
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return null
+    const date = new Date(fecha)
+    return date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+
   if (loading) {
     return <div className="p-6">Cargando...</div>
   }
@@ -119,6 +135,7 @@ const CobranzaPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">💰 Pago</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">🧾 Documento</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">📅 Plazo Pago</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
@@ -149,6 +166,45 @@ const CobranzaPage = () => {
                         : pedido.documento_tributario}
                     </span>
                   </td>
+                  <td className="px-6 py-4">
+                    {pedido.fecha_maxima_pago ? (
+                      <>
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatearFecha(pedido.fecha_maxima_pago)}
+                        </div>
+                        {(() => {
+                          const dias = calcularDiasFaltantes(pedido.fecha_maxima_pago)
+                          if (dias < 0) {
+                            return (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                ⚠️ Vencido hace {Math.abs(dias)} días
+                              </span>
+                            )
+                          } else if (dias === 0) {
+                            return (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                                ⏰ Vence hoy
+                              </span>
+                            )
+                          } else if (dias <= 3) {
+                            return (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                ⚠️ {dias} días restantes
+                              </span>
+                            )
+                          } else {
+                            return (
+                              <span className="text-xs text-gray-500">
+                                ✅ {dias} días restantes
+                              </span>
+                            )
+                          }
+                        })()}
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400">Pago inmediato</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-semibold text-gray-900">
                       ${pedido.precio_total?.toLocaleString('es-CL')}
@@ -166,7 +222,7 @@ const CobranzaPage = () => {
               ))}
               {(!resumen?.sin_pagar?.pedidos || resumen.sin_pagar.pedidos.length === 0) && (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                     ✅ No hay pedidos pendientes de pago
                   </td>
                 </tr>

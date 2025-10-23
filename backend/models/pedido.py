@@ -52,6 +52,7 @@ class Pedido(db.Model):
     # Cobranza detallada
     cobranza = db.Column(db.String(200))  # Legado (mantener por compatibilidad)
     plazo_pago_dias = db.Column(db.Integer, default=0)  # Días de plazo para pagar
+    fecha_maxima_pago = db.Column(db.DateTime)  # Fecha límite para pagar (calculada)
     # 💰 Pago - Estado del pago
     metodo_pago = db.Column(
         db.Enum('Tr. BICE', 'Tr. Santander', 'Tr. Itaú', 'Tr. Falta transferencia', 
@@ -114,6 +115,7 @@ class Pedido(db.Model):
             'tipo_pedido': self.tipo_pedido,
             'cobranza': self.cobranza,
             'plazo_pago_dias': self.plazo_pago_dias,
+            'fecha_maxima_pago': self.fecha_maxima_pago.isoformat() if self.fecha_maxima_pago else None,
             'metodo_pago': self.metodo_pago,
             'documento_tributario': self.documento_tributario,
             'numero_documento': self.numero_documento,

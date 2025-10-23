@@ -8,7 +8,7 @@ from backend.models.pedido import Pedido, PedidoInsumo
 from backend.models.cliente import Cliente
 from backend.config.plazos_pago import obtener_plazo_pago
 from backend.utils.fecha_helpers import clasificar_pedido
-from datetime import datetime
+from datetime import datetime, timedelta
 
 bp = Blueprint('pedidos', __name__)
 
@@ -133,6 +133,13 @@ def crear_pedido():
         # 🚀 CLASIFICACIÓN AUTOMÁTICA: Determinar estado y día según fecha de entrega
         clasificacion = clasificar_pedido(fecha_entrega)
         
+        # 💰 CALCULAR FECHA MÁXIMA DE PAGO
+        # Si tiene plazo de pago, calcular fecha límite
+        fecha_maxima_pago = None
+        if plazo_pago > 0:
+            # Fecha máxima = fecha del pedido + días de plazo
+            fecha_maxima_pago = datetime.utcnow() + timedelta(days=plazo_pago)
+        
         # Crear pedido
         pedido = Pedido(
             id=nuevo_id,
@@ -154,6 +161,7 @@ def crear_pedido():
             comuna=data.get('comuna'),
             motivo=data.get('motivo'),
             plazo_pago_dias=plazo_pago,
+            fecha_maxima_pago=fecha_maxima_pago,  # 📅 Fecha límite de pago
             fecha_entrega=fecha_entrega,
             estado=clasificacion['estado'],  # 🎯 Estado automático
             dia_entrega=clasificacion['dia_entrega']  # 📅 Día automático
