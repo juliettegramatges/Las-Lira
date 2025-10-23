@@ -11,6 +11,7 @@ class Flor(db.Model):
     id = db.Column(db.String(10), primary_key=True)
     tipo = db.Column(db.String(50), nullable=False)
     color = db.Column(db.String(30), nullable=False)
+    foto_url = db.Column(db.String(500))  # URL o nombre de archivo de la foto
     proveedor_id = db.Column(db.String(10), db.ForeignKey('proveedores.id'))
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     cantidad_stock = db.Column(db.Integer, default=0, nullable=False)
@@ -26,6 +27,7 @@ class Flor(db.Model):
             'id': self.id,
             'tipo': self.tipo,
             'color': self.color,
+            'foto_url': self.foto_url,
             'proveedor_id': self.proveedor_id,
             'proveedor_nombre': self.proveedor.nombre if self.proveedor else None,
             'costo_unitario': float(self.costo_unitario),
@@ -47,6 +49,7 @@ class Contenedor(db.Model):
     forma = db.Column(db.String(30), nullable=False)
     tamano = db.Column(db.String(50), nullable=False)
     color = db.Column(db.String(30), nullable=False)
+    foto_url = db.Column(db.String(500))  # URL o nombre de archivo de la foto
     costo = db.Column(db.Numeric(10, 2), nullable=False)
     stock = db.Column(db.Integer, default=0, nullable=False)
     bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'), nullable=False)
@@ -63,6 +66,7 @@ class Contenedor(db.Model):
             'forma': self.forma,
             'tamano': self.tamano,
             'color': self.color,
+            'foto_url': self.foto_url,
             'costo': float(self.costo),
             'stock': self.stock,
             'bodega_id': self.bodega_id,

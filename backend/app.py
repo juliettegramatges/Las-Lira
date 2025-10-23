@@ -23,12 +23,13 @@ CORS(app)
 db = SQLAlchemy(app)
 
 # Importar rutas
-from routes import pedidos_routes, inventario_routes, productos_routes
+from routes import pedidos_routes, inventario_routes, productos_routes, upload_routes
 
 # Registrar blueprints
 app.register_blueprint(pedidos_routes.bp, url_prefix='/api/pedidos')
 app.register_blueprint(inventario_routes.bp, url_prefix='/api/inventario')
 app.register_blueprint(productos_routes.bp, url_prefix='/api/productos')
+app.register_blueprint(upload_routes.bp, url_prefix='/api/upload')
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

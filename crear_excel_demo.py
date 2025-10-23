@@ -26,32 +26,32 @@ def crear_inventario_flores():
     ws.title = "Flores"
     
     # Encabezados
-    headers = ["ID", "Tipo de Flor", "Color", "Proveedor", "Costo Unitario", "Cantidad Stock Actual", "Unidad", "Última Actualización"]
+    headers = ["ID", "Tipo de Flor", "Color", "Foto", "Proveedor", "Costo Unitario", "Cantidad Stock Actual", "Unidad", "Última Actualización"]
     ws.append(headers)
     crear_estilo_header(ws)
     
     # Datos demo
     flores = [
-        ["FL001", "Rosa", "Rojo", "Flores del Valle", 1500, 120, "Tallo", "2025-10-20"],
-        ["FL002", "Rosa", "Blanco", "Flores del Valle", 1500, 85, "Tallo", "2025-10-20"],
-        ["FL003", "Rosa", "Rosado", "Flores del Valle", 1500, 95, "Tallo", "2025-10-20"],
-        ["FL004", "Rosa", "Amarillo", "Flores del Valle", 1500, 60, "Tallo", "2025-10-21"],
-        ["FL005", "Lirio", "Blanco", "Jardín Central", 2500, 45, "Tallo", "2025-10-19"],
-        ["FL006", "Lirio", "Rosado", "Jardín Central", 2500, 38, "Tallo", "2025-10-19"],
-        ["FL007", "Girasol", "Amarillo", "Campo Florido", 2000, 30, "Tallo", "2025-10-22"],
-        ["FL008", "Clavel", "Rojo", "Flores del Valle", 800, 150, "Tallo", "2025-10-20"],
-        ["FL009", "Clavel", "Blanco", "Flores del Valle", 800, 140, "Tallo", "2025-10-20"],
-        ["FL010", "Clavel", "Rosado", "Flores del Valle", 800, 130, "Tallo", "2025-10-20"],
-        ["FL011", "Tulipán", "Rojo", "Jardín Central", 2200, 25, "Tallo", "2025-10-18"],
-        ["FL012", "Tulipán", "Amarillo", "Jardín Central", 2200, 20, "Tallo", "2025-10-18"],
-        ["FL013", "Hortensia", "Azul", "Campo Florido", 3500, 15, "Ramo", "2025-10-21"],
-        ["FL014", "Hortensia", "Rosado", "Campo Florido", 3500, 18, "Ramo", "2025-10-21"],
-        ["FL015", "Gerbera", "Naranja", "Flores del Valle", 1800, 55, "Tallo", "2025-10-20"],
-        ["FL016", "Gerbera", "Rosado", "Flores del Valle", 1800, 48, "Tallo", "2025-10-20"],
-        ["FL017", "Orquídea", "Blanco", "Jardín Central", 5000, 12, "Tallo", "2025-10-19"],
-        ["FL018", "Alstroemeria", "Morado", "Campo Florido", 1200, 70, "Tallo", "2025-10-22"],
-        ["FL019", "Eucalipto", "Verde", "Campo Florido", 500, 200, "Rama", "2025-10-21"],
-        ["FL020", "Solidago", "Amarillo", "Flores del Valle", 600, 100, "Rama", "2025-10-20"],
+        ["FL001", "Rosa", "Rojo", "rosa-roja.jpg", "Flores del Valle", 1500, 120, "Tallo", "2025-10-20"],
+        ["FL002", "Rosa", "Blanco", "rosa-blanca.jpg", "Flores del Valle", 1500, 85, "Tallo", "2025-10-20"],
+        ["FL003", "Rosa", "Rosado", "rosa-rosada.jpg", "Flores del Valle", 1500, 95, "Tallo", "2025-10-20"],
+        ["FL004", "Rosa", "Amarillo", "rosa-amarilla.jpg", "Flores del Valle", 1500, 60, "Tallo", "2025-10-21"],
+        ["FL005", "Lirio", "Blanco", "lirio-blanco.jpg", "Jardín Central", 2500, 45, "Tallo", "2025-10-19"],
+        ["FL006", "Lirio", "Rosado", "lirio-rosado.jpg", "Jardín Central", 2500, 38, "Tallo", "2025-10-19"],
+        ["FL007", "Girasol", "Amarillo", "girasol.jpg", "Campo Florido", 2000, 30, "Tallo", "2025-10-22"],
+        ["FL008", "Clavel", "Rojo", "clavel-rojo.jpg", "Flores del Valle", 800, 150, "Tallo", "2025-10-20"],
+        ["FL009", "Clavel", "Blanco", "clavel-blanco.jpg", "Flores del Valle", 800, 140, "Tallo", "2025-10-20"],
+        ["FL010", "Clavel", "Rosado", "clavel-rosado.jpg", "Flores del Valle", 800, 130, "Tallo", "2025-10-20"],
+        ["FL011", "Tulipán", "Rojo", "tulipan-rojo.jpg", "Jardín Central", 2200, 25, "Tallo", "2025-10-18"],
+        ["FL012", "Tulipán", "Amarillo", "tulipan-amarillo.jpg", "Jardín Central", 2200, 20, "Tallo", "2025-10-18"],
+        ["FL013", "Hortensia", "Azul", "hortensia-azul.jpg", "Campo Florido", 3500, 15, "Ramo", "2025-10-21"],
+        ["FL014", "Hortensia", "Rosado", "hortensia-rosada.jpg", "Campo Florido", 3500, 18, "Ramo", "2025-10-21"],
+        ["FL015", "Gerbera", "Naranja", "gerbera-naranja.jpg", "Flores del Valle", 1800, 55, "Tallo", "2025-10-20"],
+        ["FL016", "Gerbera", "Rosado", "gerbera-rosada.jpg", "Flores del Valle", 1800, 48, "Tallo", "2025-10-20"],
+        ["FL017", "Orquídea", "Blanco", "orquidea-blanca.jpg", "Jardín Central", 5000, 12, "Tallo", "2025-10-19"],
+        ["FL018", "Alstroemeria", "Morado", "alstroemeria-morada.jpg", "Campo Florido", 1200, 70, "Tallo", "2025-10-22"],
+        ["FL019", "Eucalipto", "Verde", "eucalipto.jpg", "Campo Florido", 500, 200, "Rama", "2025-10-21"],
+        ["FL020", "Solidago", "Amarillo", "solidago.jpg", "Flores del Valle", 600, 100, "Rama", "2025-10-20"],
     ]
     
     for fila in flores:
@@ -61,11 +61,12 @@ def crear_inventario_flores():
     ws.column_dimensions['A'].width = 8
     ws.column_dimensions['B'].width = 15
     ws.column_dimensions['C'].width = 12
-    ws.column_dimensions['D'].width = 18
-    ws.column_dimensions['E'].width = 15
-    ws.column_dimensions['F'].width = 18
-    ws.column_dimensions['G'].width = 10
-    ws.column_dimensions['H'].width = 18
+    ws.column_dimensions['D'].width = 20
+    ws.column_dimensions['E'].width = 18
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 18
+    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['I'].width = 18
     
     wb.save("01_Inventario_Flores.xlsx")
     print("✅ Archivo '01_Inventario_Flores.xlsx' creado")
@@ -77,27 +78,27 @@ def crear_inventario_contenedores():
     ws.title = "Contenedores"
     
     # Encabezados
-    headers = ["ID", "Tipo", "Material", "Forma", "Tamaño", "Color", "Costo", "Stock", "Bodega", "Última Actualización"]
+    headers = ["ID", "Tipo", "Material", "Forma", "Tamaño", "Color", "Foto", "Costo", "Stock", "Bodega", "Última Actualización"]
     ws.append(headers)
     crear_estilo_header(ws)
     
     # Datos demo
     contenedores = [
-        ["CO001", "Florero", "Vidrio", "Cilíndrico", "Grande (30cm)", "Transparente", 3500, 15, "Bodega 1", "2025-10-15"],
-        ["CO002", "Florero", "Vidrio", "Cilíndrico", "Mediano (20cm)", "Transparente", 2500, 22, "Bodega 1", "2025-10-15"],
-        ["CO003", "Florero", "Vidrio", "Cilíndrico", "Pequeño (15cm)", "Transparente", 1500, 30, "Bodega 2", "2025-10-15"],
-        ["CO004", "Florero", "Cerámica", "Redondo", "Mediano (18cm)", "Blanco", 4000, 12, "Bodega 1", "2025-10-18"],
-        ["CO005", "Florero", "Cerámica", "Cuadrado", "Pequeño (12cm)", "Negro", 3000, 18, "Bodega 1", "2025-10-18"],
-        ["CO006", "Macetero", "Cerámica", "Redondo", "Grande (25cm)", "Terracota", 5000, 10, "Bodega 2", "2025-10-19"],
-        ["CO007", "Macetero", "Cerámica", "Redondo", "Mediano (18cm)", "Terracota", 3500, 15, "Bodega 2", "2025-10-19"],
-        ["CO008", "Macetero", "Cerámica", "Redondo", "Pequeño (12cm)", "Terracota", 2000, 25, "Bodega 2", "2025-10-19"],
-        ["CO009", "Macetero", "Plástico", "Redondo", "Mediano (18cm)", "Blanco", 1500, 30, "Bodega 1", "2025-10-20"],
-        ["CO010", "Canasto", "Mimbre", "Rectangular", "Grande (35cm)", "Natural", 4500, 8, "Bodega 1", "2025-10-16"],
-        ["CO011", "Canasto", "Mimbre", "Rectangular", "Mediano (25cm)", "Natural", 3000, 12, "Bodega 1", "2025-10-16"],
-        ["CO012", "Canasto", "Mimbre", "Redondo", "Pequeño (20cm)", "Natural", 2500, 15, "Bodega 2", "2025-10-16"],
-        ["CO013", "Florero", "Vidrio", "Burbuja", "Pequeño (10cm)", "Transparente", 2000, 20, "Bodega 1", "2025-10-17"],
-        ["CO014", "Macetero", "Cerámica", "Cuadrado", "Grande (30cm)", "Gris", 6000, 6, "Bodega 2", "2025-10-21"],
-        ["CO015", "Canasto", "Mimbre", "Ovalado", "Mediano (28cm)", "Natural", 3500, 10, "Bodega 1", "2025-10-16"],
+        ["CO001", "Florero", "Vidrio", "Cilíndrico", "Grande (30cm)", "Transparente", "florero-vidrio-grande.jpg", 3500, 15, "Bodega 1", "2025-10-15"],
+        ["CO002", "Florero", "Vidrio", "Cilíndrico", "Mediano (20cm)", "Transparente", "florero-vidrio-mediano.jpg", 2500, 22, "Bodega 1", "2025-10-15"],
+        ["CO003", "Florero", "Vidrio", "Cilíndrico", "Pequeño (15cm)", "Transparente", "florero-vidrio-pequeno.jpg", 1500, 30, "Bodega 2", "2025-10-15"],
+        ["CO004", "Florero", "Cerámica", "Redondo", "Mediano (18cm)", "Blanco", "florero-ceramica-blanco.jpg", 4000, 12, "Bodega 1", "2025-10-18"],
+        ["CO005", "Florero", "Cerámica", "Cuadrado", "Pequeño (12cm)", "Negro", "florero-ceramica-negro.jpg", 3000, 18, "Bodega 1", "2025-10-18"],
+        ["CO006", "Macetero", "Cerámica", "Redondo", "Grande (25cm)", "Terracota", "macetero-terracota-grande.jpg", 5000, 10, "Bodega 2", "2025-10-19"],
+        ["CO007", "Macetero", "Cerámica", "Redondo", "Mediano (18cm)", "Terracota", "macetero-terracota-mediano.jpg", 3500, 15, "Bodega 2", "2025-10-19"],
+        ["CO008", "Macetero", "Cerámica", "Redondo", "Pequeño (12cm)", "Terracota", "macetero-terracota-pequeno.jpg", 2000, 25, "Bodega 2", "2025-10-19"],
+        ["CO009", "Macetero", "Plástico", "Redondo", "Mediano (18cm)", "Blanco", "macetero-plastico-blanco.jpg", 1500, 30, "Bodega 1", "2025-10-20"],
+        ["CO010", "Canasto", "Mimbre", "Rectangular", "Grande (35cm)", "Natural", "canasto-rectangular-grande.jpg", 4500, 8, "Bodega 1", "2025-10-16"],
+        ["CO011", "Canasto", "Mimbre", "Rectangular", "Mediano (25cm)", "Natural", "canasto-rectangular-mediano.jpg", 3000, 12, "Bodega 1", "2025-10-16"],
+        ["CO012", "Canasto", "Mimbre", "Redondo", "Pequeño (20cm)", "Natural", "canasto-redondo-pequeno.jpg", 2500, 15, "Bodega 2", "2025-10-16"],
+        ["CO013", "Florero", "Vidrio", "Burbuja", "Pequeño (10cm)", "Transparente", "florero-burbuja.jpg", 2000, 20, "Bodega 1", "2025-10-17"],
+        ["CO014", "Macetero", "Cerámica", "Cuadrado", "Grande (30cm)", "Gris", "macetero-ceramica-gris.jpg", 6000, 6, "Bodega 2", "2025-10-21"],
+        ["CO015", "Canasto", "Mimbre", "Ovalado", "Mediano (28cm)", "Natural", "canasto-ovalado.jpg", 3500, 10, "Bodega 1", "2025-10-16"],
     ]
     
     for fila in contenedores:
@@ -110,10 +111,11 @@ def crear_inventario_contenedores():
     ws.column_dimensions['D'].width = 14
     ws.column_dimensions['E'].width = 18
     ws.column_dimensions['F'].width = 14
-    ws.column_dimensions['G'].width = 10
-    ws.column_dimensions['H'].width = 8
-    ws.column_dimensions['I'].width = 12
-    ws.column_dimensions['J'].width = 18
+    ws.column_dimensions['G'].width = 25
+    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['I'].width = 8
+    ws.column_dimensions['J'].width = 12
+    ws.column_dimensions['K'].width = 18
     
     wb.save("02_Inventario_Contenedores.xlsx")
     print("✅ Archivo '02_Inventario_Contenedores.xlsx' creado")

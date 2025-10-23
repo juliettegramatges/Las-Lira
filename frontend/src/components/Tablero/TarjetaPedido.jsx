@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare } from 'lucide-react'
+import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare, Image as ImageIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -20,6 +20,17 @@ function TarjetaPedido({ pedido, onRecargar }) {
       onDragStart={handleDragStart}
       className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-move"
     >
+      {/* Imagen del producto (si tiene) */}
+      {pedido.producto_imagen && (
+        <div className="mb-3 -mx-4 -mt-4">
+          <img 
+            src={pedido.producto_imagen.startsWith('http') ? pedido.producto_imagen : `/api/upload/imagen/${pedido.producto_imagen}`}
+            alt={pedido.producto_nombre || 'Arreglo'}
+            className="w-full h-32 object-cover rounded-t-lg"
+          />
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
