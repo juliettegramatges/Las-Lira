@@ -250,6 +250,11 @@ def importar_pedidos():
             fecha_pedido = datetime.strptime(row[1], '%Y-%m-%d %H:%M') if row[1] else datetime.now()
             fecha_entrega = datetime.strptime(row[2], '%Y-%m-%d %H:%M') if row[2] else datetime.now()
             
+            # Buscar producto_id del pedido (por nombre del arreglo)
+            arreglo_nombre = row[8]
+            producto = Producto.query.filter_by(nombre=arreglo_nombre).first()
+            producto_id = producto.id if producto else None
+            
             pedido = Pedido(
                 id=row[0],
                 fecha_pedido=fecha_pedido,
@@ -259,6 +264,7 @@ def importar_pedidos():
                 shopify_order_number=row[5] if row[5] else None,
                 cliente_nombre=row[6],
                 cliente_telefono=row[7],
+                producto_id=producto_id,  # Asociar producto
                 arreglo_pedido=row[8],
                 detalles_adicionales=row[9] if row[9] else None,
                 precio_ramo=float(row[10]) if row[10] else 0,
@@ -286,6 +292,67 @@ def importar_pedidos():
     
     db.session.commit()
     print(f"✅ {count} pedidos importados")
+
+
+def copiar_insumos_a_pedidos():
+    """Copiar insumos de las recetas de productos a los pedidos"""
+    print("\n🔧 Copiando insumos de productos a pedidos...")
+    
+    pedidos = Pedido.query.all()
+    count_pedidos = 0
+    count_insumos = 0
+    
+    for pedido in pedidos:
+        if not pedido.producto_id:
+            print(f"⚠️  Pedido {pedido.id} no tiene producto asociado")
+            continue
+        
+        # Buscar receta del producto
+        recetas = RecetaProducto.query.filter_by(producto_id=pedido.producto_id).all()
+        
+        if not recetas:
+            print(f"⚠️  Producto {pedido.producto_id} no tiene receta definida")
+            continue
+        
+        # Copiar cada insumo de la receta al pedido
+        for receta in recetas:
+            # Obtener costo unitario e información de stock
+            if receta.insumo_tipo == 'Flor':
+                insumo = Flor.query.get(receta.insumo_id)
+            else:
+                insumo = Contenedor.query.get(receta.insumo_id)
+            
+            if not insumo:
+                print(f"⚠️  Insumo {receta.insumo_id} no encontrado")
+                continue
+            
+            # Crear PedidoInsumo
+            # Flores tienen 'costo_unitario', Contenedores tienen 'costo'
+            if receta.insumo_tipo == 'Flor':
+                costo_unitario = float(insumo.costo_unitario)
+            else:
+                costo_unitario = float(insumo.costo)
+                
+            cantidad = int(receta.cantidad)
+            costo_total = costo_unitario * cantidad
+            
+            pedido_insumo = PedidoInsumo(
+                pedido_id=pedido.id,
+                insumo_tipo=receta.insumo_tipo,
+                insumo_id=receta.insumo_id,
+                cantidad=cantidad,
+                costo_unitario=costo_unitario,
+                costo_total=costo_total,
+                descontado_stock=False  # Aún no se descuenta
+            )
+            
+            db.session.add(pedido_insumo)
+            count_insumos += 1
+        
+        count_pedidos += 1
+    
+    db.session.commit()
+    print(f"✅ {count_insumos} insumos copiados a {count_pedidos} pedidos")
 
 def importar_clientes():
     """Importar clientes desde Excel (sin estadísticas, se calculan después)"""
@@ -404,6 +471,7 @@ def main():
             importar_recetas()
             importar_clientes()  # Importar clientes ANTES de pedidos
             importar_pedidos()
+            copiar_insumos_a_pedidos()  # Copiar insumos de recetas a pedidos
             vincular_pedidos_a_clientes()  # Vincular y calcular estadísticas
             
             print("\n" + "=" * 60)

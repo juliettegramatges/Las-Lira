@@ -404,6 +404,23 @@ def crear_recetas_productos():
         # Orquídea Imperial (PR008)
         ["PR008", "Orquídea Imperial", "FL017", "Flor", "Orquídea Blanco", "3", "Tallos"],
         ["PR008", "Orquídea Imperial", "CO007", "Contenedor", "Macetero Cerámica Mediano", "1", "Unidad"],
+        
+        # Campo Silvestre (PR007)
+        ["PR007", "Campo Silvestre", "FL015", "Flor", "Gerbera Naranja", "4", "Tallos"],
+        ["PR007", "Campo Silvestre", "FL016", "Flor", "Gerbera Rosado", "4", "Tallos"],
+        ["PR007", "Campo Silvestre", "FL018", "Flor", "Alstroemeria Morado", "6", "Tallos"],
+        ["PR007", "Campo Silvestre", "FL020", "Flor", "Solidago Amarillo", "4", "Ramas"],
+        ["PR007", "Campo Silvestre", "FL019", "Flor", "Eucalipto Verde", "5", "Ramas"],
+        ["PR007", "Campo Silvestre", "CO011", "Contenedor", "Canasto Mimbre Rectangular", "1", "Unidad"],
+        
+        # Ramo Clásico (PR009)
+        ["PR009", "Ramo Clásico", "FL001", "Flor", "Rosa Roja", "18", "Tallos"],
+        ["PR009", "Ramo Clásico", "FL019", "Flor", "Eucalipto Verde", "6", "Ramas"],
+        
+        # Amor Eterno (PR010)
+        ["PR010", "Amor Eterno", "FL001", "Flor", "Rosa Roja", "15", "Tallos"],
+        ["PR010", "Amor Eterno", "FL003", "Flor", "Rosa Rosado", "10", "Tallos"],
+        ["PR010", "Amor Eterno", "CO014", "Contenedor", "Caja Cuadrada Negra", "1", "Unidad"],
     ]
     
     for fila in recetas:
