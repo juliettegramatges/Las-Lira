@@ -129,7 +129,7 @@ function ProductosPage() {
                   <img 
                     src={`${API_URL}/upload/imagen/${producto.imagen_url}`}
                     alt={producto.nombre}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-2"
                     onError={(e) => {
                       e.target.style.display = 'none'
                       e.target.nextSibling.style.display = 'flex'
@@ -273,12 +273,12 @@ function ProductosPage() {
             {/* Contenido del modal */}
             <div className="p-6 space-y-6">
               {/* Imagen */}
-              <div className="relative h-64 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden">
+              <div className="relative h-64 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden flex items-center justify-center">
                 {productoDetalle.imagen_url ? (
                   <img 
                     src={`${API_URL}/upload/imagen/${productoDetalle.imagen_url}`}
                     alt={productoDetalle.nombre}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     onError={(e) => {
                       e.target.style.display = 'none'
                       e.target.nextSibling.style.display = 'flex'
