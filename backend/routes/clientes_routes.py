@@ -186,7 +186,7 @@ def normalizar_telefono(telefono):
 
 @bp.route('/buscar-por-telefono', methods=['GET'])
 def buscar_por_telefono():
-    """Buscar cliente por número de teléfono"""
+    """Buscar cliente por número de teléfono (para compatibilidad)"""
     try:
         telefono_original = request.args.get('telefono', '').strip()
         
@@ -197,7 +197,6 @@ def buscar_por_telefono():
         telefono_normalizado = normalizar_telefono(telefono_original)
         
         # Buscar comparando teléfonos normalizados
-        # Esto permite encontrar "+56912345678" aunque se busque "+56 9 1234 5678"
         todos_clientes = Cliente.query.all()
         cliente = None
         
@@ -219,6 +218,33 @@ def buscar_por_telefono():
                 'data': None,
                 'message': 'Cliente no encontrado. Se creará uno nuevo al guardar el pedido.'
             })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/buscar-por-nombre', methods=['GET'])
+def buscar_por_nombre():
+    """Buscar clientes por nombre (búsqueda inteligente)"""
+    try:
+        nombre = request.args.get('nombre', '').strip()
+        
+        if not nombre or len(nombre) < 2:
+            return jsonify({
+                'success': True,
+                'clientes': []
+            })
+        
+        # Buscar clientes que contengan el texto en su nombre (case insensitive)
+        clientes = Cliente.query.filter(
+            Cliente.nombre.ilike(f'%{nombre}%')
+        ).order_by(Cliente.total_pedidos.desc()).limit(10).all()
+        
+        return jsonify({
+            'success': True,
+            'clientes': [c.to_dict() for c in clientes],
+            'total': len(clientes)
+        })
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

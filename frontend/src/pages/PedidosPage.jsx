@@ -19,6 +19,8 @@ function PedidosPage() {
   const [clienteEncontrado, setClienteEncontrado] = useState(null)
   const [buscandoCliente, setBuscandoCliente] = useState(false)
   const [plazoPagoManual, setPlazoPagoManual] = useState(false)
+  const [sugerenciasClientes, setSugerenciasClientes] = useState([])
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -99,87 +101,93 @@ function PedidosPage() {
     'Ocasional': 7
   }
   
-  // Normalizar teléfono (quitar espacios, guiones, paréntesis)
-  const normalizarTelefono = (tel) => {
-    return tel.replace(/[\s\-\(\)]/g, '')
-  }
-  
-  const buscarClientePorTelefono = async (telefono) => {
-    const telNormalizado = normalizarTelefono(telefono)
-    
-    if (!telNormalizado || telNormalizado.length < 8) {
-      setClienteEncontrado(null)
+  // Buscar clientes por nombre
+  const buscarClientesPorNombre = async (nombre) => {
+    if (!nombre || nombre.length < 2) {
+      setSugerenciasClientes([])
+      setMostrarSugerencias(false)
       return
     }
     
     try {
       setBuscandoCliente(true)
-      const response = await axios.get(`${API_URL}/clientes/buscar-por-telefono`, {
-        params: { telefono: telNormalizado }
+      const response = await axios.get(`${API_URL}/clientes/buscar-por-nombre`, {
+        params: { nombre }
       })
       
-      if (response.data.success && response.data.encontrado) {
-        const cliente = response.data.data
-        setClienteEncontrado(cliente)
-        
-        // Autocompletar TODOS los datos del cliente
-        setFormData(prev => ({
-          ...prev,
-          cliente_id: cliente.id,
-          cliente_nombre: cliente.nombre,
-          cliente_email: cliente.email || '',
-          direccion_entrega: cliente.direccion_principal || prev.direccion_entrega
-        }))
-        
-        // Calcular plazo de pago automático si no es manual
-        if (!plazoPagoManual) {
-          const plazo = PLAZOS_PAGO[cliente.tipo_cliente] || 0
-          setFormData(prev => ({
-            ...prev,
-            plazo_pago_dias: plazo
-          }))
-        }
-        
-        console.log('✅ Cliente encontrado:', cliente.nombre, `(${cliente.tipo_cliente})`)
+      if (response.data.success && response.data.clientes.length > 0) {
+        setSugerenciasClientes(response.data.clientes)
+        setMostrarSugerencias(true)
+        console.log(`🔍 Encontrados ${response.data.clientes.length} clientes`)
       } else {
-        setClienteEncontrado(null)
-        setFormData(prev => ({
-          ...prev,
-          cliente_id: '',
-          plazo_pago_dias: 0
-        }))
-        console.log('ℹ️ Cliente no encontrado, se creará uno nuevo')
+        setSugerenciasClientes([])
+        setMostrarSugerencias(false)
+        console.log('ℹ️ No se encontraron clientes')
       }
     } catch (err) {
-      console.error('Error al buscar cliente:', err)
-      setClienteEncontrado(null)
+      console.error('Error al buscar clientes:', err)
+      setSugerenciasClientes([])
     } finally {
       setBuscandoCliente(false)
     }
   }
   
-  const handleTelefonoChange = (telefono) => {
-    setFormData(prev => ({ ...prev, cliente_telefono: telefono }))
+  const seleccionarCliente = (cliente) => {
+    console.log('✅ Cliente seleccionado:', cliente.nombre, `(${cliente.tipo_cliente})`)
     
-    // Normalizar y buscar
-    const telNormalizado = normalizarTelefono(telefono)
+    setClienteEncontrado(cliente)
+    setMostrarSugerencias(false)
+    setSugerenciasClientes([])
     
-    // Buscar cliente inmediatamente cuando tenga suficientes dígitos
-    if (telNormalizado.length >= 8) {
+    // Autocompletar TODOS los datos del cliente
+    setFormData(prev => ({
+      ...prev,
+      cliente_id: cliente.id,
+      cliente_nombre: cliente.nombre,
+      cliente_telefono: cliente.telefono,
+      cliente_email: cliente.email || '',
+      direccion_entrega: cliente.direccion_principal || prev.direccion_entrega
+    }))
+    
+    // Calcular plazo de pago automático si no es manual
+    if (!plazoPagoManual) {
+      const plazo = PLAZOS_PAGO[cliente.tipo_cliente] || 0
+      setFormData(prev => ({
+        ...prev,
+        plazo_pago_dias: plazo
+      }))
+    }
+  }
+  
+  const handleNombreChange = (nombre) => {
+    setFormData(prev => ({ ...prev, cliente_nombre: nombre }))
+    
+    // Limpiar cliente seleccionado si empieza a escribir de nuevo
+    if (clienteEncontrado) {
+      setClienteEncontrado(null)
+      setFormData(prev => ({
+        ...prev,
+        cliente_id: '',
+        cliente_telefono: '',
+        cliente_email: '',
+        plazo_pago_dias: 0
+      }))
+    }
+    
+    // Buscar clientes mientras escribe
+    if (nombre.length >= 2) {
       // Cancelar búsqueda anterior si existe
       if (window.busquedaClienteTimeout) {
         clearTimeout(window.busquedaClienteTimeout)
       }
       
-      // Buscar después de 300ms (más rápido)
+      // Buscar después de 300ms
       window.busquedaClienteTimeout = setTimeout(() => {
-        buscarClientePorTelefono(telefono)
+        buscarClientesPorNombre(nombre)
       }, 300)
     } else {
-      setClienteEncontrado(null)
-      if (window.busquedaClienteTimeout) {
-        clearTimeout(window.busquedaClienteTimeout)
-      }
+      setSugerenciasClientes([])
+      setMostrarSugerencias(false)
     }
   }
   
@@ -241,6 +249,8 @@ function PedidosPage() {
         setMostrarFormulario(false)
         setClienteEncontrado(null)
         setPlazoPagoManual(false)
+        setSugerenciasClientes([])
+        setMostrarSugerencias(false)
         setFormData({
           canal: 'WhatsApp',
           shopify_order_number: '',
@@ -742,29 +752,69 @@ function PedidosPage() {
                     👤 Información del Cliente
                   </h3>
                   <div className="space-y-4">
-                    {/* Teléfono con búsqueda */}
-                    <div>
+                    {/* Nombre con búsqueda inteligente */}
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teléfono <span className="text-red-500">*</span>
+                        Nombre del Cliente <span className="text-red-500">*</span>
                         {buscandoCliente && <span className="ml-2 text-xs text-blue-600">Buscando...</span>}
                       </label>
                       <input
-                        type="tel"
+                        type="text"
                         required
-                        value={formData.cliente_telefono}
-                        onChange={(e) => handleTelefonoChange(e.target.value)}
+                        value={formData.cliente_nombre}
+                        onChange={(e) => handleNombreChange(e.target.value)}
+                        onFocus={() => {
+                          if (sugerenciasClientes.length > 0) {
+                            setMostrarSugerencias(true)
+                          }
+                        }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="+56 9 1234 5678"
+                        placeholder="Escribe el nombre para buscar..."
+                        autoComplete="off"
                       />
+                      
+                      {/* Dropdown de sugerencias */}
+                      {mostrarSugerencias && sugerenciasClientes.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                          {sugerenciasClientes.map((cliente) => (
+                            <div
+                              key={cliente.id}
+                              onClick={() => seleccionarCliente(cliente)}
+                              className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-900">{cliente.nombre}</p>
+                                  <p className="text-sm text-gray-600">{cliente.telefono}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    cliente.tipo_cliente === 'VIP' ? 'bg-purple-100 text-purple-700' :
+                                    cliente.tipo_cliente === 'Fiel' ? 'bg-blue-100 text-blue-700' :
+                                    cliente.tipo_cliente === 'Cumplidor' ? 'bg-green-100 text-green-700' :
+                                    cliente.tipo_cliente === 'No Cumplidor' ? 'bg-red-100 text-red-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {cliente.tipo_cliente}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {cliente.total_pedidos} pedidos
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
                     {/* Información del cliente encontrado */}
                     {clienteEncontrado && (
-                      <div className="bg-white p-3 rounded-lg border-2 border-green-300">
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+                        <div className="flex items-center gap-2 mb-3">
                           <CheckCircle className="h-5 w-5 text-green-600" />
                           <span className="font-semibold text-green-700">Cliente Encontrado</span>
-                          <span className={`ml-auto px-2 py-1 rounded text-xs font-medium ${
+                          <span className={`ml-auto px-3 py-1 rounded-full text-xs font-medium ${
                             clienteEncontrado.tipo_cliente === 'VIP' ? 'bg-purple-100 text-purple-700' :
                             clienteEncontrado.tipo_cliente === 'Fiel' ? 'bg-blue-100 text-blue-700' :
                             clienteEncontrado.tipo_cliente === 'Cumplidor' ? 'bg-green-100 text-green-700' :
@@ -774,29 +824,38 @@ function PedidosPage() {
                             {clienteEncontrado.tipo_cliente}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <p><strong>ID:</strong> {clienteEncontrado.id}</p>
-                          <p><strong>Pedidos:</strong> {clienteEncontrado.total_pedidos} | <strong>Total gastado:</strong> ${clienteEncontrado.total_gastado?.toLocaleString('es-CL')}</p>
-                          {clienteEncontrado.notas && (
-                            <p className="text-xs italic mt-2">📝 {clienteEncontrado.notas}</p>
-                          )}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-600"><strong>ID:</strong> {clienteEncontrado.id}</p>
+                            <p className="text-gray-600"><strong>Teléfono:</strong> {clienteEncontrado.telefono}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600"><strong>Pedidos:</strong> {clienteEncontrado.total_pedidos}</p>
+                            <p className="text-gray-600"><strong>Total:</strong> ${clienteEncontrado.total_gastado?.toLocaleString('es-CL')}</p>
+                          </div>
                         </div>
+                        {clienteEncontrado.notas && (
+                          <p className="text-xs italic mt-3 text-gray-700 bg-white p-2 rounded">📝 {clienteEncontrado.notas}</p>
+                        )}
                       </div>
                     )}
                     
-                    {/* Nombre y Email */}
+                    {/* Teléfono y Email */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nombre <span className="text-red-500">*</span>
+                          Teléfono <span className="text-red-500">*</span>
                         </label>
                         <input
-                          type="text"
+                          type="tel"
                           required
-                          value={formData.cliente_nombre}
-                          onChange={(e) => setFormData({...formData, cliente_nombre: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="María García"
+                          value={formData.cliente_telefono}
+                          onChange={(e) => setFormData({...formData, cliente_telefono: e.target.value})}
+                          className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            clienteEncontrado ? 'bg-gray-50' : ''
+                          }`}
+                          placeholder="+56912345678"
+                          readOnly={!!clienteEncontrado}
                         />
                       </div>
                       <div>
