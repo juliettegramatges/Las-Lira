@@ -11,7 +11,7 @@ from datetime import datetime
 
 bp = Blueprint('pedidos', __name__)
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET'], strict_slashes=False)
 def listar_pedidos():
     """Listar todos los pedidos con filtros opcionales"""
     try:
@@ -65,7 +65,7 @@ def normalizar_telefono(telefono):
     return re.sub(r'[\s\-\(\)]', '', telefono)
 
 
-@bp.route('/', methods=['POST'])
+@bp.route('/', methods=['POST'], strict_slashes=False)
 def crear_pedido():
     """Crear un nuevo pedido"""
     try:
