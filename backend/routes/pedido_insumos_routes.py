@@ -62,10 +62,24 @@ def guardar_insumos_pedido(pedido_id):
         data = request.json
         insumos_data = data.get('insumos', [])
         
-        # Eliminar insumos anteriores (si existen)
+        # Primero, liberar stock de insumos anteriores si existen
+        insumos_anteriores = PedidoInsumo.query.filter_by(pedido_id=pedido_id).all()
+        for insumo_anterior in insumos_anteriores:
+            if not insumo_anterior.descontado_stock:
+                # Liberar de "en uso" solo si no se descontó
+                if insumo_anterior.insumo_tipo == 'Flor':
+                    flor = Flor.query.get(insumo_anterior.insumo_id)
+                    if flor:
+                        flor.cantidad_en_uso = max(0, flor.cantidad_en_uso - insumo_anterior.cantidad)
+                elif insumo_anterior.insumo_tipo == 'Contenedor':
+                    contenedor = Contenedor.query.get(insumo_anterior.insumo_id)
+                    if contenedor:
+                        contenedor.cantidad_en_uso = max(0, contenedor.cantidad_en_uso - insumo_anterior.cantidad)
+        
+        # Eliminar insumos anteriores
         PedidoInsumo.query.filter_by(pedido_id=pedido_id).delete()
         
-        # Crear nuevos insumos
+        # Crear nuevos insumos Y RESERVAR STOCK
         for insumo_data in insumos_data:
             nuevo_insumo = PedidoInsumo(
                 pedido_id=pedido_id,
@@ -77,6 +91,17 @@ def guardar_insumos_pedido(pedido_id):
                 descontado_stock=False
             )
             db.session.add(nuevo_insumo)
+            
+            # RESERVAR: Incrementar cantidad_en_uso
+            cantidad = int(insumo_data['cantidad'])
+            if insumo_data['insumo_tipo'] == 'Flor':
+                flor = Flor.query.get(insumo_data['insumo_id'])
+                if flor:
+                    flor.cantidad_en_uso += cantidad
+            elif insumo_data['insumo_tipo'] == 'Contenedor':
+                contenedor = Contenedor.query.get(insumo_data['insumo_id'])
+                if contenedor:
+                    contenedor.cantidad_en_uso += cantidad
         
         db.session.commit()
         
@@ -156,14 +181,21 @@ def confirmar_insumos_y_descontar(pedido_id):
                 'detalles': errores_stock
             }), 400
         
-        # Descontar stock
+        # Descontar stock y liberar "en uso"
         for insumo in insumos:
             if insumo.insumo_tipo == 'Flor':
                 flor = Flor.query.get(insumo.insumo_id)
-                flor.cantidad_disponible -= insumo.cantidad
+                # Descontar del stock total
+                flor.cantidad_stock -= insumo.cantidad
+                # Liberar de "en uso" (ya se usó)
+                flor.cantidad_en_uso = max(0, flor.cantidad_en_uso - insumo.cantidad)
+            
             elif insumo.insumo_tipo == 'Contenedor':
                 contenedor = Contenedor.query.get(insumo.insumo_id)
-                contenedor.cantidad_disponible -= insumo.cantidad
+                # Descontar del stock total
+                contenedor.stock -= insumo.cantidad
+                # Liberar de "en uso" (ya se usó)
+                contenedor.cantidad_en_uso = max(0, contenedor.cantidad_en_uso - insumo.cantidad)
             
             # Marcar como descontado
             insumo.descontado_stock = True
