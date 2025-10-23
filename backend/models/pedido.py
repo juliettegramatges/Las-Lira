@@ -29,6 +29,7 @@ class Pedido(db.Model):
     firma = db.Column(db.String(100))  # Firma del mensaje
     # Dirección y motivo
     direccion_entrega = db.Column(db.String(300), nullable=False)
+    comuna = db.Column(db.String(100))  # Comuna de entrega
     motivo = db.Column(db.String(50))  # Cumpleaños, Aniversario, etc.
     # Estado (según flujo del Trello)
     estado = db.Column(
@@ -83,6 +84,7 @@ class Pedido(db.Model):
             'mensaje': self.mensaje,
             'firma': self.firma,
             'direccion_entrega': self.direccion_entrega,
+            'comuna': self.comuna,
             'motivo': self.motivo,
             'estado': self.estado,
             'dia_entrega': self.dia_entrega,

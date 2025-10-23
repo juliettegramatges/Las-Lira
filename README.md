@@ -33,6 +33,15 @@ Las-Lira es una plataforma diseñada para optimizar la gestión de una florería
 - Arrastrar y soltar para cambiar estados
 - Información detallada de cada pedido
 - Notificaciones y alertas
+- Etiquetas de estado de pago, día de entrega y tipo de pedido
+
+### 5. Rutas Óptimas de Despacho
+- Agrupación de pedidos por comuna
+- Visualización de precios de envío por zona
+- Planificación de entregas por día
+- Cálculo automático de totales de envío
+- 3 vistas: Hoy, Esta Semana, Todos los Pendientes
+- Optimización de rutas para múltiples entregas en la misma comuna
 
 ## 📁 Archivos Excel Demo
 
@@ -58,6 +67,8 @@ El proyecto incluye 6 archivos Excel con datos de ejemplo:
    - Ejemplos de pedidos de ambos canales
    - Estados actuales y seguimiento
    - Información de clientes y entregas
+   - Comuna de destino para optimización de rutas
+   - Precio de envío por comuna
 
 5. **05_Recetas_Productos.xlsx**
    - "Recetas" de cada producto (qué insumos necesita)
