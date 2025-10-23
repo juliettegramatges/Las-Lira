@@ -199,10 +199,29 @@ def actualizar_estado(pedido_id):
         data = request.json
         nuevo_estado = data.get('estado')
         
-        if nuevo_estado not in ['Recibido', 'En Preparación', 'Listo', 'Despachado', 'Entregado', 'Cancelado']:
-            return jsonify({'success': False, 'error': 'Estado inválido'}), 400
+        # Estados válidos del sistema (alineados con el tablero Kanban)
+        estados_validos = [
+            'Pedido', 
+            'Pedidos Semana', 
+            'Entregas para Mañana', 
+            'Entregas de Hoy', 
+            'En Proceso', 
+            'Listo para Despacho', 
+            'Despachados', 
+            'Archivado', 
+            'Cancelado'
+        ]
+        
+        if nuevo_estado not in estados_validos:
+            return jsonify({'success': False, 'error': f'Estado inválido. Debe ser uno de: {", ".join(estados_validos)}'}), 400
         
         pedido.estado = nuevo_estado
+        
+        # Actualizar etiqueta de día si es necesario
+        from backend.utils.fecha_helpers import obtener_dia_semana
+        if pedido.fecha_entrega:
+            pedido.dia_entrega = obtener_dia_semana(pedido.fecha_entrega)
+        
         db.session.commit()
         
         return jsonify({
