@@ -10,49 +10,68 @@ class Pedido(db.Model):
     
     id = db.Column(db.String(20), primary_key=True)
     fecha_pedido = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_entrega = db.Column(db.DateTime, nullable=False)
     canal = db.Column(db.Enum('Shopify', 'WhatsApp', name='canal_enum'), nullable=False)
+    shopify_order_number = db.Column(db.String(50))  # Ej: "#SH1234"
     cliente_nombre = db.Column(db.String(100), nullable=False)
     cliente_telefono = db.Column(db.String(20), nullable=False)
     cliente_email = db.Column(db.String(100))
+    # Producto
     producto_id = db.Column(db.String(10), db.ForeignKey('productos.id'))
-    descripcion_personalizada = db.Column(db.Text)
+    arreglo_pedido = db.Column(db.String(200))  # Nombre textual del arreglo
+    detalles_adicionales = db.Column(db.Text)
+    # Precios
+    precio_ramo = db.Column(db.Numeric(10, 2), nullable=False)
+    precio_envio = db.Column(db.Numeric(10, 2), default=0)
+    # Destinatario y mensaje
+    destinatario = db.Column(db.String(100))  # Para quién es el arreglo
+    mensaje = db.Column(db.Text)  # Mensaje en la tarjeta
+    firma = db.Column(db.String(100))  # Firma del mensaje
+    # Dirección y motivo
+    direccion_entrega = db.Column(db.String(300), nullable=False)
+    motivo = db.Column(db.String(50))  # Cumpleaños, Aniversario, etc.
+    # Estado
     estado = db.Column(
         db.Enum('Recibido', 'En Preparación', 'Listo', 'Despachado', 'Entregado', 'Cancelado', 
                 name='estado_enum'),
         default='Recibido',
         nullable=False
     )
-    precio_total = db.Column(db.Numeric(10, 2), nullable=False)
-    direccion_entrega = db.Column(db.String(300), nullable=False)
-    comuna = db.Column(db.String(50))
-    fecha_entrega = db.Column(db.Date, nullable=False)
-    hora_entrega = db.Column(db.Time)
-    notas = db.Column(db.Text)
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relaciones
     producto = db.relationship('Producto', backref='pedidos', lazy=True)
     insumos = db.relationship('PedidoInsumo', backref='pedido', lazy=True, cascade='all, delete-orphan')
     
+    @property
+    def precio_total(self):
+        """Calcula precio total (ramo + envío)"""
+        return (self.precio_ramo or 0) + (self.precio_envio or 0)
+    
     def to_dict(self):
         """Convierte el pedido a diccionario"""
         return {
             'id': self.id,
             'fecha_pedido': self.fecha_pedido.isoformat() if self.fecha_pedido else None,
+            'fecha_entrega': self.fecha_entrega.isoformat() if self.fecha_entrega else None,
             'canal': self.canal,
+            'shopify_order_number': self.shopify_order_number,
             'cliente_nombre': self.cliente_nombre,
             'cliente_telefono': self.cliente_telefono,
             'cliente_email': self.cliente_email,
             'producto_id': self.producto_id,
             'producto_nombre': self.producto.nombre if self.producto else None,
-            'descripcion_personalizada': self.descripcion_personalizada,
-            'estado': self.estado,
-            'precio_total': float(self.precio_total) if self.precio_total else 0,
+            'arreglo_pedido': self.arreglo_pedido,
+            'detalles_adicionales': self.detalles_adicionales,
+            'precio_ramo': float(self.precio_ramo) if self.precio_ramo else 0,
+            'precio_envio': float(self.precio_envio) if self.precio_envio else 0,
+            'precio_total': float(self.precio_total),
+            'destinatario': self.destinatario,
+            'mensaje': self.mensaje,
+            'firma': self.firma,
             'direccion_entrega': self.direccion_entrega,
-            'comuna': self.comuna,
-            'fecha_entrega': self.fecha_entrega.isoformat() if self.fecha_entrega else None,
-            'hora_entrega': self.hora_entrega.isoformat() if self.hora_entrega else None,
-            'notas': self.notas,
+            'motivo': self.motivo,
+            'estado': self.estado,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
         }
     

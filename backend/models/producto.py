@@ -16,9 +16,14 @@ class Producto(db.Model):
                 name='tipo_arreglo_enum'),
         nullable=False
     )
-    paleta_colores = db.Column(db.String(200))
-    cantidad_flores_min = db.Column(db.Integer)
-    cantidad_flores_max = db.Column(db.Integer)
+    # Nuevos campos detallados
+    colores_asociados = db.Column(db.String(300))  # Ej: "Rojo, Verde oscuro, Burdeo"
+    flores_asociadas = db.Column(db.String(300))  # Ej: "Rosa roja, Clavel rojo, Eucalipto"
+    tipos_macetero = db.Column(db.String(200))  # Ej: "Florero vidrio cilíndrico"
+    vista_360_180 = db.Column(db.String(3))  # "360" o "180"
+    tamano = db.Column(db.String(20))  # Ej: "25 x 35" o "Ø 25"
+    cuidados = db.Column(db.Text)  # Instrucciones detalladas de cuidado
+    # Campos existentes
     precio_venta = db.Column(db.Numeric(10, 2), nullable=False)
     imagen_url = db.Column(db.String(500))
     disponible_shopify = db.Column(db.Boolean, default=True)
@@ -35,9 +40,12 @@ class Producto(db.Model):
             'nombre': self.nombre,
             'descripcion': self.descripcion,
             'tipo_arreglo': self.tipo_arreglo,
-            'paleta_colores': self.paleta_colores,
-            'cantidad_flores_min': self.cantidad_flores_min,
-            'cantidad_flores_max': self.cantidad_flores_max,
+            'colores_asociados': self.colores_asociados,
+            'flores_asociadas': self.flores_asociadas,
+            'tipos_macetero': self.tipos_macetero,
+            'vista_360_180': self.vista_360_180,
+            'tamano': self.tamano,
+            'cuidados': self.cuidados,
             'precio_venta': float(self.precio_venta) if self.precio_venta else 0,
             'imagen_url': self.imagen_url,
             'disponible_shopify': self.disponible_shopify,

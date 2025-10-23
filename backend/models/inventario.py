@@ -14,12 +14,11 @@ class Flor(db.Model):
     proveedor_id = db.Column(db.String(10), db.ForeignKey('proveedores.id'))
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     cantidad_stock = db.Column(db.Integer, default=0, nullable=False)
-    bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'), nullable=False)
+    # Las flores NO tienen bodega, se compran según necesidad
     unidad = db.Column(db.String(20), nullable=False)
     fecha_actualizacion = db.Column(db.Date, default=date.today)
     
     # Relaciones
-    bodega = db.relationship('Bodega', backref='flores', lazy=True)
     proveedor = db.relationship('Proveedor', backref='flores', lazy=True)
     
     def to_dict(self):
@@ -31,8 +30,6 @@ class Flor(db.Model):
             'proveedor_nombre': self.proveedor.nombre if self.proveedor else None,
             'costo_unitario': float(self.costo_unitario),
             'cantidad_stock': self.cantidad_stock,
-            'bodega_id': self.bodega_id,
-            'bodega_nombre': self.bodega.nombre if self.bodega else None,
             'unidad': self.unidad,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None
         }

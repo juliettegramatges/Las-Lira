@@ -20,38 +20,38 @@ def crear_estilo_header(ws, row=1):
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
 def crear_inventario_flores():
-    """Crea archivo de inventario de flores"""
+    """Crea archivo de inventario de flores (NO tienen bodega, se compran según necesidad)"""
     wb = Workbook()
     ws = wb.active
     ws.title = "Flores"
     
     # Encabezados
-    headers = ["ID", "Tipo de Flor", "Color", "Proveedor", "Costo Unitario", "Cantidad Stock", "Bodega", "Unidad", "Última Actualización"]
+    headers = ["ID", "Tipo de Flor", "Color", "Proveedor", "Costo Unitario", "Cantidad Stock Actual", "Unidad", "Última Actualización"]
     ws.append(headers)
     crear_estilo_header(ws)
     
     # Datos demo
     flores = [
-        ["FL001", "Rosa", "Rojo", "Flores del Valle", 1500, 120, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL002", "Rosa", "Blanco", "Flores del Valle", 1500, 85, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL003", "Rosa", "Rosado", "Flores del Valle", 1500, 95, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL004", "Rosa", "Amarillo", "Flores del Valle", 1500, 60, "Bodega 2", "Tallo", "2025-10-21"],
-        ["FL005", "Lirio", "Blanco", "Jardín Central", 2500, 45, "Bodega 1", "Tallo", "2025-10-19"],
-        ["FL006", "Lirio", "Rosado", "Jardín Central", 2500, 38, "Bodega 1", "Tallo", "2025-10-19"],
-        ["FL007", "Girasol", "Amarillo", "Campo Florido", 2000, 30, "Bodega 2", "Tallo", "2025-10-22"],
-        ["FL008", "Clavel", "Rojo", "Flores del Valle", 800, 150, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL009", "Clavel", "Blanco", "Flores del Valle", 800, 140, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL010", "Clavel", "Rosado", "Flores del Valle", 800, 130, "Bodega 2", "Tallo", "2025-10-20"],
-        ["FL011", "Tulipán", "Rojo", "Jardín Central", 2200, 25, "Bodega 1", "Tallo", "2025-10-18"],
-        ["FL012", "Tulipán", "Amarillo", "Jardín Central", 2200, 20, "Bodega 1", "Tallo", "2025-10-18"],
-        ["FL013", "Hortensia", "Azul", "Campo Florido", 3500, 15, "Bodega 2", "Ramo", "2025-10-21"],
-        ["FL014", "Hortensia", "Rosado", "Campo Florido", 3500, 18, "Bodega 2", "Ramo", "2025-10-21"],
-        ["FL015", "Gerbera", "Naranja", "Flores del Valle", 1800, 55, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL016", "Gerbera", "Rosado", "Flores del Valle", 1800, 48, "Bodega 1", "Tallo", "2025-10-20"],
-        ["FL017", "Orquídea", "Blanco", "Jardín Central", 5000, 12, "Bodega 2", "Tallo", "2025-10-19"],
-        ["FL018", "Alstroemeria", "Morado", "Campo Florido", 1200, 70, "Bodega 1", "Tallo", "2025-10-22"],
-        ["FL019", "Eucalipto", "Verde", "Campo Florido", 500, 200, "Bodega 1", "Rama", "2025-10-21"],
-        ["FL020", "Solidago", "Amarillo", "Flores del Valle", 600, 100, "Bodega 2", "Rama", "2025-10-20"],
+        ["FL001", "Rosa", "Rojo", "Flores del Valle", 1500, 120, "Tallo", "2025-10-20"],
+        ["FL002", "Rosa", "Blanco", "Flores del Valle", 1500, 85, "Tallo", "2025-10-20"],
+        ["FL003", "Rosa", "Rosado", "Flores del Valle", 1500, 95, "Tallo", "2025-10-20"],
+        ["FL004", "Rosa", "Amarillo", "Flores del Valle", 1500, 60, "Tallo", "2025-10-21"],
+        ["FL005", "Lirio", "Blanco", "Jardín Central", 2500, 45, "Tallo", "2025-10-19"],
+        ["FL006", "Lirio", "Rosado", "Jardín Central", 2500, 38, "Tallo", "2025-10-19"],
+        ["FL007", "Girasol", "Amarillo", "Campo Florido", 2000, 30, "Tallo", "2025-10-22"],
+        ["FL008", "Clavel", "Rojo", "Flores del Valle", 800, 150, "Tallo", "2025-10-20"],
+        ["FL009", "Clavel", "Blanco", "Flores del Valle", 800, 140, "Tallo", "2025-10-20"],
+        ["FL010", "Clavel", "Rosado", "Flores del Valle", 800, 130, "Tallo", "2025-10-20"],
+        ["FL011", "Tulipán", "Rojo", "Jardín Central", 2200, 25, "Tallo", "2025-10-18"],
+        ["FL012", "Tulipán", "Amarillo", "Jardín Central", 2200, 20, "Tallo", "2025-10-18"],
+        ["FL013", "Hortensia", "Azul", "Campo Florido", 3500, 15, "Ramo", "2025-10-21"],
+        ["FL014", "Hortensia", "Rosado", "Campo Florido", 3500, 18, "Ramo", "2025-10-21"],
+        ["FL015", "Gerbera", "Naranja", "Flores del Valle", 1800, 55, "Tallo", "2025-10-20"],
+        ["FL016", "Gerbera", "Rosado", "Flores del Valle", 1800, 48, "Tallo", "2025-10-20"],
+        ["FL017", "Orquídea", "Blanco", "Jardín Central", 5000, 12, "Tallo", "2025-10-19"],
+        ["FL018", "Alstroemeria", "Morado", "Campo Florido", 1200, 70, "Tallo", "2025-10-22"],
+        ["FL019", "Eucalipto", "Verde", "Campo Florido", 500, 200, "Rama", "2025-10-21"],
+        ["FL020", "Solidago", "Amarillo", "Flores del Valle", 600, 100, "Rama", "2025-10-20"],
     ]
     
     for fila in flores:
@@ -63,10 +63,9 @@ def crear_inventario_flores():
     ws.column_dimensions['C'].width = 12
     ws.column_dimensions['D'].width = 18
     ws.column_dimensions['E'].width = 15
-    ws.column_dimensions['F'].width = 15
-    ws.column_dimensions['G'].width = 12
-    ws.column_dimensions['H'].width = 10
-    ws.column_dimensions['I'].width = 18
+    ws.column_dimensions['F'].width = 18
+    ws.column_dimensions['G'].width = 10
+    ws.column_dimensions['H'].width = 18
     
     wb.save("01_Inventario_Flores.xlsx")
     print("✅ Archivo '01_Inventario_Flores.xlsx' creado")
@@ -126,24 +125,53 @@ def crear_productos_catalogo():
     ws.title = "Catálogo Productos"
     
     # Encabezados
-    headers = ["ID", "Nombre Producto", "Descripción", "Tipo", "Paleta de Colores", "Cantidad Flores", "Precio Venta", "Foto", "Disponible en Shopify"]
+    headers = ["ID", "Nombre Producto", "Descripción", "Colores Asociados", "Flores Asociadas", 
+               "Tipos Macetero Posibles", "Vista (360/180)", "Tamaño (cm)", "Precio Venta", 
+               "Cuidados", "Foto", "Disponible Shopify"]
     ws.append(headers)
     crear_estilo_header(ws)
     
-    # Productos demo
+    # Productos demo con información más detallada
     productos = [
-        ["PR001", "Pasión Roja", "Arreglo elegante en tonos rojos", "Con Florero", "Rojo, Verde", "12-15", 35000, "passion-roja.jpg", "Sí"],
-        ["PR002", "Sueño Blanco", "Delicado arreglo en blancos puros", "Con Florero", "Blanco, Verde", "10-12", 32000, "sueno-blanco.jpg", "Sí"],
-        ["PR003", "Jardín Primaveral", "Mezcla de colores vibrantes", "Con Florero", "Multicolor", "15-18", 42000, "jardin-primaveral.jpg", "Sí"],
-        ["PR004", "Elegancia Rosa", "Rosas rosadas en florero", "Con Florero", "Rosado, Verde", "12-15", 38000, "elegancia-rosa.jpg", "Sí"],
-        ["PR005", "Sol Radiante", "Girasoles y flores amarillas", "Con Florero", "Amarillo, Naranja", "8-10", 30000, "sol-radiante.jpg", "Sí"],
-        ["PR006", "Dulce Lirio", "Lirios blancos y rosados", "Con Florero", "Blanco, Rosado", "6-8", 45000, "dulce-lirio.jpg", "Sí"],
-        ["PR007", "Campo Silvestre", "Arreglo rústico en canasto", "Con Canasto", "Multicolor", "20-25", 48000, "campo-silvestre.jpg", "Sí"],
-        ["PR008", "Orquídea Imperial", "Orquídeas blancas premium", "Con Macetero", "Blanco", "3-5", 55000, "orquidea-imperial.jpg", "Sí"],
-        ["PR009", "Ramo Clásico", "Ramo de rosas rojas", "Sin Contenedor", "Rojo", "12", 28000, "ramo-clasico.jpg", "Sí"],
-        ["PR010", "Amor Eterno", "Caja con rosas y chocolates", "Con Caja", "Rojo, Rosado", "24", 65000, "amor-eterno.jpg", "Sí"],
-        ["PR011", "Naturaleza Viva", "Mix de flores de temporada", "Con Canasto", "Multicolor", "18-20", 40000, "naturaleza-viva.jpg", "Sí"],
-        ["PR012", "Serenidad Azul", "Hortensias azules", "Con Macetero", "Azul, Verde", "5-7", 50000, "serenidad-azul.jpg", "Sí"],
+        ["PR001", "Pasión Roja", "Arreglo elegante en tonos rojos", "Rojo, Verde oscuro, Burdeo",
+         "Rosa roja, Clavel rojo, Eucalipto", "Florero vidrio cilíndrico", "360", "25 x 35", 35000,
+         "Cambiar agua cada 2 días, evitar luz directa, cortar tallos en diagonal", "passion-roja.jpg", "Sí"],
+        
+        ["PR002", "Sueño Blanco", "Delicado arreglo en blancos puros", "Blanco, Verde claro",
+         "Rosa blanca, Lirio blanco, Gerbera blanca", "Florero vidrio redondo", "360", "22 x 30", 32000,
+         "Cambiar agua diariamente, mantener en lugar fresco, eliminar polen de lirios", "sueno-blanco.jpg", "Sí"],
+        
+        ["PR003", "Jardín Primaveral", "Mezcla de colores vibrantes", "Amarillo, Naranja, Rosado, Morado",
+         "Gerbera, Alstroemeria, Rosa, Solidago", "Florero vidrio grande", "360", "30 x 40", 42000,
+         "Cambiar agua cada 2-3 días, exposición luz indirecta, agregar nutriente floral", "jardin-primaveral.jpg", "Sí"],
+        
+        ["PR004", "Elegancia Rosa", "Rosas rosadas en florero", "Rosado, Verde, Blanco",
+         "Rosa rosada, Eucalipto, Solidago", "Florero cerámica blanco", "180", "20 x 35", 38000,
+         "Cambiar agua cada 2 días, cortar 1cm de tallo cada 3 días, ambiente fresco", "elegancia-rosa.jpg", "Sí"],
+        
+        ["PR005", "Sol Radiante", "Girasoles y flores amarillas", "Amarillo, Naranja, Verde",
+         "Girasol, Gerbera naranja, Solidago", "Florero vidrio cilíndrico", "360", "28 x 38", 30000,
+         "Cambiar agua diariamente, requiere buena luz, girasoles duran 7-10 días", "sol-radiante.jpg", "Sí"],
+        
+        ["PR006", "Dulce Lirio", "Lirios blancos y rosados", "Blanco, Rosado, Verde",
+         "Lirio blanco, Lirio rosado, Eucalipto", "Florero vidrio burbuja", "360", "25 x 40", 45000,
+         "Cambiar agua cada 2 días, quitar polen para evitar manchas, cortar en diagonal", "dulce-lirio.jpg", "Sí"],
+        
+        ["PR007", "Campo Silvestre", "Arreglo rústico en canasto", "Multicolor natural",
+         "Mix de temporada, Gerbera, Alstroemeria, Follaje", "Canasto mimbre rectangular", "180", "35 x 25", 48000,
+         "Verificar nivel de agua en esponja, rociar flores 1 vez al día", "campo-silvestre.jpg", "Sí"],
+        
+        ["PR008", "Orquídea Imperial", "Orquídeas blancas premium", "Blanco puro",
+         "Orquídea phalaenopsis", "Macetero cerámica gris", "360", "18 x 45", 55000,
+         "Regar 1 vez por semana, luz indirecta brillante, no mojar flores", "orquidea-imperial.jpg", "Sí"],
+        
+        ["PR009", "Ramo Clásico", "Ramo de rosas rojas", "Rojo intenso, Verde",
+         "Rosa roja, Eucalipto", "Sin contenedor (ramo)", "360", "Ø 25", 28000,
+         "Cortar tallos y colocar en agua inmediatamente, cambiar agua diariamente", "ramo-clasico.jpg", "Sí"],
+        
+        ["PR010", "Amor Eterno", "Caja con rosas", "Rojo, Rosado suave",
+         "Rosa roja, Rosa rosada", "Caja cuadrada", "360", "25 x 25", 65000,
+         "Rociar con agua 1-2 veces al día, no exponer al sol directo", "amor-eterno.jpg", "Sí"],
     ]
     
     for fila in productos:
@@ -152,41 +180,80 @@ def crear_productos_catalogo():
     # Ajustar anchos
     ws.column_dimensions['A'].width = 8
     ws.column_dimensions['B'].width = 18
-    ws.column_dimensions['C'].width = 30
-    ws.column_dimensions['D'].width = 15
-    ws.column_dimensions['E'].width = 20
-    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['C'].width = 25
+    ws.column_dimensions['D'].width = 25
+    ws.column_dimensions['E'].width = 30
+    ws.column_dimensions['F'].width = 25
     ws.column_dimensions['G'].width = 12
-    ws.column_dimensions['H'].width = 20
-    ws.column_dimensions['I'].width = 18
+    ws.column_dimensions['H'].width = 12
+    ws.column_dimensions['I'].width = 12
+    ws.column_dimensions['J'].width = 50
+    ws.column_dimensions['K'].width = 20
+    ws.column_dimensions['L'].width = 15
     
     wb.save("03_Catalogo_Productos.xlsx")
     print("✅ Archivo '03_Catalogo_Productos.xlsx' creado")
 
 def crear_pedidos():
-    """Crea archivo de pedidos con estados"""
+    """Crea archivo de pedidos con todos los campos necesarios"""
     wb = Workbook()
     ws = wb.active
     ws.title = "Pedidos"
     
     # Encabezados
-    headers = ["ID Pedido", "Fecha", "Canal", "Cliente", "Teléfono", "Producto/Descripción", "Estado", "Precio", "Dirección Entrega", "Fecha Entrega", "Notas"]
+    headers = ["ID Pedido", "Fecha Pedido", "Fecha Entrega", "Canal", "Nro Pedido Shopify", 
+               "Nombre Cliente", "Celular", "Arreglo Pedido", "Detalles Adicionales", 
+               "Precio Ramo", "Precio Envío", "Para (Destinatario)", "Mensaje", "Firma", 
+               "Dirección", "Motivo", "Estado"]
     ws.append(headers)
     crear_estilo_header(ws)
     
     # Datos demo de pedidos
-    estados = ["Recibido", "En Preparación", "Listo", "Despachado", "Entregado"]
-    canales = ["Shopify", "WhatsApp"]
-    
     pedidos = [
-        ["PED001", "2025-10-20", "Shopify", "María González", "+56912345601", "PR001 - Pasión Roja", "Entregado", 35000, "Las Condes, Santiago", "2025-10-21", "Entregado 10:30 AM"],
-        ["PED002", "2025-10-21", "WhatsApp", "Carlos Pérez", "+56912345602", "Arreglo personalizado tonos rosados", "Entregado", 40000, "Providencia, Santiago", "2025-10-22", "Cliente pidió más lirios"],
-        ["PED003", "2025-10-22", "Shopify", "Ana Martínez", "+56912345603", "PR003 - Jardín Primaveral", "Despachado", 42000, "Vitacura, Santiago", "2025-10-23", "En camino"],
-        ["PED004", "2025-10-22", "Shopify", "Roberto Silva", "+56912345604", "PR006 - Dulce Lirio", "Listo", 45000, "Ñuñoa, Santiago", "2025-10-23", "Listo para despacho"],
-        ["PED005", "2025-10-23", "WhatsApp", "Patricia Rojas", "+56912345605", "Canasto con girasoles y rosas amarillas", "En Preparación", 48000, "La Reina, Santiago", "2025-10-24", "Urgente: cumpleaños"],
-        ["PED006", "2025-10-23", "Shopify", "Luis Vargas", "+56912345606", "PR010 - Amor Eterno", "En Preparación", 65000, "San Miguel, Santiago", "2025-10-25", "Incluir tarjeta"],
-        ["PED007", "2025-10-23", "Shopify", "Carmen López", "+56912345607", "PR004 - Elegancia Rosa", "Recibido", 38000, "Maipú, Santiago", "2025-10-24", ""],
-        ["PED008", "2025-10-23", "WhatsApp", "Diego Fernández", "+56912345608", "Ramo de 24 rosas rojas sin contenedor", "Recibido", 55000, "Las Condes, Santiago", "2025-10-24", "Para propuesta matrimonio"],
+        ["PED001", "2025-10-20 09:30", "2025-10-21 14:00", "Shopify", "#SH1234", 
+         "María González", "+56912345601", "Pasión Roja", "Sin cambios", 
+         35000, 5000, "Ana González", "Feliz cumpleaños hermana", "Con cariño, María",
+         "Av. Las Condes 12345, Las Condes", "Cumpleaños", "Entregado"],
+        
+        ["PED002", "2025-10-21 11:15", "2025-10-22 10:00", "WhatsApp", "", 
+         "Carlos Pérez", "+56912345602", "Arreglo personalizado tonos rosados", "Más lirios, menos rosas", 
+         40000, 6000, "Valentina Pérez", "Feliz aniversario amor", "Tu esposo que te ama",
+         "Av. Providencia 2345, Providencia", "Aniversario", "Entregado"],
+        
+        ["PED003", "2025-10-22 08:45", "2025-10-23 16:00", "Shopify", "#SH1235", 
+         "Ana Martínez", "+56912345603", "Jardín Primaveral", "", 
+         42000, 5000, "Claudia Ramírez", "Que te mejores pronto", "Tu amiga Ana",
+         "Calle Los Almendros 567, Vitacura", "Mejórate", "Despachado"],
+        
+        ["PED004", "2025-10-22 14:20", "2025-10-23 11:00", "Shopify", "#SH1236", 
+         "Roberto Silva", "+56912345604", "Dulce Lirio", "Sin eucalipto por favor", 
+         45000, 4000, "Laura Silva", "Para la mejor mamá del mundo", "Tu hijo Roberto",
+         "Av. Grecia 890, Ñuñoa", "Día de la Madre", "Listo"],
+        
+        ["PED005", "2025-10-23 10:00", "2025-10-24 09:00", "WhatsApp", "", 
+         "Patricia Rojas", "+56912345605", "Canasto con girasoles y rosas amarillas", "Urgente - cumpleaños", 
+         48000, 7000, "Sofía Rojas", "Felices 15 años princesa", "Mamá y papá",
+         "Calle Los Robles 234, La Reina", "Cumpleaños", "En Preparación"],
+        
+        ["PED006", "2025-10-23 12:30", "2025-10-25 15:00", "Shopify", "#SH1237", 
+         "Luis Vargas", "+56912345606", "Amor Eterno", "Incluir tarjeta romántica", 
+         65000, 5000, "Carolina Vargas", "Eres el amor de mi vida", "Luis",
+         "Av. La Florida 456, San Miguel", "San Valentín", "En Preparación"],
+        
+        ["PED007", "2025-10-23 15:45", "2025-10-24 13:00", "Shopify", "#SH1238", 
+         "Carmen López", "+56912345607", "Elegancia Rosa", "", 
+         38000, 6000, "Isabel López", "Gracias por todo", "Carmen",
+         "Calle Central 789, Maipú", "Agradecimiento", "Recibido"],
+        
+        ["PED008", "2025-10-23 16:20", "2025-10-24 19:00", "WhatsApp", "", 
+         "Diego Fernández", "+56912345608", "24 rosas rojas en ramo", "URGENTE - Propuesta matrimonio", 
+         55000, 8000, "Camila Torres", "¿Quieres casarte conmigo?", "Diego",
+         "Restaurante Mirador, Av. Las Condes 9876", "Propuesta", "Recibido"],
+         
+        ["PED009", "2025-10-23 17:00", "2025-10-26 12:00", "Shopify", "#SH1239", 
+         "Fernanda Ruiz", "+56912345609", "Sol Radiante", "Preferencia por girasoles grandes", 
+         30000, 4000, "Pedro Ruiz", "Feliz cumpleaños papá", "Tu hija Fernanda",
+         "Calle Los Pinos 123, Peñalolén", "Cumpleaños", "Recibido"],
     ]
     
     for fila in pedidos:
@@ -194,16 +261,22 @@ def crear_pedidos():
     
     # Ajustar anchos
     ws.column_dimensions['A'].width = 10
-    ws.column_dimensions['B'].width = 12
-    ws.column_dimensions['C'].width = 10
-    ws.column_dimensions['D'].width = 18
+    ws.column_dimensions['B'].width = 16
+    ws.column_dimensions['C'].width = 16
+    ws.column_dimensions['D'].width = 10
     ws.column_dimensions['E'].width = 15
-    ws.column_dimensions['F'].width = 35
+    ws.column_dimensions['F'].width = 18
     ws.column_dimensions['G'].width = 15
-    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['H'].width = 25
     ws.column_dimensions['I'].width = 25
-    ws.column_dimensions['J'].width = 14
-    ws.column_dimensions['K'].width = 30
+    ws.column_dimensions['J'].width = 12
+    ws.column_dimensions['K'].width = 12
+    ws.column_dimensions['L'].width = 18
+    ws.column_dimensions['M'].width = 30
+    ws.column_dimensions['N'].width = 20
+    ws.column_dimensions['O'].width = 35
+    ws.column_dimensions['P'].width = 15
+    ws.column_dimensions['Q'].width = 15
     
     wb.save("04_Pedidos.xlsx")
     print("✅ Archivo '04_Pedidos.xlsx' creado")
