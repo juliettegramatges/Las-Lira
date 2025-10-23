@@ -23,6 +23,8 @@ function ProductosPage() {
   })
   const [contenedores, setContenedores] = useState([])
   const [guardandoReceta, setGuardandoReceta] = useState(false)
+  const [coloresEditables, setColoresEditables] = useState([]) // Lista editable de colores
+  const [precioVentaEditado, setPrecioVentaEditado] = useState(null) // Precio de venta modificado
   
   const cargarProductos = async () => {
     try {
@@ -99,6 +101,249 @@ function ProductosPage() {
     setProductoDetalle(producto)
     setReceta(null)
     cargarReceta(producto.id)
+  }
+  
+  // ============================================
+  // FUNCIONES DEL SIMULADOR DE COSTOS
+  // ============================================
+  
+  const abrirSimulador = async () => {
+    setMostrarSimulador(true)
+    setPrecioVentaEditado(null) // Resetear precio editado
+    await cargarConfiguracionProducto()
+    await cargarContenedores()
+  }
+  
+  const cargarConfiguracionProducto = async () => {
+    if (!productoDetalle) return
+    
+    try {
+      setLoadingConfig(true)
+      const response = await axios.get(`${API_URL}/productos/${productoDetalle.id}/configuracion-completa`)
+      
+      if (response.data.success) {
+        const config = response.data.data
+        setConfiguracion(config)
+        
+        // Inicializar colores editables
+        setColoresEditables(config.colores.map(c => ({
+          id: c.id,
+          nombre_color: c.nombre_color,
+          cantidad_flores_sugerida: c.cantidad_flores_sugerida,
+          flores_disponibles: c.flores_disponibles,
+          esNuevo: false
+        })))
+        
+        // Inicializar simulación con valores predeterminados
+        const floresIniciales = {}
+        config.colores.forEach(color => {
+          const florPredeterminada = color.flores_disponibles.find(f => f.es_predeterminada)
+          if (florPredeterminada) {
+            floresIniciales[color.id] = [{
+              id: Date.now(),
+              florId: florPredeterminada.flor_id,
+              cantidad: color.cantidad_flores_sugerida,
+              costo: florPredeterminada.flor_costo
+            }]
+          }
+        })
+        
+        setSimulacion({
+          flores: floresIniciales,
+          contenedor: config.contenedor_receta ? {
+            contenedorId: config.contenedor_receta.id,
+            costo: config.contenedor_receta.costo
+          } : null
+        })
+      }
+    } catch (error) {
+      console.error('Error al cargar configuración:', error)
+      alert('Error al cargar la configuración del producto')
+    } finally {
+      setLoadingConfig(false)
+    }
+  }
+  
+  const cargarContenedores = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/inventario/contenedores`)
+      if (response.data.success) {
+        setContenedores(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error al cargar contenedores:', error)
+    }
+  }
+  
+  const handleAgregarFlor = (colorId) => {
+    setSimulacion(prev => ({
+      ...prev,
+      flores: {
+        ...prev.flores,
+        [colorId]: [
+          ...(prev.flores[colorId] || []),
+          { id: Date.now(), florId: '', cantidad: 1, costo: 0 }
+        ]
+      }
+    }))
+  }
+  
+  const handleEliminarFlor = (colorId, florIndex) => {
+    setSimulacion(prev => ({
+      ...prev,
+      flores: {
+        ...prev.flores,
+        [colorId]: prev.flores[colorId].filter((_, idx) => idx !== florIndex)
+      }
+    }))
+  }
+  
+  const handleFlorChange = (colorId, florIndex, florId) => {
+    const color = configuracion?.colores.find(c => c.id === colorId)
+    const florSeleccionada = color?.flores_disponibles.find(f => f.flor_id === florId)
+    
+    setSimulacion(prev => ({
+      ...prev,
+      flores: {
+        ...prev.flores,
+        [colorId]: prev.flores[colorId].map((flor, idx) => 
+          idx === florIndex 
+            ? { ...flor, florId, costo: florSeleccionada?.flor_costo || 0 }
+            : flor
+        )
+      }
+    }))
+  }
+  
+  const handleCantidadChange = (colorId, florIndex, cantidad) => {
+    setSimulacion(prev => ({
+      ...prev,
+      flores: {
+        ...prev.flores,
+        [colorId]: prev.flores[colorId].map((flor, idx) => 
+          idx === florIndex ? { ...flor, cantidad: parseInt(cantidad) || 0 } : flor
+        )
+      }
+    }))
+  }
+  
+  const handleContenedorChange = (contenedorId) => {
+    const contenedor = contenedores.find(c => c.id === contenedorId)
+    setSimulacion(prev => ({
+      ...prev,
+      contenedor: contenedor ? {
+        contenedorId: contenedor.id,
+        costo: contenedor.costo
+      } : null
+    }))
+  }
+  
+  // Funciones para manejar colores
+  const handleAgregarColor = () => {
+    const nuevoColorId = `nuevo-${Date.now()}`
+    const nuevoColor = {
+      id: nuevoColorId,
+      nombre_color: 'Nuevo Color',
+      cantidad_flores_sugerida: 12,
+      flores_disponibles: configuracion?.colores[0]?.flores_disponibles || [], // Usar las mismas flores del primer color
+      esNuevo: true
+    }
+    
+    setColoresEditables(prev => [...prev, nuevoColor])
+    setSimulacion(prev => ({
+      ...prev,
+      flores: {
+        ...prev.flores,
+        [nuevoColorId]: []
+      }
+    }))
+  }
+  
+  const handleEliminarColor = (colorId) => {
+    if (coloresEditables.length <= 1) {
+      alert('❌ Debe haber al menos un color en el producto')
+      return
+    }
+    
+    setColoresEditables(prev => prev.filter(c => c.id !== colorId))
+    setSimulacion(prev => {
+      const { [colorId]: removed, ...restFlores } = prev.flores
+      return {
+        ...prev,
+        flores: restFlores
+      }
+    })
+  }
+  
+  const handleEditarNombreColor = (colorId, nuevoNombre) => {
+    setColoresEditables(prev => prev.map(c => 
+      c.id === colorId ? { ...c, nombre_color: nuevoNombre } : c
+    ))
+  }
+  
+  const resetearReceta = () => {
+    if (!configuracion) return
+    
+    // Resetear colores editables a la configuración original
+    setColoresEditables(configuracion.colores.map(c => ({
+      id: c.id,
+      nombre_color: c.nombre_color,
+      cantidad_flores_sugerida: c.cantidad_flores_sugerida,
+      flores_disponibles: c.flores_disponibles,
+      esNuevo: false
+    })))
+    
+    // Resetear precio editado
+    setPrecioVentaEditado(null)
+    
+    // Resetear flores a las predeterminadas
+    const floresIniciales = {}
+    configuracion.colores.forEach(color => {
+      const florPredeterminada = color.flores_disponibles.find(f => f.es_predeterminada)
+      if (florPredeterminada) {
+        floresIniciales[color.id] = [{
+          id: Date.now(),
+          florId: florPredeterminada.flor_id,
+          cantidad: color.cantidad_flores_sugerida,
+          costo: florPredeterminada.flor_costo
+        }]
+      }
+    })
+    
+    setSimulacion({
+      flores: floresIniciales,
+      contenedor: configuracion.contenedor_receta ? {
+        contenedorId: configuracion.contenedor_receta.id,
+        costo: configuracion.contenedor_receta.costo
+      } : null
+    })
+  }
+  
+  // Cálculos en tiempo real
+  const costoFlores = useMemo(() => {
+    let total = 0
+    Object.values(simulacion.flores).forEach(floresColor => {
+      floresColor.forEach(flor => {
+        total += (flor.cantidad || 0) * (flor.costo || 0)
+      })
+    })
+    return total
+  }, [simulacion.flores])
+  
+  const costoContenedor = useMemo(() => {
+    return simulacion.contenedor?.costo || 0
+  }, [simulacion.contenedor])
+  
+  const costoTotal = costoFlores + costoContenedor
+  const precioVenta = precioVentaEditado !== null ? precioVentaEditado : (productoDetalle?.precio_venta || 0)
+  const margenActual = precioVenta - costoTotal
+  const porcentajeMargen = precioVenta > 0 ? ((margenActual / precioVenta) * 100).toFixed(1) : 0
+  
+  const handleGuardarReceta = async () => {
+    if (!productoDetalle || !configuracion) return
+    
+    // TODO: Implementar endpoint para guardar receta
+    alert('⚠️ Función de guardar receta en desarrollo')
   }
   
   useEffect(() => {
@@ -544,7 +789,362 @@ function ProductosPage() {
                 </div>
                 <span className="text-xs text-gray-400">ID: {productoDetalle.id}</span>
               </div>
+              
+              {/* Botón Simulador de Costos */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    abrirSimulador()
+                  }}
+                  className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <Calculator className="h-5 w-5" />
+                  Simular Costos y Modificar Recetario
+                </button>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Experimenta con diferentes combinaciones de flores, colores y contenedores
+                </p>
+              </div>
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* MODAL SIMULADOR DE COSTOS */}
+      {mostrarSimulador && productoDetalle && (
+        <div 
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4"
+          onClick={() => setMostrarSimulador(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del Simulador */}
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Calculator className="h-6 w-6" />
+                <div>
+                  <h2 className="text-xl font-bold">Simulador de Costos</h2>
+                  <p className="text-sm text-primary-100">{productoDetalle.nombre}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setMostrarSimulador(false)}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {/* Contenido del Simulador */}
+            {loadingConfig ? (
+              <div className="flex-1 flex items-center justify-center p-12">
+                <div className="text-center">
+                  <div className="animate-spin h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando configuración...</p>
+                </div>
+              </div>
+            ) : configuracion ? (
+              <div className="flex-1 overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                  {/* COLUMNA IZQUIERDA: FORMULARIO */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Colores y Flores */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <Flower2 className="h-5 w-5 text-primary-600" />
+                          Flores por Color
+                        </h3>
+                        <button
+                          onClick={resetearReceta}
+                          className="text-sm text-gray-600 hover:text-primary-600 flex items-center gap-1"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Resetear
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        {coloresEditables.map((color) => {
+                          const floresColor = simulacion.flores[color.id] || []
+                          const totalTallos = floresColor.reduce((sum, f) => sum + (f.cantidad || 0), 0)
+                          const costoColor = floresColor.reduce((sum, f) => sum + (f.cantidad * f.costo || 0), 0)
+                          
+                          return (
+                            <div key={color.id} className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 relative">
+                              {/* Botón eliminar color */}
+                              {coloresEditables.length > 1 && (
+                                <button
+                                  onClick={() => handleEliminarColor(color.id)}
+                                  className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors z-10"
+                                  title="Eliminar color"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                              
+                              <div className="flex items-center justify-between mb-3 pr-8">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <div 
+                                    className="w-6 h-6 rounded-full border-2 border-gray-300 flex-shrink-0"
+                                    style={{ backgroundColor: color.nombre_color.toLowerCase() }}
+                                  ></div>
+                                  {/* Input editable para nombre del color */}
+                                  <input
+                                    type="text"
+                                    value={color.nombre_color}
+                                    onChange={(e) => handleEditarNombreColor(color.id, e.target.value)}
+                                    className="font-semibold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:outline-none px-1 py-0.5"
+                                    placeholder="Nombre del color"
+                                  />
+                                  <span className="text-xs text-gray-500">
+                                    ({totalTallos} tallos - ${costoColor.toLocaleString('es-CL')})
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleAgregarFlor(color.id)}
+                                  className="text-sm bg-primary-50 hover:bg-primary-100 text-primary-700 px-3 py-1 rounded-lg flex items-center gap-1 transition-colors flex-shrink-0"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                  Agregar Flor
+                                </button>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                {floresColor.map((flor, florIndex) => {
+                                  const florInfo = color.flores_disponibles.find(f => f.flor_id === flor.florId)
+                                  const costoLinea = (flor.cantidad || 0) * (flor.costo || 0)
+                                  
+                                  return (
+                                    <div key={flor.id} className="bg-white p-3 rounded border border-gray-200 flex items-center gap-2">
+                                      {/* Selector de flor */}
+                                      <select
+                                        value={flor.florId}
+                                        onChange={(e) => handleFlorChange(color.id, florIndex, e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                      >
+                                        <option value="">Seleccionar flor...</option>
+                                        {color.flores_disponibles.map(f => (
+                                          <option key={f.flor_id} value={f.flor_id}>
+                                            {f.es_predeterminada ? '⭐ ' : ''}{f.flor_nombre} 
+                                            - ${f.flor_costo.toLocaleString('es-CL')} 
+                                            (Stock: {f.flor_disponible || 0})
+                                          </option>
+                                        ))}
+                                      </select>
+                                      
+                                      {/* Cantidad */}
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={flor.cantidad || ''}
+                                        onChange={(e) => handleCantidadChange(color.id, florIndex, e.target.value)}
+                                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Cant."
+                                      />
+                                      
+                                      {/* Costo */}
+                                      <div className="w-28 text-right font-semibold text-sm text-gray-700">
+                                        ${costoLinea.toLocaleString('es-CL')}
+                                      </div>
+                                      
+                                      {/* Botón eliminar */}
+                                      {floresColor.length > 1 && (
+                                        <button
+                                          onClick={() => handleEliminarFlor(color.id, florIndex)}
+                                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                        
+                        {/* Botón Agregar Nuevo Color */}
+                        <button
+                          onClick={handleAgregarColor}
+                          className="w-full bg-white border-2 border-dashed border-gray-300 hover:border-primary-400 hover:bg-primary-50 text-gray-600 hover:text-primary-700 py-4 rounded-lg flex items-center justify-center gap-2 transition-all"
+                        >
+                          <Plus className="h-5 w-5" />
+                          <span className="font-medium">Agregar Nuevo Color</span>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Contenedor */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+                        <Package className="h-5 w-5 text-primary-600" />
+                        Contenedor
+                      </h3>
+                      
+                      <select
+                        value={simulacion.contenedor?.contenedorId || ''}
+                        onChange={(e) => handleContenedorChange(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      >
+                        <option value="">Sin contenedor</option>
+                        {contenedores.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.tipo} - {c.nombre} - ${c.costo.toLocaleString('es-CL')} 
+                            (Stock: {c.cantidad_disponible || 0})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Botón Guardar */}
+                    <button
+                      onClick={handleGuardarReceta}
+                      disabled={guardandoReceta}
+                      className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+                    >
+                      <Save className="h-5 w-5" />
+                      {guardandoReceta ? 'Guardando...' : 'Guardar como Receta Base'}
+                    </button>
+                  </div>
+                  
+                  {/* COLUMNA DERECHA: FOTO Y RESUMEN */}
+                  <div className="space-y-6">
+                    {/* Foto del Producto */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Vista Previa</h3>
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
+                        {productoDetalle.imagen_url ? (
+                          <img 
+                            src={`${API_URL}/upload/imagen/${productoDetalle.imagen_url}`}
+                            alt={productoDetalle.nombre}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                              e.target.nextSibling.style.display = 'flex'
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-full h-full">
+                            <Flower2 className="h-16 w-16 text-primary-600" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 font-semibold">{productoDetalle.nombre}</p>
+                      <p className="text-xs text-gray-500 mt-1">{productoDetalle.tipo_arreglo}</p>
+                    </div>
+                    
+                    {/* Resumen de Costos */}
+                    <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-200 rounded-lg p-5 shadow-sm">
+                      <h3 className="text-sm font-semibold text-gray-700 uppercase mb-4 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Resumen de Costos
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Flores:</span>
+                          <span className="font-semibold text-gray-900">
+                            ${costoFlores.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Contenedor:</span>
+                          <span className="font-semibold text-gray-900">
+                            ${costoContenedor.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        
+                        <div className="border-t-2 border-primary-300 pt-3 flex justify-between">
+                          <span className="font-semibold text-gray-700">Costo Total:</span>
+                          <span className="text-lg font-bold text-primary-700">
+                            ${costoTotal.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        
+                        <div className="border-t border-primary-200 pt-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-semibold text-gray-700">Precio Venta:</span>
+                            {precioVentaEditado !== null && (
+                              <button
+                                onClick={() => setPrecioVentaEditado(null)}
+                                className="text-xs text-gray-500 hover:text-primary-600 underline"
+                              >
+                                Restaurar original
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">$</span>
+                            <input
+                              type="number"
+                              value={precioVenta}
+                              onChange={(e) => setPrecioVentaEditado(parseInt(e.target.value) || 0)}
+                              className="flex-1 px-3 py-2 border-2 border-gray-300 focus:border-green-500 rounded-lg text-lg font-bold text-green-700 text-right focus:outline-none"
+                              placeholder="Precio de venta"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {precioVentaEditado !== null ? '(Editado)' : `Original: $${productoDetalle?.precio_venta?.toLocaleString('es-CL') || 0}`}
+                          </p>
+                        </div>
+                        
+                        <div className={`border-t border-primary-200 pt-3 ${margenActual >= 0 ? 'bg-green-50' : 'bg-red-50'} -mx-5 px-5 py-3 rounded-b-lg`}>
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-700">Margen:</span>
+                            <div className="text-right">
+                              <span className={`text-xl font-bold ${margenActual >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                                ${margenActual.toLocaleString('es-CL')}
+                              </span>
+                              <div className="text-xs text-gray-600">
+                                {porcentajeMargen}% del precio de venta
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Comparación con receta original */}
+                        {configuracion.costo_total_estimado && (
+                          <div className="mt-4 pt-3 border-t border-primary-300">
+                            <p className="text-xs text-gray-600 mb-2">Comparación con receta original:</p>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Costo original:</span>
+                              <span className="font-medium text-gray-700">
+                                ${configuracion.costo_total_estimado.toLocaleString('es-CL')}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm mt-1">
+                              <span className="text-gray-600">Diferencia:</span>
+                              <span className={`font-semibold ${
+                                costoTotal < configuracion.costo_total_estimado 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
+                                {costoTotal < configuracion.costo_total_estimado ? '↓' : '↑'} 
+                                ${Math.abs(costoTotal - configuracion.costo_total_estimado).toLocaleString('es-CL')}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-12">
+                <div className="text-center text-gray-500">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>No se pudo cargar la configuración del producto</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
