@@ -10,6 +10,7 @@ import RutasPage from './pages/RutasPage'
 import CobranzaPage from './pages/CobranzaPage'
 import TallerPage from './pages/TallerPage'
 import SimuladorCostosPage from './pages/SimuladorCostosPage'
+import EventosPage from './pages/EventosPage'
 import './App.css'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="tablero" element={<TableroPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
           <Route path="taller" element={<TallerPage />} />
+          <Route path="eventos" element={<EventosPage />} />
           <Route path="clientes" element={<ClientesPage />} />
           <Route path="cobranza" element={<CobranzaPage />} />
           <Route path="rutas" element={<RutasPage />} />
