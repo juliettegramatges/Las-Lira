@@ -12,6 +12,31 @@ function PedidosPage() {
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroCanal, setFiltroCanal] = useState('')
   const [pedidoDetalle, setPedidoDetalle] = useState(null)
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [productos, setProductos] = useState([])
+  const [comunas, setComunas] = useState([])
+  const [loadingFormulario, setLoadingFormulario] = useState(false)
+  
+  // Estado del formulario
+  const [formData, setFormData] = useState({
+    canal: 'WhatsApp',
+    shopify_order_number: '',
+    cliente_nombre: '',
+    cliente_telefono: '',
+    cliente_email: '',
+    arreglo_pedido: '',
+    producto_id: '',
+    detalles_adicionales: '',
+    precio_ramo: '',
+    precio_envio: '',
+    destinatario: '',
+    mensaje: '',
+    firma: '',
+    direccion_entrega: '',
+    comuna: '',
+    motivo: '',
+    fecha_entrega: ''
+  })
   
   const cargarPedidos = async () => {
     try {
@@ -32,8 +57,121 @@ function PedidosPage() {
     }
   }
   
+  const cargarDatosFormulario = async () => {
+    try {
+      // Cargar productos
+      const prodResponse = await axios.get(`${API_URL}/productos`)
+      if (prodResponse.data.success) {
+        setProductos(prodResponse.data.data)
+      }
+      
+      // Cargar comunas
+      const comunasResponse = await axios.get(`${API_URL}/rutas/comunas`)
+      if (comunasResponse.data.success) {
+        setComunas(comunasResponse.data.data)
+      }
+    } catch (err) {
+      console.error('Error al cargar datos del formulario:', err)
+    }
+  }
+  
+  const handleComunaChange = (comuna) => {
+    const comunaData = comunas.find(c => c.nombre === comuna)
+    setFormData(prev => ({
+      ...prev,
+      comuna,
+      precio_envio: comunaData?.precio || ''
+    }))
+  }
+  
+  const handleSubmitPedido = async (e) => {
+    e.preventDefault()
+    
+    // Validaciones
+    if (!formData.cliente_nombre || !formData.cliente_telefono) {
+      alert('❌ Nombre y teléfono del cliente son obligatorios')
+      return
+    }
+    
+    if (!formData.fecha_entrega) {
+      alert('❌ La fecha de entrega es obligatoria')
+      return
+    }
+    
+    if (!formData.direccion_entrega) {
+      alert('❌ La dirección de entrega es obligatoria')
+      return
+    }
+    
+    const precioRamo = parseFloat(formData.precio_ramo) || 0
+    const precioEnvio = parseFloat(formData.precio_envio) || 0
+    
+    if (precioRamo <= 0) {
+      alert('❌ El precio del ramo debe ser mayor a 0')
+      return
+    }
+    
+    try {
+      setLoadingFormulario(true)
+      
+      const pedidoData = {
+        canal: formData.canal,
+        shopify_order_number: formData.shopify_order_number || null,
+        cliente_nombre: formData.cliente_nombre,
+        cliente_telefono: formData.cliente_telefono,
+        cliente_email: formData.cliente_email || null,
+        arreglo_pedido: formData.arreglo_pedido || null,
+        producto_id: formData.producto_id || null,
+        detalles_adicionales: formData.detalles_adicionales || null,
+        precio_ramo: precioRamo,
+        precio_envio: precioEnvio,
+        precio_total: precioRamo + precioEnvio,
+        destinatario: formData.destinatario || null,
+        mensaje: formData.mensaje || null,
+        firma: formData.firma || null,
+        direccion_entrega: formData.direccion_entrega,
+        comuna: formData.comuna || null,
+        motivo: formData.motivo || null,
+        fecha_entrega: new Date(formData.fecha_entrega).toISOString()
+      }
+      
+      const response = await axios.post(`${API_URL}/pedidos`, pedidoData)
+      
+      if (response.data.success) {
+        alert('✅ Pedido creado exitosamente: ' + response.data.data.id)
+        setMostrarFormulario(false)
+        setFormData({
+          canal: 'WhatsApp',
+          shopify_order_number: '',
+          cliente_nombre: '',
+          cliente_telefono: '',
+          cliente_email: '',
+          arreglo_pedido: '',
+          producto_id: '',
+          detalles_adicionales: '',
+          precio_ramo: '',
+          precio_envio: '',
+          destinatario: '',
+          mensaje: '',
+          firma: '',
+          direccion_entrega: '',
+          comuna: '',
+          motivo: '',
+          fecha_entrega: ''
+        })
+        cargarPedidos()
+      }
+    } catch (err) {
+      console.error('Error al crear pedido:', err)
+      alert('❌ Error al crear pedido: ' + (err.response?.data?.error || err.message))
+    } finally {
+      setLoadingFormulario(false)
+    }
+  }
+  
   useEffect(() => {
     cargarPedidos()
+    cargarDatosFormulario()
   }, [filtroEstado, filtroCanal])
   
   const estadoColor = {
@@ -67,7 +205,10 @@ function PedidosPage() {
             {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} en total
           </p>
         </div>
-        <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center">
+        <button 
+          onClick={() => setMostrarFormulario(true)}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center"
+        >
           <Plus className="h-5 w-5 mr-2" />
           Nuevo Pedido
         </button>
@@ -410,6 +551,377 @@ function PedidosPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de Formulario de Nuevo Pedido */}
+      {mostrarFormulario && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={() => setMostrarFormulario(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h2 className="text-2xl font-bold text-gray-900">Nuevo Pedido</h2>
+              <button 
+                onClick={() => setMostrarFormulario(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {/* Formulario */}
+            <form onSubmit={handleSubmitPedido} className="p-6">
+              <div className="space-y-6">
+                {/* Canal */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Canal <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="canal"
+                        value="WhatsApp"
+                        checked={formData.canal === 'WhatsApp'}
+                        onChange={(e) => setFormData({...formData, canal: e.target.value})}
+                        className="mr-2"
+                      />
+                      WhatsApp
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="canal"
+                        value="Shopify"
+                        checked={formData.canal === 'Shopify'}
+                        onChange={(e) => setFormData({...formData, canal: e.target.value})}
+                        className="mr-2"
+                      />
+                      Shopify
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Nº Shopify (solo si es Shopify) */}
+                {formData.canal === 'Shopify' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Nº Pedido Shopify
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.shopify_order_number}
+                      onChange={(e) => setFormData({...formData, shopify_order_number: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="#1234"
+                    />
+                  </div>
+                )}
+                
+                {/* Información del Cliente */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
+                    Información del Cliente
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.cliente_nombre}
+                        onChange={(e) => setFormData({...formData, cliente_nombre: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="María García"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Teléfono <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={formData.cliente_telefono}
+                        onChange={(e) => setFormData({...formData, cliente_telefono: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="+56 9 1234 5678"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.cliente_email}
+                        onChange={(e) => setFormData({...formData, cliente_email: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="cliente@ejemplo.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Arreglo / Producto */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
+                    Arreglo Solicitado
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre del Arreglo
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.arreglo_pedido}
+                        onChange={(e) => setFormData({...formData, arreglo_pedido: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Pasión Roja, Ramo de Rosas, etc."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Producto de Catálogo (opcional)
+                      </label>
+                      <select
+                        value={formData.producto_id}
+                        onChange={(e) => setFormData({...formData, producto_id: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="">-- Sin producto asociado --</option>
+                        {productos.map(prod => (
+                          <option key={prod.id} value={prod.id}>
+                            {prod.nombre} - ${prod.precio_venta?.toLocaleString('es-CL')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Detalles Adicionales
+                      </label>
+                      <textarea
+                        value={formData.detalles_adicionales}
+                        onChange={(e) => setFormData({...formData, detalles_adicionales: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        rows="3"
+                        placeholder="Colores específicos, flores especiales, etc."
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Precios */}
+                <div className="bg-primary-50 p-4 rounded-lg border-2 border-primary-200">
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
+                    Precios
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Precio Ramo <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="1000"
+                        value={formData.precio_ramo}
+                        onChange={(e) => setFormData({...formData, precio_ramo: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="35000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Precio Envío
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={formData.precio_envio}
+                        onChange={(e) => setFormData({...formData, precio_envio: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="7000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Total
+                      </label>
+                      <div className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg font-bold text-primary-600">
+                        ${((parseFloat(formData.precio_ramo) || 0) + (parseFloat(formData.precio_envio) || 0)).toLocaleString('es-CL')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Mensaje y Destinatario */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
+                    Mensaje y Destinatario
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Para (Destinatario)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.destinatario}
+                        onChange={(e) => setFormData({...formData, destinatario: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ana López"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Mensaje
+                      </label>
+                      <textarea
+                        value={formData.mensaje}
+                        onChange={(e) => setFormData({...formData, mensaje: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        rows="3"
+                        placeholder="Feliz cumpleaños! Que tengas un día maravilloso..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Firma
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.firma}
+                        onChange={(e) => setFormData({...formData, firma: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Con cariño, Juan"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Entrega */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
+                    Información de Entrega
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dirección Completa <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.direccion_entrega}
+                        onChange={(e) => setFormData({...formData, direccion_entrega: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Av. Apoquindo 1234, Depto 501"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Comuna
+                        </label>
+                        <select
+                          value={formData.comuna}
+                          onChange={(e) => handleComunaChange(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">-- Seleccionar comuna --</option>
+                          {comunas.map(com => (
+                            <option key={com.nombre} value={com.nombre}>
+                              {com.nombre} - ${com.precio.toLocaleString('es-CL')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fecha de Entrega <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="datetime-local"
+                          required
+                          value={formData.fecha_entrega}
+                          onChange={(e) => setFormData({...formData, fecha_entrega: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Motivo */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Motivo
+                  </label>
+                  <select
+                    value={formData.motivo}
+                    onChange={(e) => setFormData({...formData, motivo: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">-- Seleccionar motivo --</option>
+                    <option value="Cumpleaños">Cumpleaños</option>
+                    <option value="Aniversario">Aniversario</option>
+                    <option value="San Valentín">San Valentín</option>
+                    <option value="Día de la Madre">Día de la Madre</option>
+                    <option value="Día del Padre">Día del Padre</option>
+                    <option value="Mejórate">Mejórate</option>
+                    <option value="Condolencias">Condolencias</option>
+                    <option value="Agradecimiento">Agradecimiento</option>
+                    <option value="Felicitaciones">Felicitaciones</option>
+                    <option value="Graduación">Graduación</option>
+                    <option value="Nacimiento">Nacimiento</option>
+                    <option value="Boda">Boda</option>
+                    <option value="Propuesta">Propuesta</option>
+                    <option value="Amor y Romance">Amor y Romance</option>
+                    <option value="Solo porque sí">Solo porque sí</option>
+                    <option value="Disculpas">Disculpas</option>
+                    <option value="Nuevo hogar">Nuevo hogar</option>
+                    <option value="Nuevo trabajo">Nuevo trabajo</option>
+                    <option value="Navidad">Navidad</option>
+                    <option value="Año Nuevo">Año Nuevo</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Botones */}
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setMostrarFormulario(false)}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  disabled={loadingFormulario}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  disabled={loadingFormulario}
+                >
+                  {loadingFormulario ? 'Creando...' : 'Crear Pedido'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
