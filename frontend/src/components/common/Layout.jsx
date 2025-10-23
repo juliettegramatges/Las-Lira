@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingBag, Flower2, MapPin, Users, DollarSign, Wrench } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingBag, Flower2, MapPin, Users, DollarSign, Wrench, Calculator } from 'lucide-react'
 
 function Layout() {
   const location = useLocation()
@@ -13,6 +13,7 @@ function Layout() {
     { name: 'Rutas', path: '/rutas', icon: MapPin },
     { name: 'Inventario', path: '/inventario', icon: Package },
     { name: 'Productos', path: '/productos', icon: Flower2 },
+    { name: 'Simulador', path: '/simulador-costos', icon: Calculator },
   ]
   
   const isActive = (path) => location.pathname === path
