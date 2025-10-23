@@ -91,20 +91,25 @@ function TarjetaPedido({ pedido, onRecargar }) {
         </div>
       </div>
       
-      {/* Producto/Descripción */}
+      {/* Tipo de Arreglo */}
       <div className="mb-3">
-        {pedido.producto_nombre ? (
-          <div className="flex items-center text-sm text-gray-700">
-            <ShoppingBag className="h-4 w-4 mr-2 text-gray-400" />
-            <span className="truncate">{pedido.producto_nombre}</span>
+        {pedido.arreglo_pedido && (
+          <div className="flex items-center text-sm font-medium text-primary-700 bg-primary-50 rounded px-2 py-1.5">
+            <ShoppingBag className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">{pedido.arreglo_pedido}</span>
           </div>
-        ) : pedido.descripcion_personalizada ? (
-          <div className="flex items-start text-sm text-gray-700">
-            <MessageSquare className="h-4 w-4 mr-2 mt-0.5 text-gray-400 flex-shrink-0" />
-            <span className="line-clamp-2">{pedido.descripcion_personalizada}</span>
-          </div>
-        ) : null}
+        )}
       </div>
+      
+      {/* Detalles Adicionales */}
+      {pedido.detalles_adicionales && (
+        <div className="mb-3">
+          <div className="flex items-start text-xs text-gray-600 bg-yellow-50 rounded px-2 py-1.5 border border-yellow-200">
+            <MessageSquare className="h-3.5 w-3.5 mr-1.5 mt-0.5 flex-shrink-0 text-yellow-600" />
+            <span className="line-clamp-2">{pedido.detalles_adicionales}</span>
+          </div>
+        </div>
+      )}
       
       {/* Detalles */}
       <div className="space-y-2 text-xs text-gray-600">
