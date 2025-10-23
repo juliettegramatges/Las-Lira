@@ -779,7 +779,11 @@ function PedidosPage() {
                           {sugerenciasClientes.map((cliente) => (
                             <div
                               key={cliente.id}
-                              onClick={() => seleccionarCliente(cliente)}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                seleccionarCliente(cliente)
+                              }}
                               className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-center justify-between">
