@@ -202,7 +202,7 @@ function EventosPage() {
     
     try {
       // 1. Crear evento
-      const eventoPay load = {
+      const eventoPayload = {
         ...formData,
         costo_total: totalCosto,
         precio_propuesta: calcularPrecioPropuesta()
