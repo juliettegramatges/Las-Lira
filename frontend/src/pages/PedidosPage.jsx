@@ -1246,6 +1246,139 @@ function PedidosPage() {
                   </div>
                 </div>
                 
+                {/* Insumos del pedido */}
+                {formData.producto_id && (
+                  <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-700 uppercase flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Insumos del Pedido
+                      </h3>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleAgregarInsumo('Flor')}
+                          className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          + Flor
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAgregarInsumo('Contenedor')}
+                          className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          + Contenedor
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {loadingReceta ? (
+                      <div className="text-center py-4 text-gray-500">Cargando insumos...</div>
+                    ) : insumosModificados.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        No hay insumos definidos. Haz clic en "+ Flor" o "+ Contenedor" para agregar.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-300">
+                          <thead className="bg-yellow-100">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Tipo</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-600">Insumo</th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-600">Cantidad</th>
+                              <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">Stock</th>
+                              <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">Costo Unit.</th>
+                              <th className="px-3 py-2 text-right text-xs font-medium text-gray-600">Total</th>
+                              <th className="px-3 py-2 text-center text-xs font-medium text-gray-600">Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {insumosModificados.map((insumo, index) => {
+                              const stockSuficiente = insumo.stock_disponible >= insumo.cantidad
+                              const totalInsumo = insumo.cantidad * insumo.costo_unitario
+                              
+                              return (
+                                <tr key={index} className={!stockSuficiente ? 'bg-red-50' : ''}>
+                                  <td className="px-3 py-2">
+                                    <span className={`px-2 py-1 rounded text-xs ${insumo.insumo_tipo === 'Flor' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                      {insumo.insumo_tipo}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <select
+                                      value={insumo.insumo_id}
+                                      onChange={(e) => handleCambiarInsumo(index, e.target.value, insumo.insumo_tipo)}
+                                      className="text-sm border border-gray-300 rounded px-2 py-1 w-full"
+                                    >
+                                      <option value="">-- Seleccionar --</option>
+                                      {insumo.insumo_tipo === 'Flor' ? (
+                                        flores.map(flor => (
+                                          <option key={flor.id} value={flor.id}>
+                                            {flor.tipo} - {flor.color}
+                                          </option>
+                                        ))
+                                      ) : (
+                                        contenedores.map(cont => (
+                                          <option key={cont.id} value={cont.id}>
+                                            {cont.tipo} - {cont.material}
+                                          </option>
+                                        ))
+                                      )}
+                                    </select>
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={insumo.cantidad}
+                                      onChange={(e) => handleCantidadInsumo(index, e.target.value)}
+                                      className="w-16 text-center border border-gray-300 rounded px-2 py-1"
+                                    />
+                                  </td>
+                                  <td className={`px-3 py-2 text-right text-sm ${!stockSuficiente ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                                    {insumo.stock_disponible || 0}
+                                    {!stockSuficiente && ' ⚠️'}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-sm text-gray-600">
+                                    ${(insumo.costo_unitario || 0).toLocaleString()}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-sm font-medium">
+                                    ${totalInsumo.toLocaleString()}
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEliminarInsumo(index)}
+                                      className="text-red-600 hover:text-red-800"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                          <tfoot className="bg-yellow-50">
+                            <tr>
+                              <td colSpan="5" className="px-3 py-2 text-right text-sm font-semibold text-gray-700">
+                                Total Costo Insumos:
+                              </td>
+                              <td className="px-3 py-2 text-right text-sm font-bold text-gray-900">
+                                ${insumosModificados.reduce((sum, i) => sum + (i.cantidad * i.costo_unitario), 0).toLocaleString()}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-gray-600 mt-2">
+                      💡 Estos insumos se guardarán con el pedido y se usarán en el Taller para confirmar y descontar stock.
+                    </p>
+                  </div>
+                )}
+                
                 {/* Precios */}
                 <div className="bg-primary-50 p-4 rounded-lg border-2 border-primary-200">
                   <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
