@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Search, Filter, Plus, Eye, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle } from 'lucide-react'
+import { Search, Filter, Plus, Eye, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import SelectorInsumosColores from '../components/Pedidos/SelectorInsumosColores'
@@ -555,13 +555,24 @@ function PedidosPage() {
             {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} en total
           </p>
         </div>
-        <button 
-          onClick={() => setMostrarFormulario(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Nuevo Pedido
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => {
+              window.open(`${API_URL}/exportar/pedidos`, '_blank')
+            }}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Descargar Excel
+          </button>
+          <button 
+            onClick={() => setMostrarFormulario(true)}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Nuevo Pedido
+          </button>
+        </div>
       </div>
       
       {/* Barra de búsqueda */}

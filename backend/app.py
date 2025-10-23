@@ -27,7 +27,7 @@ from routes import (
     clientes_routes,
     pedidos_routes, inventario_routes, productos_routes, 
     upload_routes, rutas_routes, producto_colores_routes,
-    pedido_insumos_routes, evento_routes
+    pedido_insumos_routes, evento_routes, exportar_routes
 )
 
 # Registrar blueprints
@@ -40,6 +40,7 @@ app.register_blueprint(upload_routes.bp, url_prefix='/api/upload')
 app.register_blueprint(rutas_routes.bp, url_prefix='/api/rutas')
 app.register_blueprint(producto_colores_routes.bp, url_prefix='/api/productos')
 app.register_blueprint(evento_routes.bp, url_prefix='/api/eventos')
+app.register_blueprint(exportar_routes.bp, url_prefix='/api/exportar')
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

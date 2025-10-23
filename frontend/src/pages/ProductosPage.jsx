@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save } from 'lucide-react'
+import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download } from 'lucide-react'
 
 const API_URL = 'http://localhost:8000/api'
 
@@ -408,11 +408,22 @@ function ProductosPage() {
   return (
     <div className="px-4 sm:px-0">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Catálogo de Productos</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {productos.length} producto{productos.length !== 1 ? 's' : ''} en el catálogo
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Catálogo de Productos</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            {productos.length} producto{productos.length !== 1 ? 's' : ''} en el catálogo
+          </p>
+        </div>
+        <button 
+          onClick={() => {
+            window.open(`${API_URL}/exportar/productos`, '_blank')
+          }}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+        >
+          <Download className="h-5 w-5 mr-2" />
+          Descargar Excel
+        </button>
       </div>
       
       {/* Grid de productos */}

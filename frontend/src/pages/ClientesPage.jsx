@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, Search, Plus, Edit2, Trash2, X, Phone, Mail, MapPin, DollarSign, ShoppingBag } from 'lucide-react'
+import { User, Search, Plus, Edit2, Trash2, X, Phone, Mail, MapPin, DollarSign, ShoppingBag, Download } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../services/api'
 
@@ -152,13 +152,24 @@ function ClientesPage() {
             Gestiona tu base de clientes y su historial de compras
           </p>
         </div>
-        <button
-          onClick={handleNuevoCliente}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Nuevo Cliente
-        </button>
+        <div className="mt-4 sm:mt-0 flex gap-3">
+          <button
+            onClick={() => {
+              window.open(`${API_URL}/exportar/clientes`, '_blank')
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Descargar Excel
+          </button>
+          <button
+            onClick={handleNuevoCliente}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Nuevo Cliente
+          </button>
+        </div>
       </div>
 
       {/* Filtros y búsqueda */}
