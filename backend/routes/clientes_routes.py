@@ -277,7 +277,7 @@ def estadisticas_clientes():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<int:cliente_id>/pedidos', methods=['GET'])
+@bp.route('/<cliente_id>/pedidos', methods=['GET'])
 def obtener_historial_pedidos(cliente_id):
     """Obtener historial de pedidos de un cliente"""
     try:
