@@ -178,16 +178,33 @@ def eliminar_cliente(cliente_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def normalizar_telefono(telefono):
+    """Normalizar número de teléfono (quitar espacios, guiones, paréntesis)"""
+    import re
+    return re.sub(r'[\s\-\(\)]', '', telefono)
+
+
 @bp.route('/buscar-por-telefono', methods=['GET'])
 def buscar_por_telefono():
     """Buscar cliente por número de teléfono"""
     try:
-        telefono = request.args.get('telefono', '').strip()
+        telefono_original = request.args.get('telefono', '').strip()
         
-        if not telefono:
+        if not telefono_original:
             return jsonify({'success': False, 'error': 'Teléfono requerido'}), 400
         
-        cliente = Cliente.query.filter_by(telefono=telefono).first()
+        # Normalizar el teléfono que viene del frontend
+        telefono_normalizado = normalizar_telefono(telefono_original)
+        
+        # Buscar comparando teléfonos normalizados
+        # Esto permite encontrar "+56912345678" aunque se busque "+56 9 1234 5678"
+        todos_clientes = Cliente.query.all()
+        cliente = None
+        
+        for c in todos_clientes:
+            if normalizar_telefono(c.telefono) == telefono_normalizado:
+                cliente = c
+                break
         
         if cliente:
             return jsonify({
@@ -199,7 +216,8 @@ def buscar_por_telefono():
             return jsonify({
                 'success': True,
                 'encontrado': False,
-                'data': None
+                'data': None,
+                'message': 'Cliente no encontrado. Se creará uno nuevo al guardar el pedido.'
             })
         
     except Exception as e:

@@ -59,11 +59,21 @@ def obtener_pedido(pedido_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def normalizar_telefono(telefono):
+    """Normalizar número de teléfono (quitar espacios, guiones, paréntesis)"""
+    import re
+    return re.sub(r'[\s\-\(\)]', '', telefono)
+
+
 @bp.route('/', methods=['POST'])
 def crear_pedido():
     """Crear un nuevo pedido"""
     try:
         data = request.json
+        
+        # Normalizar teléfono
+        telefono_original = data['cliente_telefono']
+        telefono_normalizado = normalizar_telefono(telefono_original)
         
         # Gestionar cliente (buscar o crear)
         cliente_id = data.get('cliente_id')
@@ -73,9 +83,12 @@ def crear_pedido():
             # Cliente ya existe, usar ese
             cliente = Cliente.query.get(cliente_id)
         else:
-            # Buscar por teléfono
-            telefono = data['cliente_telefono']
-            cliente = Cliente.query.filter_by(telefono=telefono).first()
+            # Buscar por teléfono normalizado
+            todos_clientes = Cliente.query.all()
+            for c in todos_clientes:
+                if normalizar_telefono(c.telefono) == telefono_normalizado:
+                    cliente = c
+                    break
             
             if not cliente:
                 # Cliente no existe, crear uno nuevo
@@ -89,7 +102,7 @@ def crear_pedido():
                 cliente = Cliente(
                     id=nuevo_cliente_id,
                     nombre=data['cliente_nombre'],
-                    telefono=telefono,
+                    telefono=telefono_normalizado,  # Guardar teléfono normalizado
                     email=data.get('cliente_email'),
                     tipo_cliente='Nuevo'
                 )
@@ -120,7 +133,7 @@ def crear_pedido():
             shopify_order_number=data.get('shopify_order_number'),
             cliente_id=cliente.id if cliente else None,
             cliente_nombre=data['cliente_nombre'],
-            cliente_telefono=data['cliente_telefono'],
+            cliente_telefono=telefono_normalizado,  # Guardar teléfono normalizado
             cliente_email=data.get('cliente_email'),
             producto_id=data.get('producto_id'),
             arreglo_pedido=data.get('arreglo_pedido'),

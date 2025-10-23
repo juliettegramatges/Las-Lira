@@ -99,8 +99,15 @@ function PedidosPage() {
     'Ocasional': 7
   }
   
+  // Normalizar teléfono (quitar espacios, guiones, paréntesis)
+  const normalizarTelefono = (tel) => {
+    return tel.replace(/[\s\-\(\)]/g, '')
+  }
+  
   const buscarClientePorTelefono = async (telefono) => {
-    if (!telefono || telefono.length < 8) {
+    const telNormalizado = normalizarTelefono(telefono)
+    
+    if (!telNormalizado || telNormalizado.length < 8) {
       setClienteEncontrado(null)
       return
     }
@@ -108,14 +115,14 @@ function PedidosPage() {
     try {
       setBuscandoCliente(true)
       const response = await axios.get(`${API_URL}/clientes/buscar-por-telefono`, {
-        params: { telefono }
+        params: { telefono: telNormalizado }
       })
       
       if (response.data.success && response.data.encontrado) {
         const cliente = response.data.data
         setClienteEncontrado(cliente)
         
-        // Autocompletar datos del cliente
+        // Autocompletar TODOS los datos del cliente
         setFormData(prev => ({
           ...prev,
           cliente_id: cliente.id,
@@ -132,13 +139,16 @@ function PedidosPage() {
             plazo_pago_dias: plazo
           }))
         }
+        
+        console.log('✅ Cliente encontrado:', cliente.nombre, `(${cliente.tipo_cliente})`)
       } else {
         setClienteEncontrado(null)
-        // Limpiar cliente_id si no se encontró
         setFormData(prev => ({
           ...prev,
-          cliente_id: ''
+          cliente_id: '',
+          plazo_pago_dias: 0
         }))
+        console.log('ℹ️ Cliente no encontrado, se creará uno nuevo')
       }
     } catch (err) {
       console.error('Error al buscar cliente:', err)
@@ -151,11 +161,25 @@ function PedidosPage() {
   const handleTelefonoChange = (telefono) => {
     setFormData(prev => ({ ...prev, cliente_telefono: telefono }))
     
-    // Buscar cliente después de un pequeño delay
-    if (telefono.length >= 8) {
-      setTimeout(() => buscarClientePorTelefono(telefono), 500)
+    // Normalizar y buscar
+    const telNormalizado = normalizarTelefono(telefono)
+    
+    // Buscar cliente inmediatamente cuando tenga suficientes dígitos
+    if (telNormalizado.length >= 8) {
+      // Cancelar búsqueda anterior si existe
+      if (window.busquedaClienteTimeout) {
+        clearTimeout(window.busquedaClienteTimeout)
+      }
+      
+      // Buscar después de 300ms (más rápido)
+      window.busquedaClienteTimeout = setTimeout(() => {
+        buscarClientePorTelefono(telefono)
+      }, 300)
     } else {
       setClienteEncontrado(null)
+      if (window.busquedaClienteTimeout) {
+        clearTimeout(window.busquedaClienteTimeout)
+      }
     }
   }
   
