@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { Search, Filter, Plus, Eye, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X } from 'lucide-react'
 import { format } from 'date-fns'
@@ -194,6 +194,13 @@ function PedidosPage() {
       return fechaStr
     }
   }
+  
+  // Calcular total en tiempo real
+  const totalPedido = useMemo(() => {
+    const precioRamo = parseFloat(formData.precio_ramo) || 0
+    const precioEnvio = parseFloat(formData.precio_envio) || 0
+    return precioRamo + precioEnvio
+  }, [formData.precio_ramo, formData.precio_envio])
   
   return (
     <div className="px-4 sm:px-0">
@@ -762,8 +769,8 @@ function PedidosPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Total
                       </label>
-                      <div className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg font-bold text-primary-600">
-                        ${((parseFloat(formData.precio_ramo) || 0) + (parseFloat(formData.precio_envio) || 0)).toLocaleString('es-CL')}
+                      <div className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg font-bold text-primary-600 text-lg">
+                        ${totalPedido.toLocaleString('es-CL')}
                       </div>
                     </div>
                   </div>
