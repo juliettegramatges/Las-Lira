@@ -59,6 +59,18 @@ function TarjetaPedido({ pedido, onRecargar }) {
           </div>
         </div>
         
+        {/* IDs del pedido */}
+        <div className="flex flex-wrap gap-2 mb-2 text-xs">
+          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-mono">
+            {pedido.id}
+          </span>
+          {pedido.canal === 'Shopify' && pedido.nro_pedido_shopify && (
+            <span className="px-2 py-1 bg-green-50 text-green-700 rounded font-mono">
+              🛍️ {pedido.nro_pedido_shopify}
+            </span>
+          )}
+        </div>
+        
         {/* Etiquetas */}
         <div className="flex flex-wrap gap-1 mb-2">
           {pedido.dia_entrega && (
