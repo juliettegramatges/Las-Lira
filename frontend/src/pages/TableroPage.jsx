@@ -30,6 +30,11 @@ function TableroPage() {
   const cargarTablero = async () => {
     try {
       setLoading(true)
+      
+      // 🚀 PASO 1: Actualizar automáticamente estados según fecha
+      await pedidosAPI.actualizarEstadosPorFecha()
+      
+      // 📊 PASO 2: Cargar tablero con estados actualizados
       const response = await pedidosAPI.obtenerTablero()
       if (response.data.success) {
         setTablero(response.data.data)

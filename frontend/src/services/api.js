@@ -20,6 +20,7 @@ export const pedidosAPI = {
   actualizarEstado: (id, estado) => api.patch(`/pedidos/${id}/estado`, { estado }),
   eliminar: (id) => api.delete(`/pedidos/${id}`),
   obtenerTablero: () => api.get('/pedidos/tablero'),
+  actualizarEstadosPorFecha: () => api.post('/pedidos/actualizar-estados-por-fecha'),
 };
 
 // === INVENTARIO ===

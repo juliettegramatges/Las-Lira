@@ -7,6 +7,7 @@ from backend.app import db
 from backend.models.pedido import Pedido, PedidoInsumo
 from backend.models.cliente import Cliente
 from backend.config.plazos_pago import obtener_plazo_pago
+from backend.utils.fecha_helpers import clasificar_pedido
 from datetime import datetime
 
 bp = Blueprint('pedidos', __name__)
@@ -126,6 +127,12 @@ def crear_pedido():
         else:
             plazo_pago = 0  # Sin cliente, pago inmediato
         
+        # Parsear fecha de entrega
+        fecha_entrega = datetime.fromisoformat(data['fecha_entrega'].replace('Z', '+00:00'))
+        
+        # 🚀 CLASIFICACIÓN AUTOMÁTICA: Determinar estado y día según fecha de entrega
+        clasificacion = clasificar_pedido(fecha_entrega)
+        
         # Crear pedido
         pedido = Pedido(
             id=nuevo_id,
@@ -147,7 +154,9 @@ def crear_pedido():
             comuna=data.get('comuna'),
             motivo=data.get('motivo'),
             plazo_pago_dias=plazo_pago,
-            fecha_entrega=datetime.fromisoformat(data['fecha_entrega'].replace('Z', '+00:00'))
+            fecha_entrega=fecha_entrega,
+            estado=clasificacion['estado'],  # 🎯 Estado automático
+            dia_entrega=clasificacion['dia_entrega']  # 📅 Día automático
         )
         
         db.session.add(pedido)
@@ -345,5 +354,42 @@ def resumen_cobranza():
         })
         
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/actualizar-estados-por-fecha', methods=['POST'], strict_slashes=False)
+def actualizar_estados_por_fecha():
+    """
+    Actualiza automáticamente los estados de pedidos según su fecha de entrega
+    Se ejecuta al cargar el tablero para mantener pedidos en la columna correcta
+    """
+    try:
+        # Solo actualizar pedidos que no estén finalizados
+        estados_activos = ['Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy', 'En Proceso', 'Listo para Despacho']
+        
+        pedidos_activos = Pedido.query.filter(Pedido.estado.in_(estados_activos)).all()
+        
+        actualizados = 0
+        for pedido in pedidos_activos:
+            # Reclasificar según fecha actual
+            clasificacion = clasificar_pedido(pedido.fecha_entrega)
+            
+            # Solo actualizar si el estado cambió Y el pedido aún no está en proceso
+            if pedido.estado in ['Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy']:
+                if pedido.estado != clasificacion['estado']:
+                    pedido.estado = clasificacion['estado']
+                    pedido.dia_entrega = clasificacion['dia_entrega']
+                    actualizados += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{actualizados} pedidos reclasificados automáticamente',
+            'actualizados': actualizados
+        })
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
