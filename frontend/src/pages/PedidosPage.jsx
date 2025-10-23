@@ -928,8 +928,8 @@ function PedidosPage() {
                         )}
                         
                         {!cargandoHistorial && historialPedidos.length > 0 && (
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {historialPedidos.slice(0, 5).map((pedido) => (
+                          <div className="space-y-2 max-h-96 overflow-y-auto">
+                            {historialPedidos.map((pedido) => (
                               <div key={pedido.id} className="bg-white p-3 rounded-lg shadow-sm text-xs border border-indigo-100">
                                 <div className="flex justify-between items-start mb-1">
                                   <span className="font-semibold text-gray-800">{pedido.id}</span>
@@ -949,11 +949,9 @@ function PedidosPage() {
                                 </div>
                               </div>
                             ))}
-                            {historialPedidos.length > 5 && (
-                              <p className="text-xs text-center text-gray-500 italic pt-2">
-                                Y {historialPedidos.length - 5} pedido(s) más...
-                              </p>
-                            )}
+                            <p className="text-xs text-center text-gray-500 italic pt-2">
+                              📦 Total: {historialPedidos.length} pedido(s)
+                            </p>
                           </div>
                         )}
                       </div>
