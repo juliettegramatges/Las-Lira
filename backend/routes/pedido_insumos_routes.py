@@ -258,3 +258,134 @@ def guardar_insumos_detallados(pedido_id):
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@bp.route('/<pedido_id>/insumos-detallados', methods=['GET'])
+def obtener_insumos_detallados(pedido_id):
+    """
+    Obtiene los insumos seleccionados con la nueva estructura de colores.
+    Retorna las flores seleccionadas organizadas por color y los contenedores.
+    """
+    try:
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        # Obtener flores seleccionadas
+        flores_seleccionadas = PedidoFlorSeleccionada.query.filter_by(pedido_id=pedido_id).all()
+        
+        # Obtener contenedor seleccionado
+        contenedor_seleccionado = PedidoContenedorSeleccionado.query.filter_by(pedido_id=pedido_id).first()
+        
+        # Formatear respuesta
+        flores_data = []
+        for flor_sel in flores_seleccionadas:
+            flor = Flor.query.get(flor_sel.flor_id)
+            flores_data.append({
+                'id': flor_sel.id,
+                'color_nombre': flor_sel.color_nombre,
+                'flor_id': flor_sel.flor_id,
+                'flor_nombre': f"{flor.tipo} {flor.color}" if flor else flor_sel.flor_id,
+                'flor_foto': flor.foto_url if flor else None,
+                'cantidad': flor_sel.cantidad,
+                'costo_unitario': float(flor_sel.costo_unitario),
+                'costo_total': float(flor_sel.costo_total),
+                'stock_disponible': flor.cantidad_stock if flor else 0,
+                'descontado_stock': flor_sel.descontado_stock,
+                'stock_suficiente': (flor.cantidad_stock if flor else 0) >= flor_sel.cantidad
+            })
+        
+        contenedor_data = None
+        if contenedor_seleccionado:
+            contenedor = Contenedor.query.get(contenedor_seleccionado.contenedor_id)
+            contenedor_data = {
+                'id': contenedor_seleccionado.id,
+                'contenedor_id': contenedor_seleccionado.contenedor_id,
+                'contenedor_nombre': f"{contenedor.tipo} {contenedor.material}" if contenedor else contenedor_seleccionado.contenedor_id,
+                'contenedor_foto': contenedor.foto_url if contenedor else None,
+                'cantidad': contenedor_seleccionado.cantidad,
+                'costo_unitario': float(contenedor_seleccionado.costo_unitario),
+                'costo_total': float(contenedor_seleccionado.costo_total),
+                'stock_disponible': contenedor.cantidad_stock if contenedor else 0,
+                'descontado_stock': contenedor_seleccionado.descontado_stock,
+                'stock_suficiente': (contenedor.cantidad_stock if contenedor else 0) >= contenedor_seleccionado.cantidad
+            }
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'flores': flores_data,
+                'contenedor': contenedor_data,
+                'todos_confirmados': all(f['descontado_stock'] for f in flores_data) and (contenedor_data is None or contenedor_data['descontado_stock']),
+                'hay_stock_completo': all(f['stock_suficiente'] for f in flores_data) and (contenedor_data is None or contenedor_data['stock_suficiente'])
+            }
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<pedido_id>/confirmar-insumos-detallados', methods=['POST'])
+def confirmar_insumos_detallados(pedido_id):
+    """
+    Confirma los insumos seleccionados y descuenta del stock.
+    También mueve el pedido a 'Listo para Despacho'.
+    """
+    try:
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        # Obtener insumos
+        flores_seleccionadas = PedidoFlorSeleccionada.query.filter_by(pedido_id=pedido_id).all()
+        contenedor_seleccionado = PedidoContenedorSeleccionado.query.filter_by(pedido_id=pedido_id).first()
+        
+        # Validar stock
+        errores = []
+        for flor_sel in flores_seleccionadas:
+            if flor_sel.descontado_stock:
+                continue  # Ya fue descontado
+                
+            flor = Flor.query.get(flor_sel.flor_id)
+            if not flor:
+                errores.append(f"Flor {flor_sel.flor_id} no encontrada")
+            elif flor.cantidad_stock < flor_sel.cantidad:
+                errores.append(f"{flor.tipo} {flor.color}: Stock insuficiente ({flor.cantidad_stock} disponibles, se necesitan {flor_sel.cantidad})")
+        
+        if contenedor_seleccionado and not contenedor_seleccionado.descontado_stock:
+            contenedor = Contenedor.query.get(contenedor_seleccionado.contenedor_id)
+            if not contenedor:
+                errores.append(f"Contenedor {contenedor_seleccionado.contenedor_id} no encontrado")
+            elif contenedor.cantidad_stock < contenedor_seleccionado.cantidad:
+                errores.append(f"{contenedor.tipo}: Stock insuficiente ({contenedor.cantidad_stock} disponibles, se necesitan {contenedor_seleccionado.cantidad})")
+        
+        if errores:
+            return jsonify({'success': False, 'error': '\n'.join(errores)}), 400
+        
+        # Descontar stock
+        for flor_sel in flores_seleccionadas:
+            if flor_sel.descontado_stock:
+                continue
+                
+            flor = Flor.query.get(flor_sel.flor_id)
+            flor.cantidad_stock -= flor_sel.cantidad
+            flor_sel.descontado_stock = True
+        
+        if contenedor_seleccionado and not contenedor_seleccionado.descontado_stock:
+            contenedor = Contenedor.query.get(contenedor_seleccionado.contenedor_id)
+            contenedor.cantidad_stock -= contenedor_seleccionado.cantidad
+            contenedor_seleccionado.descontado_stock = True
+        
+        # Cambiar estado del pedido
+        pedido.estado = 'Listo para Despacho'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Insumos confirmados y stock descontado exitosamente'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
