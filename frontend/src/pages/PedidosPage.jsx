@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Search, Filter, Plus, Eye, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X } from 'lucide-react'
+import { Search, Filter, Plus, Eye, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
