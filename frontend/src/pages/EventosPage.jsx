@@ -825,6 +825,217 @@ function EventosPage() {
           </div>
         </div>
       )}
+      
+      {/* Modal Detalles del Evento */}
+      {eventoSeleccionado && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEventoSeleccionado(null)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{eventoSeleccionado.nombre_evento}</h2>
+                <p className="text-sm text-gray-600">{eventoSeleccionado.id} - {eventoSeleccionado.tipo_evento}</p>
+              </div>
+              <button onClick={() => setEventoSeleccionado(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Estado y Alertas */}
+              <div className="flex items-center gap-3">
+                <span className={`px-4 py-2 inline-flex text-sm font-semibold rounded-full ${getEstadoColor(eventoSeleccionado.estado)}`}>
+                  {eventoSeleccionado.estado}
+                </span>
+                {eventoSeleccionado.insumos_faltantes && (
+                  <div className="flex items-center gap-2 bg-red-100 text-red-800 px-4 py-2 rounded-lg">
+                    <AlertTriangle className="h-5 w-5" />
+                    <span className="font-semibold">Insumos faltantes</span>
+                  </div>
+                )}
+                {eventoSeleccionado.pagado && (
+                  <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-semibold">Pagado</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Información del Cliente */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary-600" />
+                  Cliente
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Nombre</p>
+                    <p className="font-medium text-gray-900">{eventoSeleccionado.cliente_nombre}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Teléfono</p>
+                    <p className="font-medium text-gray-900">{eventoSeleccionado.cliente_telefono}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium text-gray-900">{eventoSeleccionado.cliente_email || '-'}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Información del Evento */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary-600" />
+                  Detalles del Evento
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Fecha</p>
+                    <p className="font-medium text-gray-900">
+                      {eventoSeleccionado.fecha_evento 
+                        ? new Date(eventoSeleccionado.fecha_evento).toLocaleDateString('es-CL', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Hora</p>
+                    <p className="font-medium text-gray-900">{eventoSeleccionado.hora_evento || '-'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-gray-600">Lugar</p>
+                    <p className="font-medium text-gray-900">{eventoSeleccionado.lugar_evento || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Cantidad de Personas</p>
+                    <p className="font-medium text-gray-900">{eventoSeleccionado.cantidad_personas || '-'}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Costos y Financiero */}
+              <div className="bg-primary-50 rounded-lg p-4 border-2 border-primary-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary-600" />
+                  Información Financiera
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Costo Total</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      ${(eventoSeleccionado.costo_total || 0).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Margen</p>
+                    <p className="text-xl font-bold text-primary-700">
+                      {eventoSeleccionado.margen_porcentaje || 0}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Precio Propuesta</p>
+                    <p className="text-xl font-bold text-primary-900">
+                      ${(eventoSeleccionado.precio_propuesta || 0).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Precio Final</p>
+                    <p className="text-xl font-bold text-green-700">
+                      ${(eventoSeleccionado.precio_final || 0).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                </div>
+                
+                {eventoSeleccionado.precio_final > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-primary-300">
+                    <div>
+                      <p className="text-sm text-gray-600">Anticipo</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        ${(eventoSeleccionado.anticipo || 0).toLocaleString('es-CL')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Saldo</p>
+                      <p className="text-lg font-bold text-orange-600">
+                        ${(eventoSeleccionado.saldo || 0).toLocaleString('es-CL')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Estado de Pago</p>
+                      <p className={`text-lg font-bold ${eventoSeleccionado.pagado ? 'text-green-600' : 'text-red-600'}`}>
+                        {eventoSeleccionado.pagado ? 'Pagado' : 'Pendiente'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Estado de Insumos */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary-600" />
+                  Estado de Insumos
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${eventoSeleccionado.insumos_reservados ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-sm text-gray-700">Reservados</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${eventoSeleccionado.insumos_descontados ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-sm text-gray-700">Descontados</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${eventoSeleccionado.insumos_faltantes ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                    <span className="text-sm text-gray-700">{eventoSeleccionado.insumos_faltantes ? 'Con Faltantes' : 'Completo'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Notas */}
+              {eventoSeleccionado.notas_cotizacion && (
+                <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Notas</h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{eventoSeleccionado.notas_cotizacion}</p>
+                </div>
+              )}
+              
+              {/* Fechas */}
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                <div>
+                  <p>Cotización creada:</p>
+                  <p className="font-medium">
+                    {eventoSeleccionado.fecha_cotizacion 
+                      ? new Date(eventoSeleccionado.fecha_cotizacion).toLocaleString('es-CL')
+                      : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p>Última actualización:</p>
+                  <p className="font-medium">
+                    {eventoSeleccionado.fecha_actualizacion 
+                      ? new Date(eventoSeleccionado.fecha_actualizacion).toLocaleString('es-CL')
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setEventoSeleccionado(null)}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
