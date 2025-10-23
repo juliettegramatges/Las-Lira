@@ -5,6 +5,7 @@ import TableroPage from './pages/TableroPage'
 import InventarioPage from './pages/InventarioPage'
 import ProductosPage from './pages/ProductosPage'
 import PedidosPage from './pages/PedidosPage'
+import ClientesPage from './pages/ClientesPage'
 import RutasPage from './pages/RutasPage'
 import './App.css'
 
@@ -16,6 +17,7 @@ function App() {
           <Route index element={<Navigate to="/tablero" replace />} />
           <Route path="tablero" element={<TableroPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
+          <Route path="clientes" element={<ClientesPage />} />
           <Route path="rutas" element={<RutasPage />} />
           <Route path="inventario" element={<InventarioPage />} />
           <Route path="productos" element={<ProductosPage />} />
