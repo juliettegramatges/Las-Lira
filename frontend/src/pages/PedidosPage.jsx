@@ -21,6 +21,8 @@ function PedidosPage() {
   const [plazoPagoManual, setPlazoPagoManual] = useState(false)
   const [sugerenciasClientes, setSugerenciasClientes] = useState([])
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+  const [historialPedidos, setHistorialPedidos] = useState([])
+  const [cargandoHistorial, setCargandoHistorial] = useState(false)
   
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -143,12 +145,30 @@ function PedidosPage() {
     }
   }
   
+  const cargarHistorialPedidos = async (clienteId) => {
+    try {
+      setCargandoHistorial(true)
+      const response = await axios.get(`${API_URL}/clientes/${clienteId}/pedidos`)
+      if (response.data.success) {
+        setHistorialPedidos(response.data.data.pedidos)
+      }
+    } catch (err) {
+      console.error('Error al cargar historial de pedidos:', err)
+      setHistorialPedidos([])
+    } finally {
+      setCargandoHistorial(false)
+    }
+  }
+
   const seleccionarCliente = (cliente) => {
     console.log('✅ Cliente seleccionado:', cliente.nombre, `(${cliente.tipo_cliente})`)
     
     setClienteEncontrado(cliente)
     setMostrarSugerencias(false)
     setSugerenciasClientes([])
+    
+    // Cargar historial de pedidos del cliente
+    cargarHistorialPedidos(cliente.id)
     
     // Autocompletar TODOS los datos del cliente
     setFormData(prev => ({
@@ -176,6 +196,7 @@ function PedidosPage() {
     // Limpiar cliente seleccionado si empieza a escribir de nuevo
     if (clienteEncontrado) {
       setClienteEncontrado(null)
+      setHistorialPedidos([])
       setFormData(prev => ({
         ...prev,
         cliente_id: '',
@@ -262,6 +283,8 @@ function PedidosPage() {
         setPlazoPagoManual(false)
         setSugerenciasClientes([])
         setMostrarSugerencias(false)
+        setHistorialPedidos([])
+        setCargandoHistorial(false)
         setFormData({
           canal: 'WhatsApp',
           shopify_order_number: '',
@@ -884,6 +907,54 @@ function PedidosPage() {
                         </div>
                         {clienteEncontrado.notas && (
                           <p className="text-xs italic mt-3 text-gray-700 bg-white p-2 rounded">📝 {clienteEncontrado.notas}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Historial de Pedidos */}
+                    {clienteEncontrado && (
+                      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            📦 Historial de Pedidos
+                          </h4>
+                          {cargandoHistorial && (
+                            <span className="text-xs text-gray-500">Cargando...</span>
+                          )}
+                        </div>
+                        
+                        {!cargandoHistorial && historialPedidos.length === 0 && (
+                          <p className="text-xs text-gray-500 italic">Este cliente no tiene pedidos anteriores</p>
+                        )}
+                        
+                        {!cargandoHistorial && historialPedidos.length > 0 && (
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {historialPedidos.slice(0, 5).map((pedido) => (
+                              <div key={pedido.id} className="bg-white p-3 rounded-lg shadow-sm text-xs border border-indigo-100">
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="font-semibold text-gray-800">{pedido.id}</span>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    pedido.estado === 'Despachados' ? 'bg-purple-100 text-purple-700' :
+                                    pedido.estado === 'En Proceso' ? 'bg-yellow-100 text-yellow-700' :
+                                    pedido.estado === 'Archivado' ? 'bg-gray-100 text-gray-600' :
+                                    'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    {pedido.estado}
+                                  </span>
+                                </div>
+                                <p className="text-gray-700 font-medium">{pedido.arreglo_pedido}</p>
+                                <div className="flex justify-between items-center mt-1 text-gray-500">
+                                  <span>{new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}</span>
+                                  <span className="font-semibold text-primary-600">${pedido.precio_total?.toLocaleString('es-CL')}</span>
+                                </div>
+                              </div>
+                            ))}
+                            {historialPedidos.length > 5 && (
+                              <p className="text-xs text-center text-gray-500 italic pt-2">
+                                Y {historialPedidos.length - 5} pedido(s) más...
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}

@@ -210,52 +210,91 @@ def crear_pedidos():
     ws.append(headers)
     crear_estilo_header(ws)
     
-    # Datos demo de pedidos
+    # Datos demo de pedidos SINCRONIZADOS con clientes existentes
     pedidos = [
+        # María González (CLI001, +56912345678) - Cliente Fiel - 8 pedidos
         ["PED001", "2025-10-20 09:30", "2025-10-21 14:00", "LUNES", "Shopify", "#SH1234", 
-         "María González", "+56912345601", "Pasión Roja", "Sin cambios", 
+         "María González", "+56912345678", "Pasión Roja", "Sin cambios", 
          35000, 7000, "Ana González", "Feliz cumpleaños hermana", "Con cariño, María",
-         "Av. Las Condes 12345, Las Condes", "Las Condes", "Cumpleaños", "Despachados", "Pagado", "Normal", "BOLETA 11248 TR. 21/10/25", ""],
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Cumpleaños", "Despachados", "Pagado", "Normal", "BOLETA 11248 TR. 21/10/25", ""],
         
-        ["PED002", "2025-10-21 11:15", "2025-10-22 10:00", "MARTES", "WhatsApp", "", 
-         "Carlos Pérez", "+56912345602", "Arreglo personalizado tonos rosados", "Más lirios, menos rosas", 
-         40000, 10000, "Valentina Pérez", "Feliz aniversario amor", "Tu esposo que te ama",
-         "Av. Providencia 2345, Providencia", "Providencia", "Aniversario", "Despachados", "Pagado", "Normal", "FACTURA 2345 TR. 22/10/25", "arreglo_enviado_ped002.jpg"],
+        ["PED002", "2025-09-15 10:00", "2025-09-16 15:00", "LUNES", "WhatsApp", "", 
+         "María González", "+56912345678", "Rosas Rojas Premium", "", 
+         38000, 7000, "Laura González", "Te quiero mucho mamá", "María",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Día de la Madre", "Despachados", "Pagado", "Normal", "", ""],
         
-        ["PED003", "2025-10-22 08:45", "2025-10-23 16:00", "MIERCOLES", "Shopify", "#SH1235", 
-         "Ana Martínez", "+56912345603", "Jardín Primaveral", "", 
-         42000, 7000, "Claudia Ramírez", "Que te mejores pronto", "Tu amiga Ana",
-         "Calle Los Almendros 567, Vitacura", "Vitacura", "Mejórate", "Listo para Despacho", "Pagado", "Normal", "BOLETA 11249 TR. 23/10/25", ""],
+        ["PED003", "2025-08-20 14:30", "2025-08-21 11:00", "MARTES", "Shopify", "#SH1100", 
+         "María González", "+56912345678", "Elegancia Rosa", "", 
+         32000, 7000, "Carlos González", "Feliz aniversario", "Tu esposa",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Aniversario", "Archivado", "Pagado", "Normal", "", ""],
         
+        # Juan Pérez (CLI002, +56987654321) - Cliente VIP - 15 pedidos (mostramos 3)
         ["PED004", "2025-10-22 14:20", "2025-10-23 11:00", "MIERCOLES", "Shopify", "#SH1236", 
-         "Roberto Silva", "+56912345604", "Dulce Lirio", "Sin eucalipto por favor", 
-         45000, 15000, "Laura Silva", "Para la mejor mamá del mundo", "Tu hijo Roberto",
-         "Av. Grecia 890, Ñuñoa", "Ñuñoa", "Día de la Madre", "En Proceso", "Pagado", "Normal", "", ""],
+         "Juan Pérez", "+56987654321", "Arreglo Corporativo XL", "Para oficina principal", 
+         85000, 10000, "", "", "",
+         "Av. Vitacura 5678, Vitacura", "Vitacura", "Corporativo", "En Proceso", "Pagado", "EVENTO", "", ""],
         
-        ["PED005", "2025-10-23 10:00", "2025-10-24 09:00", "JUEVES", "WhatsApp", "", 
-         "Patricia Rojas", "+56912345605", "Canasto con girasoles y rosas amarillas", "Urgente - cumpleaños", 
-         48000, 15000, "Sofía Rojas", "Felices 15 años princesa", "Mamá y papá",
-         "Calle Los Robles 234, La Reina", "La Reina", "Cumpleaños", "Entregas de Hoy", "No Pagado", "Normal", "", ""],
+        ["PED005", "2025-10-10 09:00", "2025-10-11 08:00", "VIERNES", "Shopify", "#SH1200", 
+         "Juan Pérez", "+56987654321", "Centro de Mesa Premium", "Evento ejecutivo", 
+         95000, 10000, "", "", "",
+         "Av. Vitacura 5678, Vitacura", "Vitacura", "Evento", "Archivado", "Pagado", "EVENTO", "", ""],
         
-        ["PED006", "2025-10-23 12:30", "2025-10-25 15:00", "VIERNES", "Shopify", "#SH1237", 
-         "Luis Vargas", "+56912345606", "Amor Eterno", "Incluir tarjeta romántica", 
-         65000, 25000, "Carolina Vargas", "Eres el amor de mi vida", "Luis",
-         "Av. La Florida 456, San Miguel", "San Miguel", "San Valentín", "Entregas para Mañana", "Pagado", "EVENTO", "FACTURA 2346 TR. 25/10/25", ""],
+        # Ana Martínez (CLI003, +56923456789) - Cumplidor - 5 pedidos
+        ["PED006", "2025-10-22 08:45", "2025-10-23 16:00", "MIERCOLES", "Shopify", "#SH1235", 
+         "Ana Martínez", "+56923456789", "Jardín Primaveral", "", 
+         42000, 7000, "Claudia Ramírez", "Que te mejores pronto", "Tu amiga Ana",
+         "Los Militares 2345, Las Condes", "Las Condes", "Mejórate", "Listo para Despacho", "Pagado", "Normal", "BOLETA 11249 TR. 23/10/25", ""],
         
-        ["PED007", "2025-10-23 15:45", "2025-10-24 13:00", "JUEVES", "Shopify", "#SH1238", 
-         "Carmen López", "+56912345607", "Elegancia Rosa", "", 
-         38000, 30000, "Isabel López", "Gracias por todo", "Carmen",
-         "Calle Central 789, Maipú", "Maipú", "Agradecimiento", "Entregas de Hoy", "No Pagado", "Normal", "", ""],
+        ["PED007", "2025-09-05 11:00", "2025-09-06 14:00", "JUEVES", "WhatsApp", "", 
+         "Ana Martínez", "+56923456789", "Ramo de Lirios", "", 
+         35000, 7000, "Pedro Martínez", "Feliz cumpleaños", "Ana",
+         "Los Militares 2345, Las Condes", "Las Condes", "Cumpleaños", "Archivado", "Pagado", "Normal", "", ""],
         
-        ["PED008", "2025-10-23 16:20", "2025-10-24 19:00", "JUEVES", "WhatsApp", "", 
-         "Diego Fernández", "+56912345608", "24 rosas rojas en ramo", "URGENTE - Propuesta matrimonio", 
-         55000, 7000, "Camila Torres", "¿Quieres casarte conmigo?", "Diego",
-         "Restaurante Mirador, Av. Las Condes 9876", "Las Condes", "Propuesta", "Pedidos Semana", "Falta Boleta o Factura", "Normal", "", ""],
-         
-        ["PED009", "2025-10-23 17:00", "2025-10-26 12:00", "SABADO", "Shopify", "#SH1239", 
-         "Fernanda Ruiz", "+56912345609", "Sol Radiante", "Preferencia por girasoles grandes", 
-         30000, 25000, "Pedro Ruiz", "Feliz cumpleaños papá", "Tu hija Fernanda",
-         "Calle Los Pinos 123, Peñalolén", "Peñalolén", "Cumpleaños", "Pedidos Semana", "Pagado", "MANTENCIONES", "", ""],
+        # Isabel Torres (CLI007, +56945678901) - Fiel - 6 pedidos
+        ["PED008", "2025-10-23 10:00", "2025-10-24 09:00", "JUEVES", "WhatsApp", "", 
+         "Isabel Torres", "+56945678901", "Dulce Lirio", "Sin eucalipto por favor", 
+         48000, 10000, "Laura Torres", "Para la mejor mamá del mundo", "Isabel",
+         "Av. Los Leones 1234, Providencia", "Providencia", "Día de la Madre", "Entregas de Hoy", "No Pagado", "Normal", "", ""],
+        
+        ["PED009", "2025-09-18 15:30", "2025-09-19 11:00", "MIERCOLES", "Shopify", "#SH1180", 
+         "Isabel Torres", "+56945678901", "Lirios Blancos", "Le gustan mucho", 
+         32000, 10000, "Roberto Torres", "Aniversario feliz", "Tu esposo",
+         "Av. Los Leones 1234, Providencia", "Providencia", "Aniversario", "Archivado", "Pagado", "Normal", "", ""],
+        
+        # Valentina Rojas (CLI009, +56956789012) - Fiel - 7 pedidos
+        ["PED010", "2025-10-23 12:30", "2025-10-25 15:00", "VIERNES", "Shopify", "#SH1237", 
+         "Valentina Rojas", "+56956789012", "Amor Eterno", "Incluir tarjeta romántica", 
+         65000, 7000, "Sebastián Rojas", "Eres el amor de mi vida", "Valentina",
+         "Av. Las Condes 2345, Las Condes", "Las Condes", "San Valentín", "Entregas para Mañana", "Pagado", "EVENTO", "FACTURA 2346 TR. 25/10/25", ""],
+        
+        # Diego Fernández (CLI010, +56921098765) - Ocasional - 2 pedidos
+        ["PED011", "2025-10-23 16:20", "2025-10-24 19:00", "JUEVES", "WhatsApp", "", 
+         "Diego Fernández", "+56921098765", "24 rosas rojas en ramo", "URGENTE - Propuesta matrimonio", 
+         55000, 10000, "Camila Torres", "¿Quieres casarte conmigo?", "Diego",
+         "Av. Providencia 8901, Providencia", "Providencia", "Propuesta", "Pedidos Semana", "Falta Boleta o Factura", "Normal", "", ""],
+        
+        # Carolina López (CLI005, +56934567890) - Ocasional - 3 pedidos
+        ["PED012", "2025-10-23 15:45", "2025-10-24 13:00", "JUEVES", "Shopify", "#SH1238", 
+         "Carolina López", "+56934567890", "Elegancia Rosa", "", 
+         38000, 15000, "Isabel López", "Gracias por todo", "Carolina",
+         "Av. Kennedy 3456, Vitacura", "Vitacura", "Agradecimiento", "Entregas de Hoy", "No Pagado", "Normal", "", ""],
+        
+        # Roberto Díaz (CLI006, +56909876543) - VIP - 12 pedidos (mostramos 2)
+        ["PED013", "2025-10-23 17:00", "2025-10-26 12:00", "SABADO", "Shopify", "#SH1239", 
+         "Roberto Díaz", "+56909876543", "Arreglo Corporativo Mensual", "Recepción empresa", 
+         80000, 7000, "", "", "",
+         "Av. El Bosque 7890, Las Condes", "Las Condes", "Corporativo", "Pedidos Semana", "Pagado", "MANTENCIONES", "", ""],
+        
+        ["PED014", "2025-10-01 10:00", "2025-10-02 09:00", "MARTES", "Shopify", "#SH1150", 
+         "Roberto Díaz", "+56909876543", "Centro de Mesa Ejecutivo", "Sala de reuniones", 
+         75000, 7000, "", "", "",
+         "Av. El Bosque 7890, Las Condes", "Las Condes", "Corporativo", "Archivado", "Pagado", "MANTENCIONES", "", ""],
+        
+        # Pedro Silva (CLI004, +56998765432) - Nuevo - 1 pedido
+        ["PED015", "2025-10-24 09:00", "2025-10-25 14:00", "VIERNES", "WhatsApp", "", 
+         "Pedro Silva", "+56998765432", "Ramo de Bienvenida", "Primer pedido", 
+         35000, 15000, "Ana Silva", "Bienvenida", "Pedro",
+         "Av. Las Rejas 456, Estación Central", "Estación Central", "Otro", "Pedido", "No Pagado", "Normal", "", ""],
     ]
     
     for fila in pedidos:

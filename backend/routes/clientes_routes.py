@@ -276,3 +276,28 @@ def estadisticas_clientes():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@bp.route('/<int:cliente_id>/pedidos', methods=['GET'])
+def obtener_historial_pedidos(cliente_id):
+    """Obtener historial de pedidos de un cliente"""
+    try:
+        from backend.models.pedido import Pedido
+        
+        cliente = Cliente.query.get(cliente_id)
+        if not cliente:
+            return jsonify({'success': False, 'error': 'Cliente no encontrado'}), 404
+        
+        # Obtener pedidos ordenados por fecha (más recientes primero)
+        pedidos = Pedido.query.filter_by(cliente_id=cliente_id).order_by(Pedido.fecha_pedido.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'cliente': cliente.to_dict(),
+                'pedidos': [pedido.to_dict() for pedido in pedidos],
+                'total_pedidos': len(pedidos)
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
