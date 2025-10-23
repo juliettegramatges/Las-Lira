@@ -49,9 +49,24 @@ class Pedido(db.Model):
         default='No Pagado'
     )
     tipo_pedido = db.Column(db.String(50))  # EVENTO, MANTENCIONES, etc.
-    # Cobranza y boleta
-    cobranza = db.Column(db.String(200))  # Ej: "BOLETA 11248 TR. 01/10/25"
+    # Cobranza detallada
+    cobranza = db.Column(db.String(200))  # Legado (mantener por compatibilidad)
     plazo_pago_dias = db.Column(db.Integer, default=0)  # Días de plazo para pagar
+    # 💰 Pago - Estado del pago
+    metodo_pago = db.Column(
+        db.Enum('Tr. BICE', 'Tr. Santander', 'Tr. Itaú', 'Tr. Falta transferencia', 
+                'Pago confirmado', 'Pago con tarjeta', 'Pendiente',
+                name='metodo_pago_enum'),
+        default='Pendiente'
+    )
+    # 🧾 Documento tributario
+    documento_tributario = db.Column(
+        db.Enum('Hacer boleta', 'Hacer factura', 'Falta boleta o factura', 
+                'Boleta emitida', 'Factura emitida', 'No requiere',
+                name='documento_enum'),
+        default='Hacer boleta'
+    )
+    numero_documento = db.Column(db.String(50))  # Ej: "10301" o "FACT-2025-001"
     # Foto del arreglo enviado (trazabilidad)
     foto_enviado_url = db.Column(db.String(500))  # Foto tomada antes de enviar
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -99,6 +114,9 @@ class Pedido(db.Model):
             'tipo_pedido': self.tipo_pedido,
             'cobranza': self.cobranza,
             'plazo_pago_dias': self.plazo_pago_dias,
+            'metodo_pago': self.metodo_pago,
+            'documento_tributario': self.documento_tributario,
+            'numero_documento': self.numero_documento,
             'foto_enviado_url': self.foto_enviado_url,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
         }

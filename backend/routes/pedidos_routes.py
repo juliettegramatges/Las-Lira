@@ -250,3 +250,100 @@ def obtener_tablero():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@bp.route('/<pedido_id>/cobranza', methods=['PATCH'], strict_slashes=False)
+def actualizar_cobranza(pedido_id):
+    """Actualizar estado de cobranza de un pedido"""
+    try:
+        from backend.config.cobranza import validar_metodo_pago, validar_documento
+        
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        data = request.json
+        
+        # Actualizar método de pago
+        if 'metodo_pago' in data:
+            if not validar_metodo_pago(data['metodo_pago']):
+                return jsonify({'success': False, 'error': 'Método de pago inválido'}), 400
+            pedido.metodo_pago = data['metodo_pago']
+            
+            # Actualizar estado_pago según el método
+            if data['metodo_pago'] in ['Pago confirmado', 'Pago con tarjeta', 'Tr. BICE', 'Tr. Santander', 'Tr. Itaú']:
+                pedido.estado_pago = 'Pagado'
+            elif data['metodo_pago'] == 'Tr. Falta transferencia':
+                pedido.estado_pago = 'No Pagado'
+        
+        # Actualizar documento tributario
+        if 'documento_tributario' in data:
+            if not validar_documento(data['documento_tributario']):
+                return jsonify({'success': False, 'error': 'Documento inválido'}), 400
+            pedido.documento_tributario = data['documento_tributario']
+            
+            # Actualizar estado_pago si falta documento
+            if data['documento_tributario'] == 'Falta boleta o factura':
+                pedido.estado_pago = 'Falta Boleta o Factura'
+        
+        # Actualizar número de documento
+        if 'numero_documento' in data:
+            pedido.numero_documento = data['numero_documento']
+            
+            # Si se pone número de documento, cambiar estado a emitido
+            if pedido.numero_documento and pedido.documento_tributario in ['Hacer boleta', 'Hacer factura']:
+                if pedido.documento_tributario == 'Hacer boleta':
+                    pedido.documento_tributario = 'Boleta emitida'
+                else:
+                    pedido.documento_tributario = 'Factura emitida'
+        
+        pedido.fecha_actualizacion = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': pedido.to_dict(),
+            'message': 'Cobranza actualizada exitosamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/resumen-cobranza', methods=['GET'], strict_slashes=False)
+def resumen_cobranza():
+    """Obtener resumen de cobranza pendiente"""
+    try:
+        # Pedidos sin pagar
+        sin_pagar = Pedido.query.filter(
+            Pedido.estado_pago == 'No Pagado',
+            Pedido.estado.notin_(['Cancelado', 'Archivado'])
+        ).order_by(Pedido.fecha_entrega.desc()).all()
+        
+        # Pedidos sin documentar
+        sin_documentar = Pedido.query.filter(
+            Pedido.documento_tributario.in_(['Hacer boleta', 'Hacer factura', 'Falta boleta o factura']),
+            Pedido.estado.notin_(['Cancelado'])
+        ).order_by(Pedido.fecha_entrega.desc()).all()
+        
+        # Calcular totales
+        total_sin_pagar = sum((p.precio_ramo or 0) + (p.precio_envio or 0) for p in sin_pagar)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'sin_pagar': {
+                    'cantidad': len(sin_pagar),
+                    'total': float(total_sin_pagar),
+                    'pedidos': [p.to_dict() for p in sin_pagar]
+                },
+                'sin_documentar': {
+                    'cantidad': len(sin_documentar),
+                    'pedidos': [p.to_dict() for p in sin_documentar]
+                }
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
