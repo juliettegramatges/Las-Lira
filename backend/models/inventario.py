@@ -16,14 +16,15 @@ class Flor(db.Model):
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     cantidad_stock = db.Column(db.Integer, default=0, nullable=False)
     cantidad_en_uso = db.Column(db.Integer, default=0, nullable=False)  # Reservadas en pedidos confirmados
+    cantidad_en_evento = db.Column(db.Integer, default=0, nullable=False)  # Reservadas en eventos
     # Las flores NO tienen bodega, se compran según necesidad
     unidad = db.Column(db.String(20), nullable=False)
     fecha_actualizacion = db.Column(db.Date, default=date.today)
     
     @property
     def cantidad_disponible(self):
-        """Cantidad disponible = stock total - cantidad en uso"""
-        return self.cantidad_stock - self.cantidad_en_uso
+        """Cantidad disponible = stock total - cantidad en uso - cantidad en evento"""
+        return self.cantidad_stock - self.cantidad_en_uso - self.cantidad_en_evento
     
     # Relaciones
     proveedor = db.relationship('Proveedor', backref='flores', lazy=True)
@@ -39,6 +40,7 @@ class Flor(db.Model):
             'costo_unitario': float(self.costo_unitario),
             'cantidad_stock': self.cantidad_stock,
             'cantidad_en_uso': self.cantidad_en_uso,
+            'cantidad_en_evento': self.cantidad_en_evento,
             'cantidad_disponible': self.cantidad_disponible,
             'unidad': self.unidad,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None
@@ -61,13 +63,14 @@ class Contenedor(db.Model):
     costo = db.Column(db.Numeric(10, 2), nullable=False)
     stock = db.Column(db.Integer, default=0, nullable=False)
     cantidad_en_uso = db.Column(db.Integer, default=0, nullable=False)  # Reservados en pedidos confirmados
+    cantidad_en_evento = db.Column(db.Integer, default=0, nullable=False)  # Reservados en eventos
     bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'), nullable=False)
     fecha_actualizacion = db.Column(db.Date, default=date.today)
     
     @property
     def cantidad_disponible(self):
-        """Cantidad disponible = stock total - cantidad en uso"""
-        return self.stock - self.cantidad_en_uso
+        """Cantidad disponible = stock total - cantidad en uso - cantidad en evento"""
+        return self.stock - self.cantidad_en_uso - self.cantidad_en_evento
     
     # Relaciones
     bodega = db.relationship('Bodega', backref='contenedores', lazy=True)
@@ -84,6 +87,7 @@ class Contenedor(db.Model):
             'costo': float(self.costo),
             'stock': self.stock,
             'cantidad_en_uso': self.cantidad_en_uso,
+            'cantidad_en_evento': self.cantidad_en_evento,
             'cantidad_disponible': self.cantidad_disponible,
             'bodega_id': self.bodega_id,
             'bodega_nombre': self.bodega.nombre if self.bodega else None,
