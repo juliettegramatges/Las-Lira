@@ -26,12 +26,14 @@ db = SQLAlchemy(app)
 from routes import (
     clientes_routes,
     pedidos_routes, inventario_routes, productos_routes, 
-    upload_routes, rutas_routes, producto_colores_routes
+    upload_routes, rutas_routes, producto_colores_routes,
+    pedido_insumos_routes
 )
 
 # Registrar blueprints
 app.register_blueprint(clientes_routes.bp, url_prefix='/api/clientes')
 app.register_blueprint(pedidos_routes.bp, url_prefix='/api/pedidos')
+app.register_blueprint(pedido_insumos_routes.bp)  # Ya tiene su propio prefix definido
 app.register_blueprint(inventario_routes.bp, url_prefix='/api/inventario')
 app.register_blueprint(productos_routes.bp, url_prefix='/api/productos')
 app.register_blueprint(upload_routes.bp, url_prefix='/api/upload')

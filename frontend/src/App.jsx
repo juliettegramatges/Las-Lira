@@ -8,6 +8,7 @@ import PedidosPage from './pages/PedidosPage'
 import ClientesPage from './pages/ClientesPage'
 import RutasPage from './pages/RutasPage'
 import CobranzaPage from './pages/CobranzaPage'
+import TallerPage from './pages/TallerPage'
 import './App.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route index element={<Navigate to="/tablero" replace />} />
           <Route path="tablero" element={<TableroPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
+          <Route path="taller" element={<TallerPage />} />
           <Route path="clientes" element={<ClientesPage />} />
           <Route path="cobranza" element={<CobranzaPage />} />
           <Route path="rutas" element={<RutasPage />} />

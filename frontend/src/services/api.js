@@ -23,6 +23,14 @@ export const pedidosAPI = {
   actualizarEstadosPorFecha: () => api.post('/pedidos/actualizar-estados-por-fecha'),
 };
 
+// === INSUMOS DE PEDIDOS (TALLER) ===
+export const pedidoInsumosAPI = {
+  obtenerInsumos: (pedidoId) => api.get(`/pedidos/${pedidoId}/insumos`),
+  guardarInsumos: (pedidoId, insumos) => api.post(`/pedidos/${pedidoId}/insumos`, { insumos }),
+  confirmarYDescontar: (pedidoId) => api.post(`/pedidos/${pedidoId}/confirmar-insumos`),
+  obtenerPedidosTaller: () => api.get('/pedidos/taller'),
+};
+
 // === INVENTARIO ===
 export const inventarioAPI = {
   // Flores

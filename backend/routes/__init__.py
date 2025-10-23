@@ -5,7 +5,8 @@ from . import (
     productos_routes, 
     upload_routes,
     rutas_routes,
-    producto_colores_routes
+    producto_colores_routes,
+    pedido_insumos_routes
 )
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     'productos_routes', 
     'upload_routes',
     'rutas_routes',
-    'producto_colores_routes'
+    'producto_colores_routes',
+    'pedido_insumos_routes'
 ]
 
