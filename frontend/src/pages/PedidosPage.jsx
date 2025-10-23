@@ -780,18 +780,30 @@ function PedidosPage() {
                       {/* Dropdown de sugerencias */}
                       {mostrarSugerencias && sugerenciasClientes.length > 0 && (
                         <div 
-                          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto"
-                          onClick={(e) => e.stopPropagation()}
+                          className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-64 overflow-y-auto"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
                         >
                           {sugerenciasClientes.map((cliente) => (
-                            <div
+                            <button
+                              type="button"
                               key={cliente.id}
                               onMouseDown={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 seleccionarCliente(cliente)
                               }}
-                              className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
@@ -813,7 +825,7 @@ function PedidosPage() {
                                   </span>
                                 </div>
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       )}
