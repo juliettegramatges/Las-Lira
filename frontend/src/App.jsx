@@ -7,6 +7,7 @@ import ProductosPage from './pages/ProductosPage'
 import PedidosPage from './pages/PedidosPage'
 import ClientesPage from './pages/ClientesPage'
 import RutasPage from './pages/RutasPage'
+import CobranzaPage from './pages/CobranzaPage'
 import './App.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="tablero" element={<TableroPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
           <Route path="clientes" element={<ClientesPage />} />
+          <Route path="cobranza" element={<CobranzaPage />} />
           <Route path="rutas" element={<RutasPage />} />
           <Route path="inventario" element={<InventarioPage />} />
           <Route path="productos" element={<ProductosPage />} />
