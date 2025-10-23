@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from backend.app import db
 from backend.models.pedido import PedidoInsumo, Pedido
 from backend.models.inventario import Flor, Contenedor
+from backend.models.producto_detallado import PedidoFlorSeleccionada, PedidoContenedorSeleccionado
 
 bp = Blueprint('pedido_insumos', __name__, url_prefix='/api/pedidos')
 
@@ -185,4 +186,75 @@ def obtener_pedidos_taller():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/<pedido_id>/insumos-detallados', methods=['POST'])
+def guardar_insumos_detallados(pedido_id):
+    """
+    Guarda los insumos seleccionados por color para un pedido.
+    Recibe la estructura:
+    {
+      "flores": [
+        {
+          "color_id": 1,
+          "color_nombre": "Rojo",
+          "flor_id": "FL001",
+          "cantidad": 12,
+          "costo_unitario": 1500,
+          "costo_total": 18000
+        }
+      ],
+      "contenedor": {
+        "contenedor_id": "CO001",
+        "cantidad": 1,
+        "costo_unitario": 5000,
+        "costo_total": 5000
+      }
+    }
+    """
+    try:
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        data = request.get_json()
+        
+        # Guardar flores seleccionadas
+        if 'flores' in data and data['flores']:
+            for flor_data in data['flores']:
+                flor_seleccionada = PedidoFlorSeleccionada(
+                    pedido_id=pedido_id,
+                    producto_color_id=flor_data.get('color_id'),
+                    color_nombre=flor_data.get('color_nombre'),
+                    flor_id=flor_data.get('flor_id'),
+                    cantidad=flor_data.get('cantidad'),
+                    costo_unitario=flor_data.get('costo_unitario'),
+                    costo_total=flor_data.get('costo_total'),
+                    descontado_stock=False
+                )
+                db.session.add(flor_seleccionada)
+        
+        # Guardar contenedor seleccionado
+        if 'contenedor' in data and data['contenedor']:
+            cont_data = data['contenedor']
+            contenedor_seleccionado = PedidoContenedorSeleccionado(
+                pedido_id=pedido_id,
+                contenedor_id=cont_data.get('contenedor_id'),
+                cantidad=cont_data.get('cantidad', 1),
+                costo_unitario=cont_data.get('costo_unitario'),
+                costo_total=cont_data.get('costo_total'),
+                descontado_stock=False
+            )
+            db.session.add(contenedor_seleccionado)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Insumos guardados exitosamente'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
