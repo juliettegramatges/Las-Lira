@@ -791,17 +791,20 @@ function PedidosPage() {
                           }}
                         >
                           {sugerenciasClientes.map((cliente) => (
-                            <button
-                              type="button"
+                            <div
                               key={cliente.id}
+                              role="button"
+                              tabIndex={0}
                               onMouseDown={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 seleccionarCliente(cliente)
+                                return false
                               }}
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
+                                return false
                               }}
                               className="w-full text-left px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
@@ -825,7 +828,7 @@ function PedidosPage() {
                                   </span>
                                 </div>
                               </div>
-                            </button>
+                            </div>
                           ))}
                         </div>
                       )}
