@@ -13,6 +13,9 @@ class Pedido(db.Model):
     fecha_entrega = db.Column(db.DateTime, nullable=False)
     canal = db.Column(db.Enum('Shopify', 'WhatsApp', name='canal_enum'), nullable=False)
     shopify_order_number = db.Column(db.String(50))  # Ej: "#SH1234"
+    # Cliente - Relación con tabla de clientes
+    cliente_id = db.Column(db.String(10), db.ForeignKey('clientes.id'))
+    # Datos del cliente (se mantienen por compatibilidad)
     cliente_nombre = db.Column(db.String(100), nullable=False)
     cliente_telefono = db.Column(db.String(20), nullable=False)
     cliente_email = db.Column(db.String(100))
@@ -53,6 +56,7 @@ class Pedido(db.Model):
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relaciones
+    cliente = db.relationship('Cliente', back_populates='pedidos', lazy=True)
     producto = db.relationship('Producto', backref='pedidos', lazy=True)
     insumos = db.relationship('PedidoInsumo', backref='pedido', lazy=True, cascade='all, delete-orphan')
     
@@ -69,9 +73,11 @@ class Pedido(db.Model):
             'fecha_entrega': self.fecha_entrega.isoformat() if self.fecha_entrega else None,
             'canal': self.canal,
             'shopify_order_number': self.shopify_order_number,
+            'cliente_id': self.cliente_id,
             'cliente_nombre': self.cliente_nombre,
             'cliente_telefono': self.cliente_telefono,
             'cliente_email': self.cliente_email,
+            'cliente_tipo': self.cliente.tipo_cliente if self.cliente else None,
             'producto_id': self.producto_id,
             'producto_nombre': self.producto.nombre if self.producto else None,
             'producto_imagen': self.producto.imagen_url if self.producto else None,

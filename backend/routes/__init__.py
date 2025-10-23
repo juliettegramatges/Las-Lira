@@ -1,4 +1,5 @@
 from . import (
+    clientes_routes,
     pedidos_routes, 
     inventario_routes, 
     productos_routes, 
@@ -8,6 +9,7 @@ from . import (
 )
 
 __all__ = [
+    'clientes_routes',
     'pedidos_routes', 
     'inventario_routes', 
     'productos_routes', 
