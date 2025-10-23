@@ -418,6 +418,9 @@ function PedidosPage() {
                   Precio Ramo / Envío
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  💰 Cobranza
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Motivo
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -437,13 +440,13 @@ function PedidosPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan="9" className="px-6 py-8 text-center text-sm text-gray-500">
                     Cargando pedidos...
                   </td>
                 </tr>
               ) : pedidos.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
+                  <td colSpan="9" className="px-6 py-8 text-center">
                     <p className="text-gray-500 mb-2">No hay pedidos</p>
                     <p className="text-xs text-gray-400">
                       Ejecuta <code className="bg-gray-100 px-2 py-1 rounded">python3 importar_datos_demo.py</code> para cargar datos
@@ -479,6 +482,36 @@ function PedidosPage() {
                       </div>
                       <div className="text-xs font-medium text-primary-600">
                         Total: ${pedido.precio_total?.toLocaleString('es-CL') || '0'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {/* Estado de Pago */}
+                      <div className="flex items-center gap-1 mb-1">
+                        {pedido.estado_pago === 'Pagado' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Pagado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                            ❌ No Pagado
+                          </span>
+                        )}
+                      </div>
+                      {/* Método de Pago */}
+                      {pedido.metodo_pago && (
+                        <div className="text-xs text-gray-600">
+                          💳 {pedido.metodo_pago}
+                        </div>
+                      )}
+                      {/* Documento */}
+                      <div className="text-xs text-gray-500 mt-1">
+                        {pedido.documento_tributario === 'Boleta emitida' && pedido.numero_documento ? (
+                          <span>🧾 Bol. N° {pedido.numero_documento}</span>
+                        ) : pedido.documento_tributario === 'Factura emitida' && pedido.numero_documento ? (
+                          <span>🧾 Fact. N° {pedido.numero_documento}</span>
+                        ) : (
+                          <span>🧾 {pedido.documento_tributario}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">

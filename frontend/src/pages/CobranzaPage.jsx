@@ -8,21 +8,25 @@ const CobranzaPage = () => {
   const [resumen, setResumen] = useState(null)
   const [editandoPedido, setEditandoPedido] = useState(null)
   
-  // Catálogos de opciones estandarizadas
+  // Catálogos de opciones estandarizadas (3 ETAPAS)
+  
+  // ETAPA 1: ¿Está pagado?
+  const ESTADOS_PAGO = ['No Pagado', 'Pagado']
+  
+  // ETAPA 2: ¿Cómo pagó? (solo si está pagado)
   const METODOS_PAGO = [
-    'Pendiente',
     'Tr. BICE',
     'Tr. Santander',
     'Tr. Itaú',
-    'Tr. Falta transferencia',
-    'Pago confirmado',
     'Pago con tarjeta',
+    'Efectivo',
+    'Otro',
   ]
   
+  // ETAPA 3: Documento
   const DOCUMENTOS = [
     'Hacer boleta',
     'Hacer factura',
-    'Falta boleta o factura',
     'Boleta emitida',
     'Factura emitida',
     'No requiere',
@@ -50,8 +54,10 @@ const CobranzaPage = () => {
     try {
       const response = await axios.patch(`${API_URL}/pedidos/${pedidoId}/cobranza`, datos)
       if (response.data.success) {
-        alert('✅ Cobranza actualizada exitosamente')
-        setEditandoPedido(null)
+        // Actualizar el pedido en el estado local
+        if (editandoPedido) {
+          setEditandoPedido(response.data.data)
+        }
         cargarResumen()
       }
     } catch (err) {
@@ -230,77 +236,117 @@ const CobranzaPage = () => {
         </div>
       </div>
 
-      {/* Modal de Edición */}
+      {/* Modal de Edición - 3 ETAPAS */}
       {editandoPedido && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
               Actualizar Cobranza - {editandoPedido.id}
             </h3>
+            <p className="text-sm text-gray-500 mb-6">{editandoPedido.cliente_nombre}</p>
             
-            <div className="space-y-4">
-              {/* Método de Pago */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  💰 Método de Pago
+            <div className="space-y-6">
+              {/* ETAPA 1: ¿Está Pagado? */}
+              <div className="border-2 border-gray-200 rounded-lg p-4">
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  💰 ETAPA 1: ¿Está Pagado?
+                </label>
+                <div className="flex gap-3">
+                  {ESTADOS_PAGO.map(estado => (
+                    <button
+                      key={estado}
+                      onClick={() => actualizarCobranza(editandoPedido.id, { estado_pago: estado })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                        editandoPedido.estado_pago === estado
+                          ? estado === 'Pagado'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-red-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {estado === 'Pagado' ? '✅' : '❌'} {estado}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ETAPA 2: Método de Pago (solo si está pagado) */}
+              <div className={`border-2 rounded-lg p-4 transition-opacity ${
+                editandoPedido.estado_pago === 'Pagado' 
+                  ? 'border-green-200 bg-green-50' 
+                  : 'border-gray-200 bg-gray-50 opacity-50 pointer-events-none'
+              }`}>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  💳 ETAPA 2: ¿Cómo Pagó?
+                  {editandoPedido.estado_pago !== 'Pagado' && (
+                    <span className="ml-2 text-xs font-normal text-gray-500">(Primero marcar como pagado)</span>
+                  )}
                 </label>
                 <select
-                  defaultValue={editandoPedido.metodo_pago}
+                  value={editandoPedido.metodo_pago || ''}
                   onChange={(e) => actualizarCobranza(editandoPedido.id, { metodo_pago: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={editandoPedido.estado_pago !== 'Pagado'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
+                  <option value="">Seleccionar método...</option>
                   {METODOS_PAGO.map(metodo => (
                     <option key={metodo} value={metodo}>{metodo}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Documento Tributario */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🧾 Documento Tributario
+              {/* ETAPA 3: Documento Tributario */}
+              <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  🧾 ETAPA 3: Documento Tributario
                 </label>
+                
+                {/* Tipo de Documento */}
                 <select
-                  defaultValue={editandoPedido.documento_tributario}
+                  value={editandoPedido.documento_tributario || 'Hacer boleta'}
                   onChange={(e) => actualizarCobranza(editandoPedido.id, { documento_tributario: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
                 >
                   {DOCUMENTOS.map(doc => (
                     <option key={doc} value={doc}>{doc}</option>
                   ))}
                 </select>
-              </div>
 
-              {/* Número de Documento */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  N° Documento
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    defaultValue={editandoPedido.numero_documento || ''}
-                    placeholder="Ej: 10301"
-                    id="numero_doc_input"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  <button
-                    onClick={() => {
-                      const numero = document.getElementById('numero_doc_input').value
-                      actualizarCobranza(editandoPedido.id, { numero_documento: numero })
-                    }}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                  >
-                    Guardar
-                  </button>
-                </div>
+                {/* Número de Documento */}
+                {(editandoPedido.documento_tributario === 'Boleta emitida' || 
+                  editandoPedido.documento_tributario === 'Factura emitida' ||
+                  editandoPedido.documento_tributario === 'Hacer boleta' ||
+                  editandoPedido.documento_tributario === 'Hacer factura') && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Número de Documento
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editandoPedido.numero_documento || ''}
+                        onChange={(e) => {
+                          setEditandoPedido({...editandoPedido, numero_documento: e.target.value})
+                        }}
+                        placeholder="Ej: 10301"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        onClick={() => actualizarCobranza(editandoPedido.id, { numero_documento: editandoPedido.numero_documento })}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                      >
+                        💾 Guardar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditandoPedido(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
               >
                 Cerrar
               </button>

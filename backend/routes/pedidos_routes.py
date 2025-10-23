@@ -262,9 +262,16 @@ def obtener_tablero():
 
 @bp.route('/<pedido_id>/cobranza', methods=['PATCH'], strict_slashes=False)
 def actualizar_cobranza(pedido_id):
-    """Actualizar estado de cobranza de un pedido"""
+    """
+    Actualizar estado de cobranza de un pedido
+    
+    FLUJO EN 3 ETAPAS:
+    1. ETAPA 1: estado_pago (Pagado / No Pagado)
+    2. ETAPA 2: metodo_pago (solo si está pagado)
+    3. ETAPA 3: documento_tributario + numero_documento
+    """
     try:
-        from backend.config.cobranza import validar_metodo_pago, validar_documento
+        from backend.config.cobranza import ESTADOS_PAGO, METODOS_PAGO, DOCUMENTOS_TRIBUTARIOS
         
         pedido = Pedido.query.get(pedido_id)
         if not pedido:
@@ -272,37 +279,45 @@ def actualizar_cobranza(pedido_id):
         
         data = request.json
         
-        # Actualizar método de pago
+        # 💰 ETAPA 1: Actualizar estado de pago (¿Está pagado?)
+        if 'estado_pago' in data:
+            if data['estado_pago'] not in ESTADOS_PAGO:
+                return jsonify({'success': False, 'error': 'Estado de pago inválido'}), 400
+            pedido.estado_pago = data['estado_pago']
+            
+            # Si cambia a "No Pagado", limpiar método de pago
+            if data['estado_pago'] == 'No Pagado':
+                pedido.metodo_pago = None
+        
+        # 💳 ETAPA 2: Actualizar método de pago (solo si está pagado)
         if 'metodo_pago' in data:
-            if not validar_metodo_pago(data['metodo_pago']):
+            if data['metodo_pago'] and data['metodo_pago'] not in METODOS_PAGO:
                 return jsonify({'success': False, 'error': 'Método de pago inválido'}), 400
             pedido.metodo_pago = data['metodo_pago']
             
-            # Actualizar estado_pago según el método
-            if data['metodo_pago'] in ['Pago confirmado', 'Pago con tarjeta', 'Tr. BICE', 'Tr. Santander', 'Tr. Itaú']:
+            # Si se especifica un método de pago, el pedido debe estar marcado como pagado
+            if data['metodo_pago']:
                 pedido.estado_pago = 'Pagado'
-            elif data['metodo_pago'] == 'Tr. Falta transferencia':
-                pedido.estado_pago = 'No Pagado'
         
-        # Actualizar documento tributario
+        # 🧾 ETAPA 3A: Actualizar documento tributario
         if 'documento_tributario' in data:
-            if not validar_documento(data['documento_tributario']):
+            if data['documento_tributario'] not in DOCUMENTOS_TRIBUTARIOS:
                 return jsonify({'success': False, 'error': 'Documento inválido'}), 400
             pedido.documento_tributario = data['documento_tributario']
             
-            # Actualizar estado_pago si falta documento
-            if data['documento_tributario'] == 'Falta boleta o factura':
-                pedido.estado_pago = 'Falta Boleta o Factura'
+            # Si cambia a "Hacer boleta/factura", limpiar número de documento
+            if data['documento_tributario'] in ['Hacer boleta', 'Hacer factura']:
+                pedido.numero_documento = None
         
-        # Actualizar número de documento
+        # 🧾 ETAPA 3B: Actualizar número de documento
         if 'numero_documento' in data:
             pedido.numero_documento = data['numero_documento']
             
-            # Si se pone número de documento, cambiar estado a emitido
-            if pedido.numero_documento and pedido.documento_tributario in ['Hacer boleta', 'Hacer factura']:
+            # Si se ingresa número de documento, cambiar automáticamente a "emitida"
+            if pedido.numero_documento and pedido.numero_documento.strip():
                 if pedido.documento_tributario == 'Hacer boleta':
                     pedido.documento_tributario = 'Boleta emitida'
-                else:
+                elif pedido.documento_tributario == 'Hacer factura':
                     pedido.documento_tributario = 'Factura emitida'
         
         pedido.fecha_actualizacion = datetime.utcnow()

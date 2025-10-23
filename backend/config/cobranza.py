@@ -1,23 +1,32 @@
 """
 Configuración de etiquetas estandarizadas para cobranza
+
+FLUJO:
+1. ¿Está pagado? → Pagado / No Pagado
+2. Si está pagado, ¿cómo? → Tr. BICE, Tr. Santander, etc.
+3. ¿Documento? → Hacer boleta → Boleta N° XXX
 """
 
-# 💰 Métodos de Pago (estandarizados)
+# 💰 ETAPA 1: Estado de Pago (¿Está pagado o no?)
+ESTADOS_PAGO = [
+    'No Pagado',  # DEFAULT
+    'Pagado',
+]
+
+# 💳 ETAPA 2: Métodos de Pago (solo si está pagado)
 METODOS_PAGO = [
-    'Pendiente',
     'Tr. BICE',
     'Tr. Santander',
     'Tr. Itaú',
-    'Tr. Falta transferencia',
-    'Pago confirmado',
     'Pago con tarjeta',
+    'Efectivo',
+    'Otro',
 ]
 
-# 🧾 Documentos Tributarios (estandarizados)
+# 🧾 ETAPA 3: Documentos Tributarios
 DOCUMENTOS_TRIBUTARIOS = [
-    'Hacer boleta',
+    'Hacer boleta',      # DEFAULT
     'Hacer factura',
-    'Falta boleta o factura',
     'Boleta emitida',
     'Factura emitida',
     'No requiere',
