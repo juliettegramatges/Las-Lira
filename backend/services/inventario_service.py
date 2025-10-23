@@ -2,10 +2,10 @@
 Servicio para gestión de inventario y descuento automático de stock
 """
 
-from backend.app import db
-from backend.models.inventario import Flor, Contenedor
-from backend.models.pedido import PedidoInsumo, Pedido
-from backend.models.producto import RecetaProducto
+from app import db
+from models.inventario import Flor, Contenedor
+from models.pedido import PedidoInsumo, Pedido
+from models.producto import RecetaProducto
 from datetime import date
 
 class InventarioService:

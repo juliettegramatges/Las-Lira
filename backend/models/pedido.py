@@ -3,7 +3,7 @@ Modelo de Pedido
 """
 
 from datetime import datetime
-from backend.app import db
+from app import db
 
 class Pedido(db.Model):
     __tablename__ = 'pedidos'

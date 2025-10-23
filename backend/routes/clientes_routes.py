@@ -3,8 +3,8 @@ Rutas API para gestión de clientes
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.cliente import Cliente
+from app import db
+from models.cliente import Cliente
 from datetime import datetime
 
 bp = Blueprint('clientes', __name__)
@@ -281,7 +281,7 @@ def estadisticas_clientes():
 def obtener_historial_pedidos(cliente_id):
     """Obtener historial de pedidos de un cliente"""
     try:
-        from backend.models.pedido import Pedido
+        from models.pedido import Pedido
         
         cliente = Cliente.query.get(cliente_id)
         if not cliente:

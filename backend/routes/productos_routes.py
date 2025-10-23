@@ -3,9 +3,9 @@ Rutas para gestión de productos y catálogo
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.producto import Producto, RecetaProducto
-from backend.models.inventario import Flor, Contenedor
+from app import db
+from models.producto import Producto, RecetaProducto
+from models.inventario import Flor, Contenedor
 
 bp = Blueprint('productos', __name__)
 

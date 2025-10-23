@@ -3,9 +3,9 @@ Rutas para optimización de despachos y rutas
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.pedido import Pedido
-from backend.config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS, COMUNAS_PRECIOS
+from app import db
+from models.pedido import Pedido
+from config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS, COMUNAS_PRECIOS
 from datetime import datetime, timedelta
 from sqlalchemy import func, extract
 

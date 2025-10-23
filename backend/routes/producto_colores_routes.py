@@ -3,10 +3,10 @@ Rutas para gestionar colores y flores de productos
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.producto_detallado import ProductoColor, ProductoColorFlor
-from backend.models.producto import Producto
-from backend.models.inventario import Flor
+from app import db
+from models.producto_detallado import ProductoColor, ProductoColorFlor
+from models.producto import Producto
+from models.inventario import Flor
 
 bp = Blueprint('producto_colores', __name__)
 

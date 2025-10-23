@@ -11,12 +11,12 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, root_dir)
 
 from openpyxl import load_workbook
-from backend.app import app, db
-from backend.models.inventario import Flor, Contenedor, Bodega, Proveedor
-from backend.models.producto import Producto, RecetaProducto
-from backend.models.pedido import Pedido, PedidoInsumo
-from backend.models.cliente import Cliente
-from backend.models.producto_detallado import ProductoColor, ProductoColorFlor, PedidoFlorSeleccionada, PedidoContenedorSeleccionado
+from app import app, db
+from models.inventario import Flor, Contenedor, Bodega, Proveedor
+from models.producto import Producto, RecetaProducto
+from models.pedido import Pedido, PedidoInsumo
+from models.cliente import Cliente
+from models.producto_detallado import ProductoColor, ProductoColorFlor, PedidoFlorSeleccionada, PedidoContenedorSeleccionado
 
 def importar_proveedores():
     """Importar proveedores desde Excel"""

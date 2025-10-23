@@ -2,7 +2,7 @@
 Modelo de Cliente para gestión de base de datos de clientes
 """
 
-from backend.app import db
+from app import db
 from datetime import datetime
 
 class Cliente(db.Model):

@@ -3,8 +3,8 @@ Rutas para gestión de inventario (flores y contenedores)
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.inventario import Flor, Contenedor, Bodega, Proveedor
+from app import db
+from models.inventario import Flor, Contenedor, Bodega, Proveedor
 
 bp = Blueprint('inventario', __name__)
 

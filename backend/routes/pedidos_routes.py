@@ -3,11 +3,11 @@ Rutas para gestión de pedidos
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.pedido import Pedido, PedidoInsumo
-from backend.models.cliente import Cliente
-from backend.config.plazos_pago import obtener_plazo_pago
-from backend.utils.fecha_helpers import clasificar_pedido
+from app import db
+from models.pedido import Pedido, PedidoInsumo
+from models.cliente import Cliente
+from config.plazos_pago import obtener_plazo_pago
+from utils.fecha_helpers import clasificar_pedido
 from datetime import datetime, timedelta
 
 bp = Blueprint('pedidos', __name__)
@@ -219,7 +219,7 @@ def actualizar_estado(pedido_id):
         
         # 🔥 NUEVO: Actualizar fecha_entrega según la columna a la que se mueve
         from datetime import datetime, timedelta
-        from backend.utils.fecha_helpers import obtener_dia_semana
+        from utils.fecha_helpers import obtener_dia_semana
         
         hoy = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
         
@@ -316,7 +316,7 @@ def actualizar_cobranza(pedido_id):
     3. ETAPA 3: documento_tributario + numero_documento
     """
     try:
-        from backend.config.cobranza import ESTADOS_PAGO, METODOS_PAGO, DOCUMENTOS_TRIBUTARIOS
+        from config.cobranza import ESTADOS_PAGO, METODOS_PAGO, DOCUMENTOS_TRIBUTARIOS
         
         pedido = Pedido.query.get(pedido_id)
         if not pedido:

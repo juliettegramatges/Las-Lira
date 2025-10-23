@@ -2,7 +2,7 @@
 Modelos para gestión de eventos
 """
 
-from backend.app import db
+from app import db
 from datetime import datetime
 from sqlalchemy import Numeric
 

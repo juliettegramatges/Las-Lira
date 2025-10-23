@@ -3,7 +3,7 @@ Modelos de Inventario (Flores y Contenedores)
 """
 
 from datetime import datetime, date
-from backend.app import db
+from app import db
 
 class Flor(db.Model):
     __tablename__ = 'flores'

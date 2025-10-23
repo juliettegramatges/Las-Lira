@@ -3,7 +3,7 @@ Modelo de Producto
 """
 
 from datetime import datetime
-from backend.app import db
+from app import db
 
 class Producto(db.Model):
     __tablename__ = 'productos'

@@ -3,11 +3,11 @@ Rutas para gestión de eventos
 """
 
 from flask import Blueprint, request, jsonify
-from backend.app import db
-from backend.models.evento import Evento, EventoInsumo, ProductoEvento
-from backend.models.inventario import Flor, Contenedor
-from backend.models.producto import Producto
-from backend.models.cliente import Cliente
+from app import db
+from models.evento import Evento, EventoInsumo, ProductoEvento
+from models.inventario import Flor, Contenedor
+from models.producto import Producto
+from models.cliente import Cliente
 from datetime import datetime
 from sqlalchemy import or_
 

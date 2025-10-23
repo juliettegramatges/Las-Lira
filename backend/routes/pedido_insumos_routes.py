@@ -2,10 +2,10 @@
 Rutas API para gestión de insumos de pedidos
 """
 from flask import Blueprint, jsonify, request
-from backend.app import db
-from backend.models.pedido import PedidoInsumo, Pedido
-from backend.models.inventario import Flor, Contenedor
-from backend.models.producto_detallado import PedidoFlorSeleccionada, PedidoContenedorSeleccionado
+from app import db
+from models.pedido import PedidoInsumo, Pedido
+from models.inventario import Flor, Contenedor
+from models.producto_detallado import PedidoFlorSeleccionada, PedidoContenedorSeleccionado
 
 bp = Blueprint('pedido_insumos', __name__, url_prefix='/api/pedidos')
 

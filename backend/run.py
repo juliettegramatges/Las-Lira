@@ -6,12 +6,12 @@ Configura el PYTHONPATH correctamente antes de ejecutar la aplicación
 import sys
 import os
 
-# Agregar el directorio raíz al PYTHONPATH
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, root_dir)
+# Agregar el directorio actual al PYTHONPATH
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
 
 # Ahora importar y ejecutar la aplicación
-from backend.app import app, db
+from app import app, db
 
 if __name__ == '__main__':
     print("🌸 Iniciando servidor Las-Lira...")
@@ -28,6 +28,7 @@ if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
         port=puerto,
-        debug=os.getenv('FLASK_ENV', 'development') == 'development'
+        debug=True,
+        use_reloader=False  # Desactivar reloader para evitar problemas de imports
     )
 

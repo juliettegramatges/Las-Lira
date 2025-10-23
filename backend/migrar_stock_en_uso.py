@@ -9,7 +9,7 @@ import os
 # Agregar el directorio padre al path para poder importar backend
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.app import app, db
+from app import app, db
 from sqlalchemy import text
 
 def migrar_stock_en_uso():
