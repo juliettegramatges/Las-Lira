@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Flower2, CheckCircle, XCircle, Upload, X, Camera } from 'lucide-react'
+import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle } from 'lucide-react'
 
 const API_URL = 'http://localhost:8000/api'
 
@@ -10,6 +10,8 @@ function ProductosPage() {
   const [editandoFoto, setEditandoFoto] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const [productoDetalle, setProductoDetalle] = useState(null)
+  const [receta, setReceta] = useState(null)
+  const [loadingReceta, setLoadingReceta] = useState(false)
   
   const cargarProductos = async () => {
     try {
@@ -65,6 +67,27 @@ function ProductosPage() {
     } finally {
       setUploadingFoto(false)
     }
+  }
+  
+  const cargarReceta = async (productoId) => {
+    try {
+      setLoadingReceta(true)
+      const response = await axios.get(`${API_URL}/productos/${productoId}/receta`)
+      if (response.data.success) {
+        setReceta(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error al cargar receta:', error)
+      setReceta(null)
+    } finally {
+      setLoadingReceta(false)
+    }
+  }
+  
+  const handleVerDetalles = (producto) => {
+    setProductoDetalle(producto)
+    setReceta(null)
+    cargarReceta(producto.id)
   }
   
   useEffect(() => {
@@ -214,7 +237,7 @@ function ProductosPage() {
                     ${producto.precio_venta?.toLocaleString('es-CL') || '0'}
                   </span>
                   <button 
-                    onClick={() => setProductoDetalle(producto)}
+                    onClick={() => handleVerDetalles(producto)}
                     className="text-sm text-primary-600 hover:text-primary-700 font-medium hover:underline"
                   >
                     Ver detalles →
@@ -351,6 +374,147 @@ function ProductosPage() {
                   <p className="text-gray-700 text-sm leading-relaxed">{productoDetalle.cuidados}</p>
                 </div>
               )}
+              
+              {/* Recetario / Insumos Necesarios */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                  <Package className="h-5 w-5 mr-2 text-primary-600" />
+                  Recetario - Insumos Necesarios
+                </h3>
+                
+                {loadingReceta ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Cargando receta...
+                  </div>
+                ) : receta && receta.receta && receta.receta.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Lista de insumos */}
+                    <div className="space-y-3">
+                      {receta.receta.map((insumo) => (
+                        <div 
+                          key={insumo.id} 
+                          className={`flex items-center gap-4 p-3 rounded-lg border ${
+                            insumo.disponible ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                          }`}
+                        >
+                          {/* Foto del insumo */}
+                          <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0 shadow-sm">
+                            {insumo.foto_url ? (
+                              <img 
+                                src={`${API_URL}/upload/imagen/${insumo.foto_url}`}
+                                alt={insumo.nombre}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none'
+                                  e.target.nextSibling.style.display = 'flex'
+                                }}
+                              />
+                            ) : null}
+                            <div className={insumo.foto_url ? 'hidden' : 'flex items-center justify-center w-full h-full bg-gray-100'}>
+                              {insumo.tipo === 'Flor' ? (
+                                <Flower2 className="h-6 w-6 text-gray-400" />
+                              ) : (
+                                <ShoppingBag className="h-6 w-6 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Información del insumo */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                                insumo.tipo === 'Flor' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {insumo.tipo}
+                              </span>
+                              <h4 className="font-semibold text-gray-900">{insumo.nombre}</h4>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>
+                                <strong>{insumo.cantidad}</strong> {insumo.unidad}
+                              </span>
+                              <span>
+                                ${insumo.costo_unitario?.toLocaleString('es-CL')} c/u
+                              </span>
+                              <span className="font-semibold text-gray-900">
+                                Total: ${insumo.costo_total?.toLocaleString('es-CL')}
+                              </span>
+                            </div>
+                            
+                            {/* Stock disponible */}
+                            <div className="mt-1 text-xs">
+                              {insumo.disponible ? (
+                                <span className="text-green-700 flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Stock: {insumo.stock_disponible} {insumo.unidad_stock || insumo.unidad}
+                                </span>
+                              ) : (
+                                <span className="text-red-700 flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Stock insuficiente: {insumo.stock_disponible || 0} {insumo.unidad_stock || insumo.unidad}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {insumo.notas && (
+                              <p className="text-xs text-gray-500 mt-1 italic">{insumo.notas}</p>
+                            )}
+                          </div>
+                          
+                          {insumo.es_opcional && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              Opcional
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Resumen de costos */}
+                    <div className="bg-gradient-to-r from-primary-50 to-primary-100 p-4 rounded-lg border-2 border-primary-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Resumen Económico
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Costo Total Insumos:</span>
+                          <span className="font-semibold text-gray-900">
+                            ${receta.costo_total_insumos?.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Precio de Venta:</span>
+                          <span className="font-semibold text-gray-900">
+                            ${receta.precio_venta?.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t border-primary-300">
+                          <span className="text-gray-700">Ganancia:</span>
+                          <span className={`font-bold ${receta.ganancia > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ${receta.ganancia?.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Margen:</span>
+                          <span className={`font-bold ${receta.margen_porcentaje > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {receta.margen_porcentaje?.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                    <Package className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p>No hay receta configurada para este producto</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Configura los insumos necesarios en el recetario
+                    </p>
+                  </div>
+                )}
+              </div>
               
               {/* Estado */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">

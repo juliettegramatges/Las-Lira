@@ -50,6 +50,81 @@ def obtener_producto(producto_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/<producto_id>/receta', methods=['GET'])
+def obtener_receta_producto(producto_id):
+    """Obtener receta detallada de un producto (insumos necesarios)"""
+    try:
+        producto = Producto.query.get(producto_id)
+        if not producto:
+            return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+        
+        # Obtener recetas con detalles de cada insumo
+        recetas_detalladas = []
+        costo_total_insumos = 0
+        
+        for receta in producto.recetas:
+            detalle = {
+                'id': receta.id,
+                'tipo': receta.insumo_tipo,
+                'insumo_id': receta.insumo_id,
+                'cantidad': receta.cantidad,
+                'unidad': receta.unidad,
+                'es_opcional': receta.es_opcional,
+                'notas': receta.notas
+            }
+            
+            # Obtener detalles del insumo
+            if receta.insumo_tipo == 'Flor':
+                flor = Flor.query.get(receta.insumo_id)
+                if flor:
+                    detalle['nombre'] = f"{flor.tipo} {flor.color}"
+                    detalle['costo_unitario'] = float(flor.costo_unitario)
+                    detalle['stock_disponible'] = flor.cantidad_stock
+                    detalle['unidad_stock'] = flor.unidad
+                    detalle['costo_total'] = float(flor.costo_unitario) * receta.cantidad
+                    detalle['foto_url'] = flor.foto_url
+                    costo_total_insumos += detalle['costo_total']
+                    detalle['disponible'] = flor.cantidad_stock >= receta.cantidad
+                else:
+                    detalle['nombre'] = 'Flor no encontrada'
+                    detalle['disponible'] = False
+                    
+            else:  # Contenedor
+                contenedor = Contenedor.query.get(receta.insumo_id)
+                if contenedor:
+                    detalle['nombre'] = f"{contenedor.tipo} {contenedor.material} {contenedor.forma}"
+                    detalle['costo_unitario'] = float(contenedor.costo)
+                    detalle['stock_disponible'] = contenedor.stock
+                    detalle['costo_total'] = float(contenedor.costo) * receta.cantidad
+                    detalle['foto_url'] = contenedor.foto_url
+                    costo_total_insumos += detalle['costo_total']
+                    detalle['disponible'] = contenedor.stock >= receta.cantidad
+                else:
+                    detalle['nombre'] = 'Contenedor no encontrado'
+                    detalle['disponible'] = False
+            
+            recetas_detalladas.append(detalle)
+        
+        # Calcular margen
+        precio_venta = float(producto.precio_venta) if producto.precio_venta else 0
+        margen = ((precio_venta - costo_total_insumos) / precio_venta * 100) if precio_venta > 0 else 0
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'producto': producto.to_dict(),
+                'receta': recetas_detalladas,
+                'costo_total_insumos': round(costo_total_insumos, 2),
+                'precio_venta': precio_venta,
+                'margen_porcentaje': round(margen, 2),
+                'ganancia': round(precio_venta - costo_total_insumos, 2)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/<producto_id>/verificar-stock', methods=['GET'])
 def verificar_stock_producto(producto_id):
     """Verificar si hay stock suficiente para preparar un producto"""
