@@ -393,6 +393,53 @@ def crear_proveedores():
     wb.save("06_Proveedores.xlsx")
     print("✅ Archivo '06_Proveedores.xlsx' creado")
 
+def crear_clientes():
+    """Crea archivo con base de datos de clientes"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Clientes"
+    
+    # Encabezados
+    headers = ["ID", "Nombre", "Teléfono", "Email", "Tipo Cliente", "Dirección Principal", "Notas", "Total Pedidos", "Total Gastado"]
+    ws.append(headers)
+    crear_estilo_header(ws)
+    
+    # Clientes demo
+    clientes = [
+        ["CLI001", "María González", "+56912345678", "maria.gonzalez@email.com", "Fiel", "Av. Apoquindo 1234, Las Condes", "Cliente frecuente, prefiere rosas rojas", "8", "280000"],
+        ["CLI002", "Juan Pérez", "+56987654321", "juan.perez@email.com", "VIP", "Av. Vitacura 5678, Vitacura", "Cliente corporativo, pedidos grandes", "15", "850000"],
+        ["CLI003", "Ana Martínez", "+56923456789", "ana.martinez@email.com", "Cumplidor", "Los Militares 2345, Las Condes", "Siempre paga a tiempo", "5", "175000"],
+        ["CLI004", "Pedro Silva", "+56998765432", "", "Nuevo", "", "Primer pedido", "1", "35000"],
+        ["CLI005", "Carolina López", "+56934567890", "carolina.lopez@email.com", "Ocasional", "Av. Kennedy 3456, Vitacura", "Solo para fechas especiales", "3", "120000"],
+        ["CLI006", "Roberto Díaz", "+56909876543", "roberto.diaz@empresa.cl", "VIP", "Av. El Bosque 7890, Las Condes", "Empresa, pedidos mensuales", "12", "620000"],
+        ["CLI007", "Isabel Torres", "+56945678901", "isabel.torres@email.com", "Fiel", "Av. Los Leones 1234, Providencia", "Le gustan los lirios", "6", "195000"],
+        ["CLI008", "Francisco Morales", "+56910987654", "", "No Cumplidor", "Av. Grecia 5678, Ñuñoa", "Problemas con pagos anteriores", "2", "70000"],
+        ["CLI009", "Valentina Rojas", "+56956789012", "valentina.rojas@email.com", "Fiel", "Av. Las Condes 2345, Las Condes", "Cumpleaños el 15 de marzo", "7", "245000"],
+        ["CLI010", "Diego Fernández", "+56921098765", "diego.fernandez@email.com", "Ocasional", "Av. Providencia 8901, Providencia", "Aniversario en junio", "2", "85000"],
+        ["CLI011", "Camila Soto", "+56967890123", "camila.soto@email.com", "Cumplidor", "Av. Vitacura 3456, Vitacura", "Prefiere arreglos modernos", "4", "156000"],
+        ["CLI012", "Andrés Castro", "+56932109876", "", "Nuevo", "", "", "0", "0"],
+        ["CLI013", "Sofía Muñoz", "+56978901234", "sofia.munoz@email.com", "Fiel", "Av. Isidora 6789, Las Condes", "Cliente desde hace 2 años", "9", "315000"],
+        ["CLI014", "Matías Herrera", "+56943210987", "matias.herrera@empresa.cl", "VIP", "Av. Andrés Bello 4567, Providencia", "Eventos corporativos", "11", "580000"],
+        ["CLI015", "Javiera Reyes", "+56989012345", "javiera.reyes@email.com", "Ocasional", "Av. Manquehue 7890, Vitacura", "San Valentín y cumpleaños", "3", "105000"],
+    ]
+    
+    for cliente in clientes:
+        ws.append(cliente)
+    
+    # Ajustar anchos de columna
+    ws.column_dimensions['A'].width = 10
+    ws.column_dimensions['B'].width = 25
+    ws.column_dimensions['C'].width = 18
+    ws.column_dimensions['D'].width = 30
+    ws.column_dimensions['E'].width = 15
+    ws.column_dimensions['F'].width = 40
+    ws.column_dimensions['G'].width = 50
+    ws.column_dimensions['H'].width = 15
+    ws.column_dimensions['I'].width = 15
+    
+    wb.save("07_Clientes.xlsx")
+    print("✅ Archivo '07_Clientes.xlsx' creado")
+
 if __name__ == "__main__":
     print("\n🌸 Generando archivos Excel demo para Las-Lira...\n")
     
@@ -402,6 +449,7 @@ if __name__ == "__main__":
     crear_pedidos()
     crear_recetas_productos()
     crear_proveedores()
+    crear_clientes()
     
     print("\n✨ ¡Todos los archivos han sido creados exitosamente!\n")
     print("Archivos generados:")
@@ -411,5 +459,6 @@ if __name__ == "__main__":
     print("  4. 04_Pedidos.xlsx")
     print("  5. 05_Recetas_Productos.xlsx")
     print("  6. 06_Proveedores.xlsx")
+    print("  7. 07_Clientes.xlsx")
     print("\n📁 Los archivos están listos para subir a Google Drive")
 

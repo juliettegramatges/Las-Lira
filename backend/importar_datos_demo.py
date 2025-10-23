@@ -15,6 +15,7 @@ from backend.app import app, db
 from backend.models.inventario import Flor, Contenedor, Bodega, Proveedor
 from backend.models.producto import Producto, RecetaProducto
 from backend.models.pedido import Pedido, PedidoInsumo
+from backend.models.cliente import Cliente
 
 def importar_proveedores():
     """Importar proveedores desde Excel"""
@@ -286,6 +287,41 @@ def importar_pedidos():
     db.session.commit()
     print(f"✅ {count} pedidos importados")
 
+def importar_clientes():
+    """Importar clientes desde Excel"""
+    print("\n👥 Importando clientes...")
+    wb = load_workbook('../07_Clientes.xlsx')
+    ws = wb['Clientes']
+    
+    count = 0
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row[0]:  # Si no hay ID, saltar
+            continue
+        
+        try:
+            cliente = Cliente(
+                id=row[0],
+                nombre=row[1],
+                telefono=row[2],
+                email=row[3] if row[3] else None,
+                tipo_cliente=row[4] if row[4] else 'Nuevo',
+                direccion_principal=row[5] if row[5] else None,
+                notas=row[6] if row[6] else None,
+                total_pedidos=int(row[7]) if row[7] else 0,
+                total_gastado=float(row[8]) if row[8] else 0
+            )
+            
+            existing = Cliente.query.get(cliente.id)
+            if not existing:
+                db.session.add(cliente)
+                count += 1
+        except Exception as e:
+            print(f"⚠️ Error al importar cliente {row[0]}: {e}")
+            continue
+    
+    db.session.commit()
+    print(f"✅ {count} clientes importados")
+
 def main():
     """Ejecutar todas las importaciones"""
     print("=" * 60)
@@ -305,6 +341,7 @@ def main():
             importar_contenedores()
             importar_productos()
             importar_recetas()
+            importar_clientes()  # Importar clientes ANTES de pedidos
             importar_pedidos()
             
             print("\n" + "=" * 60)
@@ -314,6 +351,7 @@ def main():
             print("📊 Revisa las siguientes secciones:")
             print("   • Inventario: Flores y Contenedores")
             print("   • Productos: Catálogo de arreglos")
+            print("   • Clientes: Base de datos de clientes")
             print("   • Pedidos: Órdenes de clientes")
             print("   • Tablero: Vista Kanban")
             print("   • Rutas: Optimización por comuna")
