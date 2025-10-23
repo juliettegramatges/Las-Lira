@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle } from 'lucide-react'
+import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save } from 'lucide-react'
 
 const API_URL = 'http://localhost:8000/api'
 
@@ -12,6 +12,17 @@ function ProductosPage() {
   const [productoDetalle, setProductoDetalle] = useState(null)
   const [receta, setReceta] = useState(null)
   const [loadingReceta, setLoadingReceta] = useState(false)
+  
+  // Estados del Simulador de Costos
+  const [mostrarSimulador, setMostrarSimulador] = useState(false)
+  const [configuracion, setConfiguracion] = useState(null)
+  const [loadingConfig, setLoadingConfig] = useState(false)
+  const [simulacion, setSimulacion] = useState({
+    flores: {},      // { colorId: [{ id, florId, cantidad, costo... }] }
+    contenedor: null
+  })
+  const [contenedores, setContenedores] = useState([])
+  const [guardandoReceta, setGuardandoReceta] = useState(false)
   
   const cargarProductos = async () => {
     try {
