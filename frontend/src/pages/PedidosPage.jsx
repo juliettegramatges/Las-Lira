@@ -88,7 +88,17 @@ function PedidosPage() {
     setFormData(prev => ({
       ...prev,
       comuna: comunaNombre,
-      precio_envio: comunaData?.precio || ''
+      precio_envio: comunaData?.precio || prev.precio_envio
+    }))
+  }
+  
+  const handleProductoChange = (productoId) => {
+    const productoSeleccionado = productos.find(p => p.id === productoId)
+    setFormData(prev => ({
+      ...prev,
+      producto_id: productoId,
+      arreglo_pedido: productoSeleccionado?.nombre || prev.arreglo_pedido,
+      precio_ramo: productoSeleccionado?.precio_venta || prev.precio_ramo
     }))
   }
   
@@ -972,10 +982,13 @@ function PedidosPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Producto de Catálogo (opcional)
+                        {formData.producto_id && (
+                          <span className="ml-2 text-xs text-green-600">✓ Precio auto-rellenado</span>
+                        )}
                       </label>
                       <select
                         value={formData.producto_id}
-                        onChange={(e) => setFormData({...formData, producto_id: e.target.value})}
+                        onChange={(e) => handleProductoChange(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       >
                         <option value="">-- Sin producto asociado --</option>
@@ -985,6 +998,11 @@ function PedidosPage() {
                           </option>
                         ))}
                       </select>
+                      {formData.producto_id && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 El nombre y precio se rellenaron automáticamente, pero puedes modificarlos
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1150,6 +1168,9 @@ function PedidosPage() {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Comuna
+                          {formData.comuna && (
+                            <span className="ml-2 text-xs text-green-600">✓ Precio envío auto-rellenado</span>
+                          )}
                         </label>
                         <select
                           value={formData.comuna}
@@ -1163,6 +1184,11 @@ function PedidosPage() {
                             </option>
                           ))}
                         </select>
+                        {formData.comuna && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            💡 Precio de envío actualizado, pero puedes modificarlo abajo
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
