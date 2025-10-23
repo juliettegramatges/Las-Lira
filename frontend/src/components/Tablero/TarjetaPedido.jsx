@@ -1,4 +1,5 @@
-import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare, Image as ImageIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare, Image as ImageIcon, X, User, CreditCard, FileText, Package } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -24,18 +25,29 @@ const pagoColor = {
 }
 
 function TarjetaPedido({ pedido, onRecargar }) {
+  const [mostrarModal, setMostrarModal] = useState(false)
+  
   const handleDragStart = (e) => {
     e.dataTransfer.setData('pedidoId', pedido.id)
   }
   
+  const handleClick = (e) => {
+    // Solo abrir modal si no estamos arrastrando
+    if (e.defaultPrevented) return
+    setMostrarModal(true)
+  }
+  
   const fechaEntrega = pedido.fecha_entrega ? new Date(pedido.fecha_entrega) : null
+  const fechaPedido = pedido.fecha_pedido ? new Date(pedido.fecha_pedido) : null
   
   return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-move"
-    >
+    <>
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        onClick={handleClick}
+        className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      >
       {/* Imagen del producto (si tiene) */}
       {pedido.producto_imagen && (
         <div className="mb-3 -mx-4 -mt-4 bg-gradient-to-br from-primary-100 to-primary-200 rounded-t-lg overflow-hidden flex items-center justify-center" style={{height: '128px'}}>
@@ -147,6 +159,236 @@ function TarjetaPedido({ pedido, onRecargar }) {
         </div>
       )}
     </div>
+
+    {/* Modal de detalles completos */}
+    {mostrarModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setMostrarModal(false)}>
+        <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          {/* Header del modal */}
+          <div className="sticky top-0 bg-primary-600 text-white px-6 py-4 flex items-center justify-between z-10">
+            <div>
+              <h2 className="text-xl font-bold">Detalles del Pedido</h2>
+              <p className="text-sm opacity-90">{pedido.id}</p>
+            </div>
+            <button
+              onClick={() => setMostrarModal(false)}
+              className="p-2 hover:bg-primary-700 rounded-lg transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Contenido del modal */}
+          <div className="p-6 space-y-6">
+            {/* Imagen del producto */}
+            {pedido.producto_imagen && (
+              <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden flex items-center justify-center" style={{height: '200px'}}>
+                <img 
+                  src={pedido.producto_imagen.startsWith('http') ? pedido.producto_imagen : `/api/upload/imagen/${pedido.producto_imagen}`}
+                  alt={pedido.producto_nombre || 'Arreglo'}
+                  className="w-full h-full object-contain p-4"
+                />
+              </div>
+            )}
+
+            {/* Información del Cliente */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+                <User className="h-5 w-5 mr-2" />
+                Información del Cliente
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Nombre:</span>
+                  <p className="text-gray-900">{pedido.cliente_nombre}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Teléfono:</span>
+                  <p className="text-gray-900">{pedido.cliente_telefono}</p>
+                </div>
+                {pedido.cliente_email && (
+                  <div>
+                    <span className="font-medium text-gray-700">Email:</span>
+                    <p className="text-gray-900">{pedido.cliente_email}</p>
+                  </div>
+                )}
+                {pedido.cliente_tipo && (
+                  <div>
+                    <span className="font-medium text-gray-700">Tipo:</span>
+                    <p className="text-gray-900">{pedido.cliente_tipo}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Información del Pedido */}
+            <div className="bg-green-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center">
+                <ShoppingBag className="h-5 w-5 mr-2" />
+                Detalles del Pedido
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Canal:</span>
+                  <p className={`inline-block ml-2 px-2 py-1 rounded text-xs ${canalColor[pedido.canal]}`}>
+                    {pedido.canal}
+                  </p>
+                </div>
+                {pedido.shopify_order_number && (
+                  <div>
+                    <span className="font-medium text-gray-700">Nro. Shopify:</span>
+                    <p className="text-gray-900 font-mono">{pedido.shopify_order_number}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="font-medium text-gray-700">Arreglo:</span>
+                  <p className="text-gray-900 font-medium">{pedido.arreglo_pedido}</p>
+                </div>
+                {pedido.motivo && (
+                  <div>
+                    <span className="font-medium text-gray-700">Motivo:</span>
+                    <p className="text-gray-900">{pedido.motivo}</p>
+                  </div>
+                )}
+                {fechaPedido && (
+                  <div>
+                    <span className="font-medium text-gray-700">Fecha Pedido:</span>
+                    <p className="text-gray-900">{format(fechaPedido, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}</p>
+                  </div>
+                )}
+                {fechaEntrega && (
+                  <div>
+                    <span className="font-medium text-gray-700">Fecha Entrega:</span>
+                    <p className="text-gray-900 font-semibold">{format(fechaEntrega, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}</p>
+                  </div>
+                )}
+              </div>
+              {pedido.detalles_adicionales && (
+                <div className="mt-3 pt-3 border-t border-green-200">
+                  <span className="font-medium text-gray-700">Detalles Adicionales:</span>
+                  <p className="text-gray-900 mt-1 bg-white rounded p-2">{pedido.detalles_adicionales}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Dirección y Destinatario */}
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center">
+                <MapPin className="h-5 w-5 mr-2" />
+                Entrega
+              </h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Dirección:</span>
+                  <p className="text-gray-900">{pedido.direccion_entrega}</p>
+                </div>
+                {pedido.comuna && (
+                  <div>
+                    <span className="font-medium text-gray-700">Comuna:</span>
+                    <p className="text-gray-900">{pedido.comuna}</p>
+                  </div>
+                )}
+                {pedido.destinatario && (
+                  <div>
+                    <span className="font-medium text-gray-700">Para (Destinatario):</span>
+                    <p className="text-gray-900">{pedido.destinatario}</p>
+                  </div>
+                )}
+                {pedido.mensaje && (
+                  <div>
+                    <span className="font-medium text-gray-700">Mensaje:</span>
+                    <p className="text-gray-900 bg-white rounded p-2 italic">"{pedido.mensaje}"</p>
+                  </div>
+                )}
+                {pedido.firma && (
+                  <div>
+                    <span className="font-medium text-gray-700">Firma:</span>
+                    <p className="text-gray-900">{pedido.firma}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Precios */}
+            <div className="bg-yellow-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-yellow-900 mb-3 flex items-center">
+                <CreditCard className="h-5 w-5 mr-2" />
+                Valores
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Precio Ramo:</span>
+                  <p className="text-gray-900 text-lg font-semibold">${pedido.precio_ramo?.toLocaleString('es-CL')}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Precio Envío:</span>
+                  <p className="text-gray-900 text-lg font-semibold">${pedido.precio_envio?.toLocaleString('es-CL')}</p>
+                </div>
+                <div className="md:col-span-1">
+                  <span className="font-medium text-gray-700">Total:</span>
+                  <p className="text-primary-600 text-2xl font-bold">${pedido.precio_total?.toLocaleString('es-CL')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Estado y Cobranza */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                <FileText className="h-5 w-5 mr-2" />
+                Estado y Cobranza
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Estado:</span>
+                  <p className="text-gray-900 font-semibold">{pedido.estado}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Estado de Pago:</span>
+                  <p className={`inline-block ml-2 px-2 py-1 rounded text-xs font-medium ${pagoColor[pedido.estado_pago]}`}>
+                    {pedido.estado_pago}
+                  </p>
+                </div>
+                {pedido.metodo_pago && pedido.metodo_pago !== 'Pendiente' && (
+                  <div>
+                    <span className="font-medium text-gray-700">Método de Pago:</span>
+                    <p className="text-gray-900">{pedido.metodo_pago}</p>
+                  </div>
+                )}
+                {pedido.documento_tributario && (
+                  <div>
+                    <span className="font-medium text-gray-700">Documento:</span>
+                    <p className="text-gray-900">{pedido.documento_tributario}</p>
+                  </div>
+                )}
+                {pedido.numero_documento && (
+                  <div>
+                    <span className="font-medium text-gray-700">Nro. Documento:</span>
+                    <p className="text-gray-900 font-mono">{pedido.numero_documento}</p>
+                  </div>
+                )}
+                {pedido.plazo_pago_dias > 0 && (
+                  <div>
+                    <span className="font-medium text-gray-700">Plazo de Pago:</span>
+                    <p className="text-gray-900">{pedido.plazo_pago_dias} días</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer del modal */}
+          <div className="sticky bottom-0 bg-gray-100 px-6 py-4 flex justify-end">
+            <button
+              onClick={() => setMostrarModal(false)}
+              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
