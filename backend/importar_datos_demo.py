@@ -16,6 +16,7 @@ from backend.models.inventario import Flor, Contenedor, Bodega, Proveedor
 from backend.models.producto import Producto, RecetaProducto
 from backend.models.pedido import Pedido, PedidoInsumo
 from backend.models.cliente import Cliente
+from backend.models.producto_detallado import ProductoColor, ProductoColorFlor, PedidoFlorSeleccionada, PedidoContenedorSeleccionado
 
 def importar_proveedores():
     """Importar proveedores desde Excel"""
@@ -450,6 +451,184 @@ def vincular_pedidos_a_clientes():
     db.session.commit()
     print(f"✅ Estadísticas calculadas para {len(clientes_actualizados)} clientes")
 
+def configurar_colores_productos():
+    """
+    Configura los colores y flores asociadas para cada producto.
+    Esto permite que al crear un pedido se puedan seleccionar
+    las flores específicas para cada color del arreglo.
+    """
+    print("\n🎨 Configurando colores y flores de productos...")
+    
+    configuraciones = [
+        {
+            'producto_id': 'PR001',  # Pasión Roja
+            'colores': [
+                {
+                    'nombre': 'Rojo',
+                    'cantidad_sugerida': 12,
+                    'flores': ['FL001', 'FL011']  # Rosa roja, Clavel rojo
+                },
+                {
+                    'nombre': 'Verde oscuro',
+                    'cantidad_sugerida': 5,
+                    'flores': ['FL013']  # Eucalipto
+                }
+            ]
+        },
+        {
+            'producto_id': 'PR002',  # Elegancia Rosa
+            'colores': [
+                {
+                    'nombre': 'Rosa',
+                    'cantidad_sugerida': 15,
+                    'flores': ['FL005', 'FL018']  # Rosa rosa, Alstroemeria rosada
+                },
+                {
+                    'nombre': 'Blanco',
+                    'cantidad_sugerida': 8,
+                    'flores': ['FL003', 'FL014']  # Rosa blanca, Lisianthus blanco
+                }
+            ]
+        },
+        {
+            'producto_id': 'PR003',  # Sol Radiante
+            'colores': [
+                {
+                    'nombre': 'Amarillo',
+                    'cantidad_sugerida': 18,
+                    'flores': ['FL002', 'FL012']  # Rosa amarilla, Girasol
+                },
+                {
+                    'nombre': 'Naranja',
+                    'cantidad_sugerida': 6,
+                    'flores': ['FL017']  # Gerbera naranja
+                }
+            ]
+        },
+        {
+            'producto_id': 'PR004',  # Sueño Blanco
+            'colores': [
+                {
+                    'nombre': 'Blanco',
+                    'cantidad_sugerida': 20,
+                    'flores': ['FL003', 'FL009', 'FL014']  # Rosa blanca, Lirio blanco, Lisianthus blanco
+                },
+                {
+                    'nombre': 'Verde claro',
+                    'cantidad_sugerida': 5,
+                    'flores': ['FL016']  # Solidago
+                }
+            ]
+        },
+        {
+            'producto_id': 'PR007',  # Campo Silvestre
+            'colores': [
+                {
+                    'nombre': 'Rosa',
+                    'cantidad_sugerida': 6,
+                    'flores': ['FL018', 'FL020']  # Alstroemeria rosa, Gerbera rosada
+                },
+                {
+                    'nombre': 'Naranja',
+                    'cantidad_sugerida': 5,
+                    'flores': ['FL017']  # Gerbera naranja
+                },
+                {
+                    'nombre': 'Morado',
+                    'cantidad_sugerida': 4,
+                    'flores': ['FL019']  # Alstroemeria morada
+                },
+                {
+                    'nombre': 'Verde/Follaje',
+                    'cantidad_sugerida': 5,
+                    'flores': ['FL013', 'FL016']  # Eucalipto, Solidago
+                }
+            ]
+        },
+        {
+            'producto_id': 'PR009',  # Ramo Clásico
+            'colores': [
+                {
+                    'nombre': 'Rojo',
+                    'cantidad_sugerida': 12,
+                    'flores': ['FL001', 'FL011']  # Rosa roja, Clavel rojo
+                },
+                {
+                    'nombre': 'Blanco',
+                    'cantidad_sugerida': 6,
+                    'flores': ['FL003', 'FL014']  # Rosa blanca, Lisianthus blanco
+                },
+                {
+                    'nombre': 'Verde',
+                    'cantidad_sugerida': 3,
+                    'flores': ['FL013']  # Eucalipto
+                }
+            ]
+        },
+        {
+            'producto_id': 'PR010',  # Amor Eterno
+            'colores': [
+                {
+                    'nombre': 'Rojo intenso',
+                    'cantidad_sugerida': 24,
+                    'flores': ['FL001']  # Rosa roja (predeterminada)
+                },
+                {
+                    'nombre': 'Verde oscuro',
+                    'cantidad_sugerida': 8,
+                    'flores': ['FL013']  # Eucalipto
+                }
+            ]
+        }
+    ]
+    
+    count_colores = 0
+    count_flores = 0
+    
+    for config in configuraciones:
+        producto_id = config['producto_id']
+        
+        # Verificar que el producto existe
+        producto = Producto.query.get(producto_id)
+        if not producto:
+            print(f"⚠️ Producto {producto_id} no encontrado, saltando...")
+            continue
+        
+        # Limpiar configuración anterior si existe
+        ProductoColor.query.filter_by(producto_id=producto_id).delete()
+        
+        # Crear colores y flores
+        for orden, color_config in enumerate(config['colores']):
+            # Crear color
+            color = ProductoColor(
+                producto_id=producto_id,
+                nombre_color=color_config['nombre'],
+                cantidad_flores_sugerida=color_config['cantidad_sugerida'],
+                orden=orden
+            )
+            db.session.add(color)
+            db.session.flush()  # Para obtener el ID del color
+            count_colores += 1
+            
+            # Agregar flores disponibles para este color
+            for idx, flor_id in enumerate(color_config['flores']):
+                # Verificar que la flor existe
+                flor = Flor.query.get(flor_id)
+                if not flor:
+                    continue
+                
+                color_flor = ProductoColorFlor(
+                    producto_color_id=color.id,
+                    flor_id=flor_id,
+                    es_predeterminada=(idx == 0)  # La primera es predeterminada
+                )
+                db.session.add(color_flor)
+                count_flores += 1
+    
+    db.session.commit()
+    print(f"✅ {count_colores} colores y {count_flores} flores asociadas configuradas")
+
+
 def main():
     """Ejecutar todas las importaciones"""
     print("=" * 60)
@@ -469,6 +648,7 @@ def main():
             importar_contenedores()
             importar_productos()
             importar_recetas()
+            configurar_colores_productos()  # Configurar colores y flores asociadas
             importar_clientes()  # Importar clientes ANTES de pedidos
             importar_pedidos()
             copiar_insumos_a_pedidos()  # Copiar insumos de recetas a pedidos

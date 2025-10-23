@@ -229,8 +229,9 @@ def obtener_configuracion_completa(producto_id):
     """
     Obtiene la configuración completa de un producto incluyendo:
     - Datos básicos del producto
-    - Colores con sus flores disponibles
-    - Receta original (si existe)
+    - Colores con sus flores disponibles (con stock y precio)
+    - Cálculo de disponibilidad por color
+    - Costo estimado usando flores predeterminadas
     """
     try:
         producto = Producto.query.get(producto_id)
@@ -242,12 +243,72 @@ def obtener_configuracion_completa(producto_id):
             activo=True
         ).order_by(ProductoColor.orden).all()
         
+        # Enriquecer cada color con información detallada
+        colores_detallados = []
+        hay_stock_total = True
+        costo_total_estimado = 0
+        
+        for color in colores:
+            flores_disponibles = []
+            tiene_stock_color = False
+            flor_predeterminada = None
+            
+            for cf in color.flores_disponibles:
+                if not cf.activo:
+                    continue
+                
+                flor_info = {
+                    'id': cf.id,
+                    'flor_id': cf.flor_id,
+                    'flor_nombre': cf.flor_nombre,
+                    'flor_costo': cf.flor_costo,
+                    'flor_stock': cf.flor_stock,
+                    'flor_unidad': cf.flor_unidad,
+                    'es_predeterminada': cf.es_predeterminada,
+                    'cantidad_necesaria': color.cantidad_flores_sugerida,
+                    'hay_stock_suficiente': cf.flor_stock >= color.cantidad_flores_sugerida,
+                    'costo_color': float(cf.flor_costo) * color.cantidad_flores_sugerida
+                }
+                
+                flores_disponibles.append(flor_info)
+                
+                # Verificar si hay al menos una flor con stock suficiente
+                if flor_info['hay_stock_suficiente']:
+                    tiene_stock_color = True
+                
+                # Guardar la predeterminada para el cálculo
+                if cf.es_predeterminada:
+                    flor_predeterminada = flor_info
+            
+            # Si no hay stock para este color, no hay stock total
+            if not tiene_stock_color:
+                hay_stock_total = False
+            
+            # Sumar al costo total usando la flor predeterminada
+            if flor_predeterminada:
+                costo_total_estimado += flor_predeterminada['costo_color']
+            
+            color_detallado = {
+                'id': color.id,
+                'nombre_color': color.nombre_color,
+                'cantidad_sugerida': color.cantidad_flores_sugerida,
+                'orden': color.orden,
+                'flores_disponibles': flores_disponibles,
+                'tiene_stock': tiene_stock_color
+            }
+            
+            colores_detallados.append(color_detallado)
+        
         return jsonify({
             'success': True,
             'data': {
                 'producto': producto.to_dict(),
-                'colores': [color.to_dict() for color in colores],
-                'tiene_configuracion': len(colores) > 0
+                'colores': colores_detallados,
+                'tiene_configuracion': len(colores) > 0,
+                'hay_stock_completo': hay_stock_total,
+                'costo_estimado_flores': costo_total_estimado,
+                'precio_venta': float(producto.precio_venta) if producto.precio_venta else 0,
+                'margen_estimado': float(producto.precio_venta - costo_total_estimado) if producto.precio_venta else 0
             }
         })
         
