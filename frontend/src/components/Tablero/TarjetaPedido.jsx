@@ -38,11 +38,11 @@ function TarjetaPedido({ pedido, onRecargar }) {
     >
       {/* Imagen del producto (si tiene) */}
       {pedido.producto_imagen && (
-        <div className="mb-3 -mx-4 -mt-4">
+        <div className="mb-3 -mx-4 -mt-4 bg-gradient-to-br from-primary-100 to-primary-200 rounded-t-lg overflow-hidden flex items-center justify-center" style={{height: '128px'}}>
           <img 
             src={pedido.producto_imagen.startsWith('http') ? pedido.producto_imagen : `/api/upload/imagen/${pedido.producto_imagen}`}
             alt={pedido.producto_nombre || 'Arreglo'}
-            className="w-full h-32 object-cover rounded-t-lg"
+            className="w-full h-full object-contain p-2"
           />
         </div>
       )}
