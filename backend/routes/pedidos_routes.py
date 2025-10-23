@@ -153,9 +153,18 @@ def eliminar_pedido(pedido_id):
 
 @bp.route('/tablero', methods=['GET'])
 def obtener_tablero():
-    """Obtener pedidos organizados por estado (formato Kanban)"""
+    """Obtener pedidos organizados por estado (formato Kanban estilo Trello Las-Lira)"""
     try:
-        estados = ['Recibido', 'En Preparación', 'Listo', 'Despachado']
+        # Estados según el flujo del Trello
+        estados = [
+            'Pedido',
+            'Pedidos Semana', 
+            'Entregas para Mañana', 
+            'Entregas de Hoy',
+            'En Proceso', 
+            'Listo para Despacho',
+            'Despachados'
+        ]
         tablero = {}
         
         for estado in estados:

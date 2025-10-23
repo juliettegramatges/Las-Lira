@@ -203,59 +203,59 @@ def crear_pedidos():
     ws.title = "Pedidos"
     
     # Encabezados
-    headers = ["ID Pedido", "Fecha Pedido", "Fecha Entrega", "Canal", "Nro Pedido Shopify", 
+    headers = ["ID Pedido", "Fecha Pedido", "Fecha Entrega", "Día Entrega", "Canal", "Nro Pedido Shopify", 
                "Nombre Cliente", "Celular", "Arreglo Pedido", "Detalles Adicionales", 
                "Precio Ramo", "Precio Envío", "Para (Destinatario)", "Mensaje", "Firma", 
-               "Dirección", "Motivo", "Estado"]
+               "Dirección", "Motivo", "Estado", "Estado Pago", "Tipo Pedido", "Cobranza", "Foto Enviado"]
     ws.append(headers)
     crear_estilo_header(ws)
     
     # Datos demo de pedidos
     pedidos = [
-        ["PED001", "2025-10-20 09:30", "2025-10-21 14:00", "Shopify", "#SH1234", 
+        ["PED001", "2025-10-20 09:30", "2025-10-21 14:00", "LUNES", "Shopify", "#SH1234", 
          "María González", "+56912345601", "Pasión Roja", "Sin cambios", 
          35000, 5000, "Ana González", "Feliz cumpleaños hermana", "Con cariño, María",
-         "Av. Las Condes 12345, Las Condes", "Cumpleaños", "Entregado"],
+         "Av. Las Condes 12345, Las Condes", "Cumpleaños", "Despachados", "Pagado", "Normal", "BOLETA 11248 TR. 21/10/25", ""],
         
-        ["PED002", "2025-10-21 11:15", "2025-10-22 10:00", "WhatsApp", "", 
+        ["PED002", "2025-10-21 11:15", "2025-10-22 10:00", "MARTES", "WhatsApp", "", 
          "Carlos Pérez", "+56912345602", "Arreglo personalizado tonos rosados", "Más lirios, menos rosas", 
          40000, 6000, "Valentina Pérez", "Feliz aniversario amor", "Tu esposo que te ama",
-         "Av. Providencia 2345, Providencia", "Aniversario", "Entregado"],
+         "Av. Providencia 2345, Providencia", "Aniversario", "Despachados", "Pagado", "Normal", "FACTURA 2345 TR. 22/10/25", "arreglo_enviado_ped002.jpg"],
         
-        ["PED003", "2025-10-22 08:45", "2025-10-23 16:00", "Shopify", "#SH1235", 
+        ["PED003", "2025-10-22 08:45", "2025-10-23 16:00", "MIERCOLES", "Shopify", "#SH1235", 
          "Ana Martínez", "+56912345603", "Jardín Primaveral", "", 
          42000, 5000, "Claudia Ramírez", "Que te mejores pronto", "Tu amiga Ana",
-         "Calle Los Almendros 567, Vitacura", "Mejórate", "Despachado"],
+         "Calle Los Almendros 567, Vitacura", "Mejórate", "Listo para Despacho", "Pagado", "Normal", "BOLETA 11249 TR. 23/10/25", ""],
         
-        ["PED004", "2025-10-22 14:20", "2025-10-23 11:00", "Shopify", "#SH1236", 
+        ["PED004", "2025-10-22 14:20", "2025-10-23 11:00", "MIERCOLES", "Shopify", "#SH1236", 
          "Roberto Silva", "+56912345604", "Dulce Lirio", "Sin eucalipto por favor", 
          45000, 4000, "Laura Silva", "Para la mejor mamá del mundo", "Tu hijo Roberto",
-         "Av. Grecia 890, Ñuñoa", "Día de la Madre", "Listo"],
+         "Av. Grecia 890, Ñuñoa", "Día de la Madre", "En Proceso", "Pagado", "Normal", "", ""],
         
-        ["PED005", "2025-10-23 10:00", "2025-10-24 09:00", "WhatsApp", "", 
+        ["PED005", "2025-10-23 10:00", "2025-10-24 09:00", "JUEVES", "WhatsApp", "", 
          "Patricia Rojas", "+56912345605", "Canasto con girasoles y rosas amarillas", "Urgente - cumpleaños", 
          48000, 7000, "Sofía Rojas", "Felices 15 años princesa", "Mamá y papá",
-         "Calle Los Robles 234, La Reina", "Cumpleaños", "En Preparación"],
+         "Calle Los Robles 234, La Reina", "Cumpleaños", "Entregas de Hoy", "No Pagado", "Normal", "", ""],
         
-        ["PED006", "2025-10-23 12:30", "2025-10-25 15:00", "Shopify", "#SH1237", 
+        ["PED006", "2025-10-23 12:30", "2025-10-25 15:00", "VIERNES", "Shopify", "#SH1237", 
          "Luis Vargas", "+56912345606", "Amor Eterno", "Incluir tarjeta romántica", 
          65000, 5000, "Carolina Vargas", "Eres el amor de mi vida", "Luis",
-         "Av. La Florida 456, San Miguel", "San Valentín", "En Preparación"],
+         "Av. La Florida 456, San Miguel", "San Valentín", "Entregas para Mañana", "Pagado", "EVENTO", "FACTURA 2346 TR. 25/10/25", ""],
         
-        ["PED007", "2025-10-23 15:45", "2025-10-24 13:00", "Shopify", "#SH1238", 
+        ["PED007", "2025-10-23 15:45", "2025-10-24 13:00", "JUEVES", "Shopify", "#SH1238", 
          "Carmen López", "+56912345607", "Elegancia Rosa", "", 
          38000, 6000, "Isabel López", "Gracias por todo", "Carmen",
-         "Calle Central 789, Maipú", "Agradecimiento", "Recibido"],
+         "Calle Central 789, Maipú", "Agradecimiento", "Entregas de Hoy", "No Pagado", "Normal", "", ""],
         
-        ["PED008", "2025-10-23 16:20", "2025-10-24 19:00", "WhatsApp", "", 
+        ["PED008", "2025-10-23 16:20", "2025-10-24 19:00", "JUEVES", "WhatsApp", "", 
          "Diego Fernández", "+56912345608", "24 rosas rojas en ramo", "URGENTE - Propuesta matrimonio", 
          55000, 8000, "Camila Torres", "¿Quieres casarte conmigo?", "Diego",
-         "Restaurante Mirador, Av. Las Condes 9876", "Propuesta", "Recibido"],
+         "Restaurante Mirador, Av. Las Condes 9876", "Propuesta", "Pedidos Semana", "Falta Boleta o Factura", "Normal", "", ""],
          
-        ["PED009", "2025-10-23 17:00", "2025-10-26 12:00", "Shopify", "#SH1239", 
+        ["PED009", "2025-10-23 17:00", "2025-10-26 12:00", "SABADO", "Shopify", "#SH1239", 
          "Fernanda Ruiz", "+56912345609", "Sol Radiante", "Preferencia por girasoles grandes", 
          30000, 4000, "Pedro Ruiz", "Feliz cumpleaños papá", "Tu hija Fernanda",
-         "Calle Los Pinos 123, Peñalolén", "Cumpleaños", "Recibido"],
+         "Calle Los Pinos 123, Peñalolén", "Cumpleaños", "Pedidos Semana", "Pagado", "MANTENCIONES", "", ""],
     ]
     
     for fila in pedidos:
@@ -265,20 +265,25 @@ def crear_pedidos():
     ws.column_dimensions['A'].width = 10
     ws.column_dimensions['B'].width = 16
     ws.column_dimensions['C'].width = 16
-    ws.column_dimensions['D'].width = 10
-    ws.column_dimensions['E'].width = 15
-    ws.column_dimensions['F'].width = 18
-    ws.column_dimensions['G'].width = 15
-    ws.column_dimensions['H'].width = 25
+    ws.column_dimensions['D'].width = 12
+    ws.column_dimensions['E'].width = 10
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 18
+    ws.column_dimensions['H'].width = 15
     ws.column_dimensions['I'].width = 25
-    ws.column_dimensions['J'].width = 12
+    ws.column_dimensions['J'].width = 25
     ws.column_dimensions['K'].width = 12
-    ws.column_dimensions['L'].width = 18
-    ws.column_dimensions['M'].width = 30
-    ws.column_dimensions['N'].width = 20
-    ws.column_dimensions['O'].width = 35
-    ws.column_dimensions['P'].width = 15
+    ws.column_dimensions['L'].width = 12
+    ws.column_dimensions['M'].width = 18
+    ws.column_dimensions['N'].width = 30
+    ws.column_dimensions['O'].width = 20
+    ws.column_dimensions['P'].width = 35
     ws.column_dimensions['Q'].width = 15
+    ws.column_dimensions['R'].width = 18
+    ws.column_dimensions['S'].width = 15
+    ws.column_dimensions['T'].width = 15
+    ws.column_dimensions['U'].width = 25
+    ws.column_dimensions['V'].width = 25
     
     wb.save("04_Pedidos.xlsx")
     print("✅ Archivo '04_Pedidos.xlsx' creado")

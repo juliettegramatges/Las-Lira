@@ -5,15 +5,27 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 
 function TableroPage() {
   const [tablero, setTablero] = useState({
-    'Recibido': [],
-    'En Preparación': [],
-    'Listo': [],
-    'Despachado': []
+    'Pedido': [],
+    'Pedidos Semana': [],
+    'Entregas para Mañana': [],
+    'Entregas de Hoy': [],
+    'En Proceso': [],
+    'Listo para Despacho': [],
+    'Despachados': []
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   
-  const estados = ['Recibido', 'En Preparación', 'Listo', 'Despachado']
+  // Estados según flujo del Trello de Las-Lira
+  const estados = [
+    'Pedido',
+    'Pedidos Semana', 
+    'Entregas para Mañana', 
+    'Entregas de Hoy',
+    'En Proceso', 
+    'Listo para Despacho',
+    'Despachados'
+  ]
   
   const cargarTablero = async () => {
     try {

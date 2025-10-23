@@ -30,13 +30,25 @@ class Pedido(db.Model):
     # Dirección y motivo
     direccion_entrega = db.Column(db.String(300), nullable=False)
     motivo = db.Column(db.String(50))  # Cumpleaños, Aniversario, etc.
-    # Estado
+    # Estado (según flujo del Trello)
     estado = db.Column(
-        db.Enum('Recibido', 'En Preparación', 'Listo', 'Despachado', 'Entregado', 'Cancelado', 
+        db.Enum('Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy', 
+                'En Proceso', 'Listo para Despacho', 'Despachados', 'Archivado', 'Cancelado',
                 name='estado_enum'),
-        default='Recibido',
+        default='Pedido',
         nullable=False
     )
+    # Etiquetas (días de semana, estado de pago, tipo)
+    dia_entrega = db.Column(db.String(20))  # LUNES, MARTES, etc.
+    estado_pago = db.Column(
+        db.Enum('Pagado', 'No Pagado', 'Falta Boleta o Factura', name='estado_pago_enum'),
+        default='No Pagado'
+    )
+    tipo_pedido = db.Column(db.String(50))  # EVENTO, MANTENCIONES, etc.
+    # Cobranza y boleta
+    cobranza = db.Column(db.String(200))  # Ej: "BOLETA 11248 TR. 01/10/25"
+    # Foto del arreglo enviado (trazabilidad)
+    foto_enviado_url = db.Column(db.String(500))  # Foto tomada antes de enviar
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relaciones
@@ -61,6 +73,7 @@ class Pedido(db.Model):
             'cliente_email': self.cliente_email,
             'producto_id': self.producto_id,
             'producto_nombre': self.producto.nombre if self.producto else None,
+            'producto_imagen': self.producto.imagen_url if self.producto else None,
             'arreglo_pedido': self.arreglo_pedido,
             'detalles_adicionales': self.detalles_adicionales,
             'precio_ramo': float(self.precio_ramo) if self.precio_ramo else 0,
@@ -72,6 +85,11 @@ class Pedido(db.Model):
             'direccion_entrega': self.direccion_entrega,
             'motivo': self.motivo,
             'estado': self.estado,
+            'dia_entrega': self.dia_entrega,
+            'estado_pago': self.estado_pago,
+            'tipo_pedido': self.tipo_pedido,
+            'cobranza': self.cobranza,
+            'foto_enviado_url': self.foto_enviado_url,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
         }
     

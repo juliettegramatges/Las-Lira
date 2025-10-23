@@ -7,6 +7,22 @@ const canalColor = {
   'WhatsApp': 'bg-emerald-100 text-emerald-800',
 }
 
+const diaColor = {
+  'LUNES': 'bg-yellow-400 text-gray-900',
+  'MARTES': 'bg-orange-400 text-white',
+  'MIERCOLES': 'bg-red-500 text-white',
+  'JUEVES': 'bg-purple-500 text-white',
+  'VIERNES': 'bg-blue-500 text-white',
+  'SABADO': 'bg-cyan-400 text-white',
+  'DOMINGO': 'bg-green-500 text-white',
+}
+
+const pagoColor = {
+  'Pagado': 'bg-green-100 text-green-800',
+  'No Pagado': 'bg-red-100 text-red-800',
+  'Falta Boleta o Factura': 'bg-orange-100 text-orange-800',
+}
+
 function TarjetaPedido({ pedido, onRecargar }) {
   const handleDragStart = (e) => {
     e.dataTransfer.setData('pedidoId', pedido.id)
@@ -32,16 +48,35 @@ function TarjetaPedido({ pedido, onRecargar }) {
       )}
       
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <span className="text-xs font-medium text-gray-500">{pedido.id}</span>
-          <h4 className="text-sm font-semibold text-gray-900 mt-1">
-            {pedido.cliente_nombre}
-          </h4>
+      <div className="mb-3">
+        {/* Nombre y teléfono */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-gray-900">
+              {pedido.cliente_nombre}
+            </h4>
+            <p className="text-xs text-gray-600">{pedido.cliente_telefono}</p>
+          </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium ${canalColor[pedido.canal]}`}>
-          {pedido.canal}
-        </span>
+        
+        {/* Etiquetas */}
+        <div className="flex flex-wrap gap-1 mb-2">
+          {pedido.dia_entrega && (
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${diaColor[pedido.dia_entrega]}`}>
+              {pedido.dia_entrega}
+            </span>
+          )}
+          {pedido.estado_pago && (
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${pagoColor[pedido.estado_pago]}`}>
+              {pedido.estado_pago === 'No Pagado' ? '❌ NO PAGADO' : pedido.estado_pago}
+            </span>
+          )}
+          {pedido.tipo_pedido && pedido.tipo_pedido !== 'Normal' && (
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-white">
+              {pedido.tipo_pedido}
+            </span>
+          )}
+        </div>
       </div>
       
       {/* Producto/Descripción */}
