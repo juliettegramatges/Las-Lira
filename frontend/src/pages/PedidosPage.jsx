@@ -16,11 +16,15 @@ function PedidosPage() {
   const [productos, setProductos] = useState([])
   const [comunas, setComunas] = useState([])
   const [loadingFormulario, setLoadingFormulario] = useState(false)
+  const [clienteEncontrado, setClienteEncontrado] = useState(null)
+  const [buscandoCliente, setBuscandoCliente] = useState(false)
+  const [plazoPagoManual, setPlazoPagoManual] = useState(false)
   
   // Estado del formulario
   const [formData, setFormData] = useState({
     canal: 'WhatsApp',
     shopify_order_number: '',
+    cliente_id: '',
     cliente_nombre: '',
     cliente_telefono: '',
     cliente_email: '',
@@ -35,7 +39,8 @@ function PedidosPage() {
     direccion_entrega: '',
     comuna: '',
     motivo: '',
-    fecha_entrega: ''
+    fecha_entrega: '',
+    plazo_pago_dias: 0
   })
   
   const cargarPedidos = async () => {
@@ -82,6 +87,76 @@ function PedidosPage() {
       comuna,
       precio_envio: comunaData?.precio || ''
     }))
+  }
+  
+  // Plazos de pago según tipo de cliente
+  const PLAZOS_PAGO = {
+    'Nuevo': 0,
+    'Fiel': 15,
+    'Cumplidor': 30,
+    'No Cumplidor': 0,
+    'VIP': 45,
+    'Ocasional': 7
+  }
+  
+  const buscarClientePorTelefono = async (telefono) => {
+    if (!telefono || telefono.length < 8) {
+      setClienteEncontrado(null)
+      return
+    }
+    
+    try {
+      setBuscandoCliente(true)
+      const response = await axios.get(`${API_URL}/clientes/buscar-por-telefono`, {
+        params: { telefono }
+      })
+      
+      if (response.data.success && response.data.encontrado) {
+        const cliente = response.data.data
+        setClienteEncontrado(cliente)
+        
+        // Autocompletar datos del cliente
+        setFormData(prev => ({
+          ...prev,
+          cliente_id: cliente.id,
+          cliente_nombre: cliente.nombre,
+          cliente_email: cliente.email || '',
+          direccion_entrega: cliente.direccion_principal || prev.direccion_entrega
+        }))
+        
+        // Calcular plazo de pago automático si no es manual
+        if (!plazoPagoManual) {
+          const plazo = PLAZOS_PAGO[cliente.tipo_cliente] || 0
+          setFormData(prev => ({
+            ...prev,
+            plazo_pago_dias: plazo
+          }))
+        }
+      } else {
+        setClienteEncontrado(null)
+        // Limpiar cliente_id si no se encontró
+        setFormData(prev => ({
+          ...prev,
+          cliente_id: ''
+        }))
+      }
+    } catch (err) {
+      console.error('Error al buscar cliente:', err)
+      setClienteEncontrado(null)
+    } finally {
+      setBuscandoCliente(false)
+    }
+  }
+  
+  const handleTelefonoChange = (telefono) => {
+    setFormData(prev => ({ ...prev, cliente_telefono: telefono }))
+    
+    // Buscar cliente después de un pequeño delay
+    if (telefono.length >= 8) {
+      setTimeout(() => buscarClientePorTelefono(telefono), 500)
+    } else {
+      setClienteEncontrado(null)
+    }
   }
   
   const handleSubmitPedido = async (e) => {
@@ -140,9 +215,12 @@ function PedidosPage() {
       if (response.data.success) {
         alert('✅ Pedido creado exitosamente: ' + response.data.data.id)
         setMostrarFormulario(false)
+        setClienteEncontrado(null)
+        setPlazoPagoManual(false)
         setFormData({
           canal: 'WhatsApp',
           shopify_order_number: '',
+          cliente_id: '',
           cliente_nombre: '',
           cliente_telefono: '',
           cliente_email: '',
@@ -157,7 +235,8 @@ function PedidosPage() {
           direccion_entrega: '',
           comuna: '',
           motivo: '',
-          fecha_entrega: ''
+          fecha_entrega: '',
+          plazo_pago_dias: 0
         })
         cargarPedidos()
       }
@@ -633,49 +712,120 @@ function PedidosPage() {
                   </div>
                 )}
                 
-                {/* Información del Cliente */}
-                <div className="bg-gray-50 p-4 rounded-lg">
+                {/* Información del Cliente con Búsqueda Inteligente */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200">
                   <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
-                    Información del Cliente
+                    👤 Información del Cliente
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.cliente_nombre}
-                        onChange={(e) => setFormData({...formData, cliente_nombre: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="María García"
-                      />
-                    </div>
+                  <div className="space-y-4">
+                    {/* Teléfono con búsqueda */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Teléfono <span className="text-red-500">*</span>
+                        {buscandoCliente && <span className="ml-2 text-xs text-blue-600">Buscando...</span>}
                       </label>
                       <input
                         type="tel"
                         required
                         value={formData.cliente_telefono}
-                        onChange={(e) => setFormData({...formData, cliente_telefono: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        onChange={(e) => handleTelefonoChange(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="+56 9 1234 5678"
                       />
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.cliente_email}
-                        onChange={(e) => setFormData({...formData, cliente_email: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="cliente@ejemplo.com"
-                      />
+                    
+                    {/* Información del cliente encontrado */}
+                    {clienteEncontrado && (
+                      <div className="bg-white p-3 rounded-lg border-2 border-green-300">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="font-semibold text-green-700">Cliente Encontrado</span>
+                          <span className={`ml-auto px-2 py-1 rounded text-xs font-medium ${
+                            clienteEncontrado.tipo_cliente === 'VIP' ? 'bg-purple-100 text-purple-700' :
+                            clienteEncontrado.tipo_cliente === 'Fiel' ? 'bg-blue-100 text-blue-700' :
+                            clienteEncontrado.tipo_cliente === 'Cumplidor' ? 'bg-green-100 text-green-700' :
+                            clienteEncontrado.tipo_cliente === 'No Cumplidor' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {clienteEncontrado.tipo_cliente}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <p><strong>ID:</strong> {clienteEncontrado.id}</p>
+                          <p><strong>Pedidos:</strong> {clienteEncontrado.total_pedidos} | <strong>Total gastado:</strong> ${clienteEncontrado.total_gastado?.toLocaleString('es-CL')}</p>
+                          {clienteEncontrado.notas && (
+                            <p className="text-xs italic mt-2">📝 {clienteEncontrado.notas}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Nombre y Email */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nombre <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.cliente_nombre}
+                          onChange={(e) => setFormData({...formData, cliente_nombre: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="María García"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.cliente_email}
+                          onChange={(e) => setFormData({...formData, cliente_email: e.target.value})}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="cliente@ejemplo.com"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Plazo de Pago */}
+                    <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          💳 Plazo de Pago
+                        </label>
+                        <label className="flex items-center text-xs">
+                          <input
+                            type="checkbox"
+                            checked={plazoPagoManual}
+                            onChange={(e) => setPlazoPagoManual(e.target.checked)}
+                            className="mr-1"
+                          />
+                          Manual
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={formData.plazo_pago_dias}
+                          onChange={(e) => setFormData({...formData, plazo_pago_dias: parseInt(e.target.value) || 0})}
+                          disabled={!plazoPagoManual}
+                          className={`w-24 px-3 py-2 border rounded-lg ${
+                            plazoPagoManual ? 'border-gray-300' : 'bg-gray-100 border-gray-200'
+                          }`}
+                        />
+                        <span className="text-sm text-gray-700">días</span>
+                        {!plazoPagoManual && clienteEncontrado && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            (Automático según tipo: {clienteEncontrado.tipo_cliente})
+                          </span>
+                        )}
+                      </div>
+                      {formData.plazo_pago_dias === 0 && (
+                        <p className="text-xs text-orange-600 mt-1">⚠️ Pago inmediato</p>
+                      )}
                     </div>
                   </div>
                 </div>

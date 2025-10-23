@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from backend.app import db
 from backend.models.pedido import Pedido, PedidoInsumo
 from backend.models.cliente import Cliente
+from backend.config.plazos_pago import obtener_plazo_pago
 from datetime import datetime
 
 bp = Blueprint('pedidos', __name__)
@@ -103,6 +104,15 @@ def crear_pedido():
         else:
             nuevo_id = "PED001"
         
+        # Calcular plazo de pago
+        # Si viene manual en el request, usar ese; sino calcularlo por tipo de cliente
+        if 'plazo_pago_dias' in data:
+            plazo_pago = int(data['plazo_pago_dias'])
+        elif cliente:
+            plazo_pago = obtener_plazo_pago(cliente.tipo_cliente)
+        else:
+            plazo_pago = 0  # Sin cliente, pago inmediato
+        
         # Crear pedido
         pedido = Pedido(
             id=nuevo_id,
@@ -123,6 +133,7 @@ def crear_pedido():
             direccion_entrega=data['direccion_entrega'],
             comuna=data.get('comuna'),
             motivo=data.get('motivo'),
+            plazo_pago_dias=plazo_pago,
             fecha_entrega=datetime.fromisoformat(data['fecha_entrega'])
         )
         

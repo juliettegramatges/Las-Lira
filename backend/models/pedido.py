@@ -51,6 +51,7 @@ class Pedido(db.Model):
     tipo_pedido = db.Column(db.String(50))  # EVENTO, MANTENCIONES, etc.
     # Cobranza y boleta
     cobranza = db.Column(db.String(200))  # Ej: "BOLETA 11248 TR. 01/10/25"
+    plazo_pago_dias = db.Column(db.Integer, default=0)  # Días de plazo para pagar
     # Foto del arreglo enviado (trazabilidad)
     foto_enviado_url = db.Column(db.String(500))  # Foto tomada antes de enviar
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -97,6 +98,7 @@ class Pedido(db.Model):
             'estado_pago': self.estado_pago,
             'tipo_pedido': self.tipo_pedido,
             'cobranza': self.cobranza,
+            'plazo_pago_dias': self.plazo_pago_dias,
             'foto_enviado_url': self.foto_enviado_url,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
         }
