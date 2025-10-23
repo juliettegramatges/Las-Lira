@@ -34,12 +34,13 @@ class Pedido(db.Model):
     direccion_entrega = db.Column(db.String(300), nullable=False)
     comuna = db.Column(db.String(100))  # Comuna de entrega
     motivo = db.Column(db.String(50))  # Cumpleaños, Aniversario, etc.
-    # Estado (según flujo del Trello)
+    # Estado (según flujo del Trello - ordenado por prioridad)
     estado = db.Column(
-        db.Enum('Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy', 
-                'En Proceso', 'Listo para Despacho', 'Despachados', 'Archivado', 'Cancelado',
+        db.Enum('Entregas de Hoy', 'Entregas para Mañana', 'En Proceso', 
+                'Listo para Despacho', 'Despachados', 'Pedidos Semana', 
+                'Eventos', 'Archivado', 'Cancelado',
                 name='estado_enum'),
-        default='Pedido',
+        default='Pedidos Semana',
         nullable=False
     )
     # Etiquetas (días de semana, estado de pago, tipo)

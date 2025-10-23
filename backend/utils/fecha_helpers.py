@@ -12,7 +12,7 @@ def obtener_estado_por_fecha(fecha_entrega):
     - Si es para HOY → "Entregas de Hoy"
     - Si es para MAÑANA → "Entregas para Mañana"
     - Si es dentro de esta SEMANA (próximos 7 días) → "Pedidos Semana"
-    - Resto → "Pedido" (estado inicial)
+    - Resto → "Pedidos Semana" (estado inicial para planificación)
     """
     ahora = datetime.now()
     hoy = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -33,7 +33,7 @@ def obtener_estado_por_fecha(fecha_entrega):
     elif hoy < fecha_entrega_date <= fin_semana:
         return 'Pedidos Semana'
     else:
-        return 'Pedido'
+        return 'Pedidos Semana'  # Pedidos futuros van a planificación semanal
 
 
 def obtener_dia_semana(fecha):

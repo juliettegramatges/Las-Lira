@@ -319,7 +319,7 @@ def crear_pedidos():
         ["PED015", "2025-10-24 09:00", "2025-10-25 14:00", "VIERNES", "WhatsApp", "", 
          "Pedro Silva", "+56998765432", "Ramo de Bienvenida", "Primer pedido", 
          35000, 15000, "Ana Silva", "Bienvenida", "Pedro",
-         "Av. Las Rejas 456, Estación Central", "Estación Central", "Otro", "Pedido", "No Pagado", "Normal", "", ""],
+         "Av. Las Rejas 456, Estación Central", "Estación Central", "Otro", "Pedidos Semana", "No Pagado", "Normal", "", ""],
     ]
     
     for fila in pedidos:

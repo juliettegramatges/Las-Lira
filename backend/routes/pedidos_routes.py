@@ -201,14 +201,14 @@ def actualizar_estado(pedido_id):
         
         # Estados válidos del sistema (alineados con el tablero Kanban)
         estados_validos = [
-            'Pedido', 
-            'Pedidos Semana', 
-            'Entregas para Mañana', 
-            'Entregas de Hoy', 
-            'En Proceso', 
-            'Listo para Despacho', 
-            'Despachados', 
-            'Archivado', 
+            'Entregas de Hoy',
+            'Entregas para Mañana',
+            'En Proceso',
+            'Listo para Despacho',
+            'Despachados',
+            'Pedidos Semana',
+            'Eventos',
+            'Archivado',
             'Cancelado'
         ]
         
@@ -279,15 +279,15 @@ def eliminar_pedido(pedido_id):
 def obtener_tablero():
     """Obtener pedidos organizados por estado (formato Kanban estilo Trello Las-Lira)"""
     try:
-        # Estados según el flujo del Trello
+        # Estados según el flujo del Trello (orden de prioridad)
         estados = [
-            'Pedido',
-            'Pedidos Semana', 
-            'Entregas para Mañana', 
-            'Entregas de Hoy',
-            'En Proceso', 
-            'Listo para Despacho',
-            'Despachados'
+            'Entregas de Hoy',      # 🔥 Urgente - hoy
+            'Entregas para Mañana', # ⚡ Próximo - mañana
+            'En Proceso',           # 🔧 Taller trabajando
+            'Listo para Despacho',  # ✅ Listo para enviar
+            'Despachados',          # 📦 Completados
+            'Pedidos Semana',       # 📅 Planificación semanal
+            'Eventos'               # 🎉 Pedidos para eventos especiales
         ]
         tablero = {}
         

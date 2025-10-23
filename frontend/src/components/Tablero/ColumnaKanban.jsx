@@ -3,23 +3,23 @@ import TarjetaPedido from './TarjetaPedido'
 import { Plus } from 'lucide-react'
 
 const colorEstado = {
-  'Pedido': 'bg-gray-50 border-gray-200',
-  'Pedidos Semana': 'bg-blue-50 border-blue-200',
-  'Entregas para Mañana': 'bg-orange-50 border-orange-200',
   'Entregas de Hoy': 'bg-red-50 border-red-200',
+  'Entregas para Mañana': 'bg-orange-50 border-orange-200',
   'En Proceso': 'bg-yellow-50 border-yellow-200',
   'Listo para Despacho': 'bg-green-50 border-green-200',
   'Despachados': 'bg-purple-50 border-purple-200',
+  'Pedidos Semana': 'bg-blue-50 border-blue-200',
+  'Eventos': 'bg-pink-50 border-pink-200',
 }
 
 const colorBadge = {
-  'Pedido': 'bg-gray-100 text-gray-800',
-  'Pedidos Semana': 'bg-blue-100 text-blue-800',
-  'Entregas para Mañana': 'bg-orange-100 text-orange-800',
   'Entregas de Hoy': 'bg-red-100 text-red-800',
+  'Entregas para Mañana': 'bg-orange-100 text-orange-800',
   'En Proceso': 'bg-yellow-100 text-yellow-800',
   'Listo para Despacho': 'bg-green-100 text-green-800',
   'Despachados': 'bg-purple-100 text-purple-800',
+  'Pedidos Semana': 'bg-blue-100 text-blue-800',
+  'Eventos': 'bg-pink-100 text-pink-800',
 }
 
 function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar }) {

@@ -269,7 +269,7 @@ def importar_pedidos():
                 direccion_entrega=row[15],
                 comuna=row[16] if row[16] else None,
                 motivo=row[17] if row[17] else None,
-                estado=row[18] if row[18] else 'Pedido',
+                estado=row[18] if row[18] else 'Pedidos Semana',  # Estado por defecto actualizado
                 estado_pago=row[19] if row[19] else 'No Pagado',
                 tipo_pedido=row[20] if row[20] else None,
                 cobranza=row[21] if row[21] else None,
