@@ -27,7 +27,7 @@ export const pedidosAPI = {
 export const pedidoInsumosAPI = {
   obtenerInsumos: (pedidoId) => api.get(`/pedidos/${pedidoId}/insumos`),
   guardarInsumos: (pedidoId, insumos) => api.post(`/pedidos/${pedidoId}/insumos`, { insumos }),
-  confirmarYDescontar: (pedidoId) => api.post(`/pedidos/${pedidoId}/confirmar-insumos`),
+  confirmarYDescontar: (pedidoId, data = {}) => api.post(`/pedidos/${pedidoId}/confirmar-insumos`, data),
   obtenerPedidosTaller: () => api.get('/pedidos/taller'),
 };
 

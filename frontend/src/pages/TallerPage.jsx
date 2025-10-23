@@ -45,8 +45,30 @@ function TallerPage() {
     }
   }
 
+  const handleCantidadChange = (insumoId, nuevaCantidad) => {
+    setInsumos(prevInsumos => 
+      prevInsumos.map(insumo => 
+        insumo.id === insumoId 
+          ? { 
+              ...insumo, 
+              cantidad: parseInt(nuevaCantidad) || 0,
+              costo_total: insumo.costo_unitario * (parseInt(nuevaCantidad) || 0)
+            }
+          : insumo
+      )
+    )
+  }
+
   const handleConfirmarInsumos = async () => {
     if (!pedidoSeleccionado) return
+    
+    // Validar stock antes de confirmar
+    const faltaStock = insumos.some(i => i.cantidad > i.stock_disponible)
+    if (faltaStock) {
+      if (!confirm('⚠️ ADVERTENCIA: Algunos insumos superan el stock disponible.\n\n¿Deseas continuar de todos modos?')) {
+        return
+      }
+    }
     
     if (!confirm(`¿Confirmar insumos y descontar stock para el pedido ${pedidoSeleccionado.id}?\n\nEsto moverá el pedido a "Listo para Despacho" y descontará el inventario.`)) {
       return
@@ -54,7 +76,18 @@ function TallerPage() {
 
     try {
       setConfirmando(true)
-      const response = await pedidoInsumosAPI.confirmarYDescontar(pedidoSeleccionado.id)
+      
+      // Preparar cantidades modificadas
+      const cantidades = {}
+      insumos.forEach(insumo => {
+        cantidades[insumo.id] = insumo.cantidad
+      })
+      
+      // Confirmar y descontar con las cantidades actualizadas
+      const response = await pedidoInsumosAPI.confirmarYDescontar(
+        pedidoSeleccionado.id,
+        { cantidades }
+      )
       
       alert(`✅ ${response.data.message}\n\n${response.data.insumos_procesados} insumos procesados`)
       
@@ -283,8 +316,14 @@ function TallerPage() {
                                   {insumo.insumo_tipo}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-right font-medium">
-                                {insumo.cantidad}
+                              <td className="px-4 py-3">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={insumo.cantidad}
+                                  onChange={(e) => handleCantidadChange(insumo.id, e.target.value)}
+                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-right font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                />
                               </td>
                               <td className={`px-4 py-3 text-right ${!stockSuficiente ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
                                 {insumo.stock_disponible || 0}

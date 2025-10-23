@@ -95,6 +95,14 @@ def confirmar_insumos_y_descontar(pedido_id):
     """
     Confirmar los insumos de un pedido y descontar del stock.
     Cambia el estado del pedido a 'Listo para Despacho'.
+    
+    Puede recibir cantidades modificadas:
+    {
+        "cantidades": {
+            "1": 10,  // insumo_id: cantidad_usada
+            "2": 5
+        }
+    }
     """
     try:
         pedido = Pedido.query.get(pedido_id)
@@ -105,11 +113,25 @@ def confirmar_insumos_y_descontar(pedido_id):
         if pedido.estado != 'En Proceso':
             return jsonify({'error': 'El pedido debe estar en estado "En Proceso" para confirmar insumos'}), 400
         
+        # Obtener cantidades modificadas si las hay
+        data = request.get_json() or {}
+        cantidades_modificadas = data.get('cantidades', {})
+        
         # Obtener insumos del pedido
         insumos = PedidoInsumo.query.filter_by(pedido_id=pedido_id, descontado_stock=False).all()
         
         if not insumos:
             return jsonify({'error': 'No hay insumos para confirmar'}), 400
+        
+        # Actualizar cantidades si fueron modificadas
+        for insumo in insumos:
+            str_id = str(insumo.id)
+            if str_id in cantidades_modificadas:
+                nueva_cantidad = int(cantidades_modificadas[str_id])
+                insumo.cantidad = nueva_cantidad
+                insumo.costo_total = insumo.costo_unitario * nueva_cantidad
+        
+        db.session.flush()  # Guardar cambios de cantidades
         
         # Verificar disponibilidad de stock
         errores_stock = []
