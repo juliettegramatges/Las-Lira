@@ -288,7 +288,7 @@ def importar_pedidos():
     print(f"✅ {count} pedidos importados")
 
 def importar_clientes():
-    """Importar clientes desde Excel"""
+    """Importar clientes desde Excel (sin estadísticas, se calculan después)"""
     print("\n👥 Importando clientes...")
     wb = load_workbook('../07_Clientes.xlsx')
     ws = wb['Clientes']
@@ -307,8 +307,8 @@ def importar_clientes():
                 tipo_cliente=row[4] if row[4] else 'Nuevo',
                 direccion_principal=row[5] if row[5] else None,
                 notas=row[6] if row[6] else None,
-                total_pedidos=int(row[7]) if row[7] else 0,
-                total_gastado=float(row[8]) if row[8] else 0
+                total_pedidos=0,  # Se calculará después
+                total_gastado=0   # Se calculará después
             )
             
             existing = Cliente.query.get(cliente.id)
@@ -320,7 +320,68 @@ def importar_clientes():
             continue
     
     db.session.commit()
-    print(f"✅ {count} clientes importados")
+    print(f"✅ {count} clientes importados (estadísticas se calcularán desde pedidos)")
+
+def vincular_pedidos_a_clientes():
+    """Vincular pedidos existentes a clientes y calcular estadísticas"""
+    print("\n🔗 Vinculando pedidos a clientes y calculando estadísticas...")
+    
+    # Normalizar teléfono (quitar espacios, guiones, paréntesis)
+    import re
+    def normalizar_telefono(telefono):
+        return re.sub(r'[\s\-\(\)]', '', telefono)
+    
+    # Obtener todos los pedidos
+    pedidos = Pedido.query.all()
+    clientes_actualizados = set()
+    
+    # Vincular cada pedido a su cliente
+    for pedido in pedidos:
+        if not pedido.cliente_telefono:
+            continue
+        
+        # Buscar cliente por teléfono normalizado
+        telefono_pedido = normalizar_telefono(pedido.cliente_telefono)
+        cliente = None
+        
+        for c in Cliente.query.all():
+            if normalizar_telefono(c.telefono) == telefono_pedido:
+                cliente = c
+                break
+        
+        if cliente:
+            # Vincular pedido al cliente
+            pedido.cliente_id = cliente.id
+            clientes_actualizados.add(cliente.id)
+        else:
+            print(f"⚠️  Cliente no encontrado para pedido {pedido.id} (tel: {pedido.cliente_telefono})")
+    
+    db.session.commit()
+    print(f"✅ Pedidos vinculados a clientes")
+    
+    # Recalcular estadísticas de cada cliente
+    print("\n📊 Calculando estadísticas de clientes desde pedidos reales...")
+    for cliente_id in clientes_actualizados:
+        cliente = Cliente.query.get(cliente_id)
+        if not cliente:
+            continue
+        
+        # Obtener todos los pedidos del cliente
+        pedidos_cliente = Pedido.query.filter_by(cliente_id=cliente.id).all()
+        
+        # Calcular estadísticas
+        cliente.total_pedidos = len(pedidos_cliente)
+        cliente.total_gastado = sum((p.precio_ramo or 0) + (p.precio_envio or 0) for p in pedidos_cliente)
+        
+        # Actualizar última compra
+        if pedidos_cliente:
+            pedidos_ordenados = sorted(pedidos_cliente, key=lambda p: p.fecha_pedido, reverse=True)
+            cliente.ultima_compra = pedidos_ordenados[0].fecha_pedido
+        
+        print(f"  ✓ {cliente.nombre}: {cliente.total_pedidos} pedidos, ${cliente.total_gastado:,.0f}")
+    
+    db.session.commit()
+    print(f"✅ Estadísticas calculadas para {len(clientes_actualizados)} clientes")
 
 def main():
     """Ejecutar todas las importaciones"""
@@ -343,6 +404,7 @@ def main():
             importar_recetas()
             importar_clientes()  # Importar clientes ANTES de pedidos
             importar_pedidos()
+            vincular_pedidos_a_clientes()  # Vincular y calcular estadísticas
             
             print("\n" + "=" * 60)
             print("✨ ¡IMPORTACIÓN COMPLETADA EXITOSAMENTE! ✨")

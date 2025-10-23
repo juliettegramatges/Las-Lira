@@ -212,21 +212,46 @@ def crear_pedidos():
     
     # Datos demo de pedidos SINCRONIZADOS con clientes existentes
     pedidos = [
-        # María González (CLI001, +56912345678) - Cliente Fiel - 8 pedidos
+        # María González (CLI001, +56912345678) - Cliente Fiel - 8 pedidos = $280.000
         ["PED001", "2025-10-20 09:30", "2025-10-21 14:00", "LUNES", "Shopify", "#SH1234", 
          "María González", "+56912345678", "Pasión Roja", "Sin cambios", 
-         35000, 7000, "Ana González", "Feliz cumpleaños hermana", "Con cariño, María",
+         33000, 7000, "Ana González", "Feliz cumpleaños hermana", "Con cariño, María",
          "Av. Apoquindo 1234, Las Condes", "Las Condes", "Cumpleaños", "Despachados", "Pagado", "Normal", "BOLETA 11248 TR. 21/10/25", ""],
         
         ["PED002", "2025-09-15 10:00", "2025-09-16 15:00", "LUNES", "WhatsApp", "", 
          "María González", "+56912345678", "Rosas Rojas Premium", "", 
-         38000, 7000, "Laura González", "Te quiero mucho mamá", "María",
+         29000, 7000, "Laura González", "Te quiero mucho mamá", "María",
          "Av. Apoquindo 1234, Las Condes", "Las Condes", "Día de la Madre", "Despachados", "Pagado", "Normal", "", ""],
         
         ["PED003", "2025-08-20 14:30", "2025-08-21 11:00", "MARTES", "Shopify", "#SH1100", 
          "María González", "+56912345678", "Elegancia Rosa", "", 
-         32000, 7000, "Carlos González", "Feliz aniversario", "Tu esposa",
+         28000, 7000, "Carlos González", "Feliz aniversario", "Tu esposa",
          "Av. Apoquindo 1234, Las Condes", "Las Condes", "Aniversario", "Archivado", "Pagado", "Normal", "", ""],
+        
+        ["PED016", "2025-07-10 11:00", "2025-07-11 15:00", "JUEVES", "WhatsApp", "", 
+         "María González", "+56912345678", "Rosas Rojas Clásicas", "Flores favoritas", 
+         28000, 7000, "Patricia González", "Te extraño", "María",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Sin motivo", "Archivado", "Pagado", "Normal", "", ""],
+        
+        ["PED017", "2025-06-05 09:30", "2025-06-06 10:00", "MIERCOLES", "Shopify", "#SH1050", 
+         "María González", "+56912345678", "Jardín de Rosas", "", 
+         28000, 7000, "Elena González", "Felicidades mamá", "Tu hija",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Día de la Madre", "Archivado", "Pagado", "Normal", "", ""],
+        
+        ["PED018", "2025-05-15 14:00", "2025-05-16 11:00", "JUEVES", "WhatsApp", "", 
+         "María González", "+56912345678", "Bouquet Romántico", "Con tarjeta", 
+         25000, 7000, "Roberto González", "Te amo", "María",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "San Valentín", "Archivado", "Pagado", "Normal", "", ""],
+        
+        ["PED019", "2025-04-20 10:30", "2025-04-21 14:00", "SABADO", "Shopify", "#SH1020", 
+         "María González", "+56912345678", "Rosas Premium Mix", "", 
+         28000, 7000, "Sofía González", "Feliz cumpleaños", "María",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Cumpleaños", "Archivado", "Pagado", "Normal", "", ""],
+        
+        ["PED020", "2025-03-12 16:00", "2025-03-13 09:00", "MIERCOLES", "WhatsApp", "", 
+         "María González", "+56912345678", "Arreglo Elegante", "Rosas rojas grandes", 
+         25000, 7000, "Andrés González", "Gracias por todo", "María",
+         "Av. Apoquindo 1234, Las Condes", "Las Condes", "Agradecimiento", "Archivado", "Pagado", "Normal", "", ""],
         
         # Juan Pérez (CLI002, +56987654321) - Cliente VIP - 15 pedidos (mostramos 3)
         ["PED004", "2025-10-22 14:20", "2025-10-23 11:00", "MIERCOLES", "Shopify", "#SH1236", 
