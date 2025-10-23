@@ -35,6 +35,7 @@ function PedidosPage() {
     detalles_adicionales: '',
     precio_ramo: '',
     precio_envio: '',
+    lleva_mensaje: false,
     destinatario: '',
     mensaje: '',
     firma: '',
@@ -263,6 +264,7 @@ function PedidosPage() {
           detalles_adicionales: '',
           precio_ramo: '',
           precio_envio: '',
+          lleva_mensaje: false,
           destinatario: '',
           mensaje: '',
           firma: '',
@@ -385,6 +387,9 @@ function PedidosPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Motivo
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Mensaje
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
@@ -445,6 +450,17 @@ function PedidosPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-700">{pedido.motivo || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {pedido.mensaje || pedido.destinatario || pedido.firma ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          💌 Sí
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          ✗ No
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoColor[pedido.estado]}`}>
@@ -1033,10 +1049,36 @@ function PedidosPage() {
                 
                 {/* Mensaje y Destinatario */}
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
-                    Mensaje y Destinatario
-                  </h3>
-                  <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase">
+                      💌 Tarjeta con Mensaje
+                    </h3>
+                    <label className="flex items-center cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={formData.lleva_mensaje}
+                          onChange={(e) => setFormData({...formData, lleva_mensaje: e.target.checked})}
+                          className="sr-only"
+                        />
+                        <div className={`block w-14 h-8 rounded-full transition ${
+                          formData.lleva_mensaje ? 'bg-green-500' : 'bg-gray-300'
+                        }`}></div>
+                        <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition ${
+                          formData.lleva_mensaje ? 'transform translate-x-6' : ''
+                        }`}></div>
+                      </div>
+                      <span className={`ml-3 text-sm font-medium ${
+                        formData.lleva_mensaje ? 'text-green-700' : 'text-gray-500'
+                      }`}>
+                        {formData.lleva_mensaje ? '✓ Lleva mensaje' : '✗ Sin mensaje'}
+                      </span>
+                    </label>
+                  </div>
+                  
+                  <div className={`space-y-4 transition-all ${
+                    !formData.lleva_mensaje ? 'opacity-30 pointer-events-none blur-sm' : ''
+                  }`}>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Para (Destinatario)
@@ -1047,6 +1089,7 @@ function PedidosPage() {
                         onChange={(e) => setFormData({...formData, destinatario: e.target.value})}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="Ana López"
+                        disabled={!formData.lleva_mensaje}
                       />
                     </div>
                     <div>
@@ -1059,6 +1102,7 @@ function PedidosPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         rows="3"
                         placeholder="Feliz cumpleaños! Que tengas un día maravilloso..."
+                        disabled={!formData.lleva_mensaje}
                       />
                     </div>
                     <div>
@@ -1071,9 +1115,16 @@ function PedidosPage() {
                         onChange={(e) => setFormData({...formData, firma: e.target.value})}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="Con cariño, Juan"
+                        disabled={!formData.lleva_mensaje}
                       />
                     </div>
                   </div>
+                  
+                  {!formData.lleva_mensaje && (
+                    <p className="text-xs text-gray-500 italic mt-2 text-center">
+                      ℹ️ Activa el interruptor para agregar un mensaje personalizado
+                    </p>
+                  )}
                 </div>
                 
                 {/* Entrega */}
