@@ -147,7 +147,7 @@ def crear_pedido():
             comuna=data.get('comuna'),
             motivo=data.get('motivo'),
             plazo_pago_dias=plazo_pago,
-            fecha_entrega=datetime.fromisoformat(data['fecha_entrega'])
+            fecha_entrega=datetime.fromisoformat(data['fecha_entrega'].replace('Z', '+00:00'))
         )
         
         db.session.add(pedido)
