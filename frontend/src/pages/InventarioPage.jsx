@@ -130,11 +130,20 @@ function InventarioPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Color
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Stock Total
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-blue-600 uppercase tracking-wider">
+                  En Uso
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-purple-600 uppercase tracking-wider">
+                  En Evento
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-green-600 uppercase tracking-wider">
+                  Disponible
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Costo Unitario
+                  Costo Unit.
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Bodega
@@ -143,7 +152,7 @@ function InventarioPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {flores.map((flor) => (
-                <tr key={flor.id} className={flor.cantidad_stock < 20 ? 'bg-yellow-50' : ''}>
+                <tr key={flor.id} className={flor.cantidad_disponible < 20 ? 'bg-yellow-50' : ''}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {flor.id}
                   </td>
@@ -159,9 +168,18 @@ function InventarioPage() {
                       {flor.color}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {flor.cantidad_stock}
-                    {flor.cantidad_stock < 20 && (
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-700 font-semibold">
+                    {flor.cantidad_en_uso || 0}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-purple-700 font-semibold">
+                    {flor.cantidad_en_evento || 0}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-green-700 font-bold">
+                    {flor.cantidad_disponible}
+                    {flor.cantidad_disponible < 20 && (
                       <AlertCircle className="inline h-4 w-4 ml-2 text-yellow-600" />
                     )}
                   </td>
@@ -191,8 +209,17 @@ function InventarioPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tamaño
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Stock Total
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-blue-600 uppercase tracking-wider">
+                  En Uso
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-purple-600 uppercase tracking-wider">
+                  En Evento
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-green-600 uppercase tracking-wider">
+                  Disponible
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Costo
@@ -201,7 +228,7 @@ function InventarioPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {contenedores.map((contenedor) => (
-                <tr key={contenedor.id} className={contenedor.stock < 5 ? 'bg-yellow-50' : ''}>
+                <tr key={contenedor.id} className={contenedor.cantidad_disponible < 5 ? 'bg-yellow-50' : ''}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {contenedor.id}
                   </td>
@@ -214,9 +241,18 @@ function InventarioPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {contenedor.tamano}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {contenedor.stock}
-                    {contenedor.stock < 5 && (
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-700 font-semibold">
+                    {contenedor.cantidad_en_uso || 0}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-purple-700 font-semibold">
+                    {contenedor.cantidad_en_evento || 0}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-green-700 font-bold">
+                    {contenedor.cantidad_disponible}
+                    {contenedor.cantidad_disponible < 5 && (
                       <AlertCircle className="inline h-4 w-4 ml-2 text-yellow-600" />
                     )}
                   </td>
