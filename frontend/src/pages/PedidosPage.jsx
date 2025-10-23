@@ -768,6 +768,10 @@ function PedidosPage() {
                             setMostrarSugerencias(true)
                           }
                         }}
+                        onBlur={() => {
+                          // Delay para permitir que el click en el dropdown se procese primero
+                          setTimeout(() => setMostrarSugerencias(false), 200)
+                        }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Escribe el nombre para buscar..."
                         autoComplete="off"
@@ -775,11 +779,14 @@ function PedidosPage() {
                       
                       {/* Dropdown de sugerencias */}
                       {mostrarSugerencias && sugerenciasClientes.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                        <div 
+                          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {sugerenciasClientes.map((cliente) => (
                             <div
                               key={cliente.id}
-                              onClick={(e) => {
+                              onMouseDown={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 seleccionarCliente(cliente)
