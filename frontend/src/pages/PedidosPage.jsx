@@ -565,15 +565,15 @@ function PedidosPage() {
       {/* Modal de Formulario de Nuevo Pedido */}
       {mostrarFormulario && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setMostrarFormulario(false)}
         >
           <div 
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8"
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+            {/* Header - Fijo */}
+            <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
               <h2 className="text-2xl font-bold text-gray-900">Nuevo Pedido</h2>
               <button 
                 onClick={() => setMostrarFormulario(false)}
@@ -583,8 +583,8 @@ function PedidosPage() {
               </button>
             </div>
             
-            {/* Formulario */}
-            <form onSubmit={handleSubmitPedido} className="p-6">
+            {/* Formulario - Con scroll */}
+            <form id="form-nuevo-pedido" onSubmit={handleSubmitPedido} className="flex-1 overflow-y-auto p-6">
               <div className="space-y-6">
                 {/* Canal */}
                 <div>
@@ -909,26 +909,27 @@ function PedidosPage() {
                   </select>
                 </div>
               </div>
-              
-              {/* Botones */}
-              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setMostrarFormulario(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  disabled={loadingFormulario}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                  disabled={loadingFormulario}
-                >
-                  {loadingFormulario ? 'Creando...' : 'Crear Pedido'}
-                </button>
-              </div>
             </form>
+            
+            {/* Botones - Fijos en la parte inferior */}
+            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+              <button
+                type="button"
+                onClick={() => setMostrarFormulario(false)}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                disabled={loadingFormulario}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="form-nuevo-pedido"
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                disabled={loadingFormulario}
+              >
+                {loadingFormulario ? 'Creando...' : 'Crear Pedido'}
+              </button>
+            </div>
           </div>
         </div>
       )}
