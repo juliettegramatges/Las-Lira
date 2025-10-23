@@ -9,6 +9,7 @@ const API_URL = 'http://localhost:8000/api'
 function PedidosPage() {
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroCanal, setFiltroCanal] = useState('')
   const [pedidoDetalle, setPedidoDetalle] = useState(null)
@@ -442,6 +443,44 @@ function PedidosPage() {
     }
   }
   
+  // Filtrar pedidos por búsqueda
+  const pedidosFiltrados = useMemo(() => {
+    if (!busqueda.trim()) return pedidos
+    
+    const termino = busqueda.toLowerCase().trim()
+    
+    return pedidos.filter(pedido => {
+      // Buscar por ID de pedido
+      if (pedido.id?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por número de Shopify
+      if (pedido.shopify_order_number?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por nombre de cliente
+      if (pedido.cliente_nombre?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por teléfono
+      if (pedido.cliente_telefono?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por tipo de arreglo
+      if (pedido.arreglo_pedido?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por comuna
+      if (pedido.comuna?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por dirección
+      if (pedido.direccion_entrega?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por destinatario
+      if (pedido.destinatario?.toLowerCase().includes(termino)) return true
+      
+      // Buscar por motivo
+      if (pedido.motivo?.toLowerCase().includes(termino)) return true
+      
+      return false
+    })
+  }, [pedidos, busqueda])
+  
   useEffect(() => {
     cargarPedidos()
     cargarDatosFormulario()
@@ -494,6 +533,33 @@ function PedidosPage() {
         </button>
       </div>
       
+      {/* Barra de búsqueda */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por ID, cliente, teléfono, arreglo, comuna, destinatario..."
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        {busqueda && (
+          <p className="mt-2 text-sm text-gray-600">
+            📊 Mostrando {pedidosFiltrados.length} de {pedidos.length} pedidos
+          </p>
+        )}
+      </div>
+
       {/* Filtros */}
       <div className="mb-6 flex gap-4">
         <select
@@ -502,13 +568,13 @@ function PedidosPage() {
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">Todos los estados</option>
-          <option value="Pedido">Pedido</option>
-          <option value="Pedidos Semana">Pedidos Semana</option>
-          <option value="Entregas para Mañana">Entregas para Mañana</option>
           <option value="Entregas de Hoy">Entregas de Hoy</option>
+          <option value="Entregas para Mañana">Entregas para Mañana</option>
           <option value="En Proceso">En Proceso</option>
           <option value="Listo para Despacho">Listo para Despacho</option>
           <option value="Despachados">Despachados</option>
+          <option value="Pedidos Semana">Pedidos Semana</option>
+          <option value="Eventos">Eventos</option>
           <option value="Archivado">Archivado</option>
           <option value="Cancelado">Cancelado</option>
         </select>
@@ -569,17 +635,28 @@ function PedidosPage() {
                     Cargando pedidos...
                   </td>
                 </tr>
-              ) : pedidos.length === 0 ? (
+              ) : pedidosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="px-6 py-8 text-center">
-                    <p className="text-gray-500 mb-2">No hay pedidos</p>
-                    <p className="text-xs text-gray-400">
-                      Ejecuta <code className="bg-gray-100 px-2 py-1 rounded">python3 importar_datos_demo.py</code> para cargar datos
-                    </p>
+                    {busqueda ? (
+                      <>
+                        <p className="text-gray-500 mb-2">🔍 No se encontraron pedidos</p>
+                        <p className="text-xs text-gray-400">
+                          No hay resultados para "{busqueda}"
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-500 mb-2">No hay pedidos</p>
+                        <p className="text-xs text-gray-400">
+                          Ejecuta <code className="bg-gray-100 px-2 py-1 rounded">python3 importar_datos_demo.py</code> para cargar datos
+                        </p>
+                      </>
+                    )}
                   </td>
                 </tr>
               ) : (
-                pedidos.map((pedido) => (
+                pedidosFiltrados.map((pedido) => (
                   <tr key={pedido.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{pedido.id}</div>
