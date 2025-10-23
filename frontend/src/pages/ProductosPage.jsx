@@ -340,10 +340,65 @@ function ProductosPage() {
   const porcentajeMargen = precioVenta > 0 ? ((margenActual / precioVenta) * 100).toFixed(1) : 0
   
   const handleGuardarReceta = async () => {
-    if (!productoDetalle || !configuracion) return
+    if (!productoDetalle || !coloresEditables) return
     
-    // TODO: Implementar endpoint para guardar receta
-    alert('⚠️ Función de guardar receta en desarrollo')
+    try {
+      setGuardandoReceta(true)
+      
+      // Preparar datos para enviar
+      const coloresParaGuardar = coloresEditables.map(color => {
+        const floresColor = simulacion.flores[color.id] || []
+        
+        // Obtener las flores seleccionadas con su info
+        const floresConInfo = floresColor
+          .filter(f => f.florId) // Solo las que tienen flor seleccionada
+          .map(f => ({
+            flor_id: f.florId,
+            es_predeterminada: false // Por defecto ninguna es predeterminada
+          }))
+        
+        // Marcar la primera como predeterminada si hay flores
+        if (floresConInfo.length > 0) {
+          floresConInfo[0].es_predeterminada = true
+        }
+        
+        return {
+          id: color.id,
+          nombre_color: color.nombre_color,
+          cantidad_flores_sugerida: color.cantidad_flores_sugerida,
+          flores: floresConInfo
+        }
+      })
+      
+      const payload = {
+        colores: coloresParaGuardar,
+        precio_venta: precioVenta
+      }
+      
+      const response = await axios.post(
+        `${API_URL}/productos/${productoDetalle.id}/guardar-receta-completa`,
+        payload
+      )
+      
+      if (response.data.success) {
+        alert(`✅ ${response.data.message}\n\n` +
+              `🎨 Colores actualizados: ${response.data.data.colores_actualizados}\n` +
+              `💰 Precio de venta: $${response.data.data.precio_venta.toLocaleString('es-CL')}`)
+        
+        // Recargar la configuración
+        await cargarConfiguracionProducto()
+        
+        // Recargar productos para actualizar la lista
+        await cargarProductos()
+      } else {
+        alert(`❌ Error: ${response.data.error}`)
+      }
+    } catch (error) {
+      console.error('Error al guardar receta:', error)
+      alert(`❌ Error al guardar receta:\n${error.response?.data?.error || error.message}`)
+    } finally {
+      setGuardandoReceta(false)
+    }
   }
   
   useEffect(() => {

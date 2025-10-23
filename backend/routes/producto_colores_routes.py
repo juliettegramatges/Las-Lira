@@ -314,3 +314,150 @@ def obtener_configuracion_completa(producto_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@bp.route('/<producto_id>/guardar-receta-completa', methods=['POST'])
+def guardar_receta_completa(producto_id):
+    """
+    Guarda la configuración completa del recetario desde el simulador.
+    Actualiza colores, flores asociadas, flores predeterminadas y precio de venta.
+    
+    Body esperado:
+    {
+        "colores": [
+            {
+                "id": "color-123" o "nuevo-timestamp",
+                "nombre_color": "Rojo",
+                "cantidad_flores_sugerida": 12,
+                "flores": [
+                    {
+                        "flor_id": "FL001",
+                        "es_predeterminada": true
+                    }
+                ]
+            }
+        ],
+        "precio_venta": 25000
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Validar producto existe
+        producto = Producto.query.get(producto_id)
+        if not producto:
+            return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+        
+        colores_nuevos = data.get('colores', [])
+        precio_venta = data.get('precio_venta')
+        
+        # Validar que haya al menos un color
+        if not colores_nuevos or len(colores_nuevos) == 0:
+            return jsonify({'success': False, 'error': 'Debe haber al menos un color'}), 400
+        
+        # ===== PASO 1: Actualizar precio de venta =====
+        if precio_venta is not None:
+            producto.precio_venta = precio_venta
+        
+        # ===== PASO 2: Obtener colores existentes =====
+        colores_existentes = ProductoColor.query.filter_by(
+            producto_id=producto_id,
+            activo=True
+        ).all()
+        
+        # Mapear por ID para fácil acceso
+        colores_existentes_map = {str(c.id): c for c in colores_existentes}
+        
+        # IDs de colores en la nueva configuración
+        colores_nuevos_ids = set()
+        
+        # ===== PASO 3: Crear/actualizar colores =====
+        orden = 0
+        for color_data in colores_nuevos:
+            color_id = str(color_data.get('id', ''))
+            es_nuevo = color_id.startswith('nuevo-')
+            
+            if es_nuevo:
+                # Crear nuevo color
+                nuevo_color = ProductoColor(
+                    producto_id=producto_id,
+                    nombre_color=color_data.get('nombre_color', 'Sin nombre'),
+                    cantidad_flores_sugerida=color_data.get('cantidad_flores_sugerida', 12),
+                    orden=orden
+                )
+                db.session.add(nuevo_color)
+                db.session.flush()  # Para obtener el ID
+                
+                color_obj = nuevo_color
+                color_id_real = nuevo_color.id
+            else:
+                # Actualizar color existente
+                color_obj = colores_existentes_map.get(color_id)
+                if color_obj:
+                    color_obj.nombre_color = color_data.get('nombre_color', color_obj.nombre_color)
+                    color_obj.cantidad_flores_sugerida = color_data.get('cantidad_flores_sugerida', color_obj.cantidad_flores_sugerida)
+                    color_obj.orden = orden
+                    color_id_real = color_obj.id
+                else:
+                    continue  # Color no encontrado, saltar
+            
+            colores_nuevos_ids.add(str(color_id_real))
+            
+            # ===== PASO 4: Actualizar flores del color =====
+            flores_data = color_data.get('flores', [])
+            
+            # Desactivar todas las flores actuales del color
+            ProductoColorFlor.query.filter_by(
+                producto_color_id=color_id_real
+            ).update({'activo': False, 'es_predeterminada': False})
+            
+            # Agregar/reactivar flores
+            for flor_data in flores_data:
+                flor_id = flor_data.get('flor_id')
+                es_predeterminada = flor_data.get('es_predeterminada', False)
+                
+                # Buscar si ya existe esta asociación
+                color_flor_existente = ProductoColorFlor.query.filter_by(
+                    producto_color_id=color_id_real,
+                    flor_id=flor_id
+                ).first()
+                
+                if color_flor_existente:
+                    # Reactivar
+                    color_flor_existente.activo = True
+                    color_flor_existente.es_predeterminada = es_predeterminada
+                else:
+                    # Crear nueva
+                    nueva_color_flor = ProductoColorFlor(
+                        producto_color_id=color_id_real,
+                        flor_id=flor_id,
+                        es_predeterminada=es_predeterminada
+                    )
+                    db.session.add(nueva_color_flor)
+            
+            orden += 1
+        
+        # ===== PASO 5: Desactivar colores que ya no están =====
+        for color_id_existente, color_obj in colores_existentes_map.items():
+            if str(color_obj.id) not in colores_nuevos_ids:
+                color_obj.activo = False
+        
+        # ===== COMMIT =====
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Receta de {producto.nombre} guardada exitosamente',
+            'data': {
+                'producto_id': producto_id,
+                'colores_actualizados': len(colores_nuevos),
+                'precio_venta': float(producto.precio_venta) if producto.precio_venta else 0
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al guardar receta: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Error al guardar: {str(e)}'}), 500
+
