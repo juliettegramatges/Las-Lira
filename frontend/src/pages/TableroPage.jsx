@@ -27,12 +27,14 @@ function TableroPage() {
     'Despachados'
   ]
   
-  const cargarTablero = async () => {
+  const cargarTablero = async (autoClasificar = true) => {
     try {
       setLoading(true)
       
-      // 🚀 PASO 1: Actualizar automáticamente estados según fecha
-      await pedidosAPI.actualizarEstadosPorFecha()
+      // 🚀 PASO 1: Actualizar automáticamente estados según fecha (solo si autoClasificar=true)
+      if (autoClasificar) {
+        await pedidosAPI.actualizarEstadosPorFecha()
+      }
       
       // 📊 PASO 2: Cargar tablero con estados actualizados
       const response = await pedidosAPI.obtenerTablero()
@@ -48,13 +50,14 @@ function TableroPage() {
   }
   
   useEffect(() => {
-    cargarTablero()
+    cargarTablero(true) // Auto-clasificar solo al cargar inicialmente
   }, [])
   
   const moverPedido = async (pedidoId, nuevoEstado) => {
     try {
       await pedidosAPI.actualizarEstado(pedidoId, nuevoEstado)
-      await cargarTablero()
+      // NO auto-clasificar después de mover manualmente, respetar la decisión del usuario
+      await cargarTablero(false)
     } catch (err) {
       console.error('Error al mover pedido:', err)
       alert('Error al actualizar el estado del pedido')
