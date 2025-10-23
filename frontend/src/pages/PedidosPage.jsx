@@ -82,11 +82,11 @@ function PedidosPage() {
     }
   }
   
-  const handleComunaChange = (comuna) => {
-    const comunaData = comunas.find(c => c.nombre === comuna)
+  const handleComunaChange = (comunaNombre) => {
+    const comunaData = comunas.find(c => c.comuna === comunaNombre)
     setFormData(prev => ({
       ...prev,
-      comuna,
+      comuna: comunaNombre,
       precio_envio: comunaData?.precio || ''
     }))
   }
@@ -1107,8 +1107,8 @@ function PedidosPage() {
                         >
                           <option value="">-- Seleccionar comuna --</option>
                           {comunas.map(com => (
-                            <option key={com.nombre} value={com.nombre}>
-                              {com.nombre} - ${com.precio.toLocaleString('es-CL')}
+                            <option key={com.comuna} value={com.comuna}>
+                              {com.comuna} - ${com.precio.toLocaleString('es-CL')}
                             </option>
                           ))}
                         </select>
