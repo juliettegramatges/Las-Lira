@@ -243,7 +243,12 @@ function SelectorInsumosColores({ productoId, onInsumosChange, onCostoChange }) 
                 </select>
                 {seleccion[color.id]?.flor && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Stock disponible: {seleccion[color.id].flor.flor_stock} {seleccion[color.id].flor.flor_unidad}
+                    📦 Disponible: <span className="font-semibold">{seleccion[color.id].flor.flor_disponible || seleccion[color.id].flor.flor_stock}</span> {seleccion[color.id].flor.flor_unidad}
+                    {seleccion[color.id].flor.flor_en_uso > 0 && (
+                      <span className="text-amber-600 ml-2">
+                        ({seleccion[color.id].flor.flor_en_uso} en uso)
+                      </span>
+                    )}
                   </p>
                 )}
               </div>

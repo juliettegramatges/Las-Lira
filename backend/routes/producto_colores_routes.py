@@ -263,7 +263,7 @@ def obtener_configuracion_completa(producto_id):
                 flor_info = {
                     **cf_dict,
                     'cantidad_necesaria': color.cantidad_flores_sugerida,
-                    'hay_stock_suficiente': cf_dict['flor_stock'] >= color.cantidad_flores_sugerida,
+                    'hay_stock_suficiente': cf_dict['flor_disponible'] >= color.cantidad_flores_sugerida,
                     'costo_color': float(cf_dict['flor_costo']) * color.cantidad_flores_sugerida
                 }
                 

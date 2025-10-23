@@ -192,6 +192,8 @@ def obtener_pedidos_taller():
 def guardar_insumos_detallados(pedido_id):
     """
     Guarda los insumos seleccionados por color para un pedido.
+    IMPORTANTE: También RESERVA el stock (marca como "En Uso").
+    
     Recibe la estructura:
     {
       "flores": [
@@ -219,9 +221,44 @@ def guardar_insumos_detallados(pedido_id):
         
         data = request.get_json()
         
-        # Guardar flores seleccionadas
+        # PASO 1: Validar que haya stock disponible
+        errores_validacion = []
+        
         if 'flores' in data and data['flores']:
             for flor_data in data['flores']:
+                flor = Flor.query.get(flor_data.get('flor_id'))
+                if not flor:
+                    errores_validacion.append(f"Flor {flor_data.get('flor_id')} no encontrada")
+                elif flor.cantidad_disponible < flor_data.get('cantidad'):
+                    errores_validacion.append(
+                        f"{flor.tipo} {flor.color}: Solo hay {flor.cantidad_disponible} disponibles "
+                        f"({flor.cantidad_stock} en stock, {flor.cantidad_en_uso} en uso), "
+                        f"se necesitan {flor_data.get('cantidad')}"
+                    )
+        
+        if 'contenedor' in data and data['contenedor']:
+            cont_data = data['contenedor']
+            contenedor = Contenedor.query.get(cont_data.get('contenedor_id'))
+            if not contenedor:
+                errores_validacion.append(f"Contenedor {cont_data.get('contenedor_id')} no encontrado")
+            elif contenedor.cantidad_disponible < cont_data.get('cantidad', 1):
+                errores_validacion.append(
+                    f"{contenedor.tipo} {contenedor.material}: Solo hay {contenedor.cantidad_disponible} disponibles "
+                    f"({contenedor.stock} en stock, {contenedor.cantidad_en_uso} en uso), "
+                    f"se necesitan {cont_data.get('cantidad', 1)}"
+                )
+        
+        if errores_validacion:
+            return jsonify({
+                'success': False,
+                'error': 'Stock insuficiente',
+                'detalles': errores_validacion
+            }), 400
+        
+        # PASO 2: Guardar flores seleccionadas Y RESERVAR STOCK
+        if 'flores' in data and data['flores']:
+            for flor_data in data['flores']:
+                # Guardar relación
                 flor_seleccionada = PedidoFlorSeleccionada(
                     pedido_id=pedido_id,
                     producto_color_id=flor_data.get('color_id'),
@@ -233,10 +270,16 @@ def guardar_insumos_detallados(pedido_id):
                     descontado_stock=False
                 )
                 db.session.add(flor_seleccionada)
+                
+                # RESERVAR: Incrementar cantidad_en_uso
+                flor = Flor.query.get(flor_data.get('flor_id'))
+                flor.cantidad_en_uso += flor_data.get('cantidad')
         
-        # Guardar contenedor seleccionado
+        # PASO 3: Guardar contenedor seleccionado Y RESERVAR STOCK
         if 'contenedor' in data and data['contenedor']:
             cont_data = data['contenedor']
+            
+            # Guardar relación
             contenedor_seleccionado = PedidoContenedorSeleccionado(
                 pedido_id=pedido_id,
                 contenedor_id=cont_data.get('contenedor_id'),
@@ -246,12 +289,16 @@ def guardar_insumos_detallados(pedido_id):
                 descontado_stock=False
             )
             db.session.add(contenedor_seleccionado)
+            
+            # RESERVAR: Incrementar cantidad_en_uso
+            contenedor = Contenedor.query.get(cont_data.get('contenedor_id'))
+            contenedor.cantidad_en_uso += cont_data.get('cantidad', 1)
         
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': 'Insumos guardados exitosamente'
+            'message': 'Insumos guardados y stock reservado ("En Uso") exitosamente'
         })
     
     except Exception as e:
@@ -289,7 +336,9 @@ def obtener_insumos_detallados(pedido_id):
                 'cantidad': flor_sel.cantidad,
                 'costo_unitario': float(flor_sel.costo_unitario),
                 'costo_total': float(flor_sel.costo_total),
-                'stock_disponible': flor.cantidad_stock if flor else 0,
+                'stock_total': flor.cantidad_stock if flor else 0,
+                'stock_en_uso': flor.cantidad_en_uso if flor else 0,
+                'stock_disponible': flor.cantidad_disponible if flor else 0,
                 'descontado_stock': flor_sel.descontado_stock,
                 'stock_suficiente': (flor.cantidad_stock if flor else 0) >= flor_sel.cantidad
             })
@@ -305,9 +354,11 @@ def obtener_insumos_detallados(pedido_id):
                 'cantidad': contenedor_seleccionado.cantidad,
                 'costo_unitario': float(contenedor_seleccionado.costo_unitario),
                 'costo_total': float(contenedor_seleccionado.costo_total),
-                'stock_disponible': contenedor.cantidad_stock if contenedor else 0,
+                'stock_total': contenedor.stock if contenedor else 0,
+                'stock_en_uso': contenedor.cantidad_en_uso if contenedor else 0,
+                'stock_disponible': contenedor.cantidad_disponible if contenedor else 0,
                 'descontado_stock': contenedor_seleccionado.descontado_stock,
-                'stock_suficiente': (contenedor.cantidad_stock if contenedor else 0) >= contenedor_seleccionado.cantidad
+                'stock_suficiente': (contenedor.stock if contenedor else 0) >= contenedor_seleccionado.cantidad
             }
         
         return jsonify({
@@ -327,53 +378,106 @@ def obtener_insumos_detallados(pedido_id):
 @bp.route('/<pedido_id>/confirmar-insumos-detallados', methods=['POST'])
 def confirmar_insumos_detallados(pedido_id):
     """
-    Confirma los insumos seleccionados y descuenta del stock.
-    También mueve el pedido a 'Listo para Despacho'.
+    Confirma los insumos utilizados en el Taller.
+    
+    NUEVA LÓGICA:
+    1. Descuenta del STOCK TOTAL lo que realmente se usó
+    2. Libera del "En Uso" lo que estaba reservado
+    3. Lo que no se usó vuelve automáticamente a "Disponible"
+    4. Mueve el pedido a 'Listo para Despacho'
+    
+    Puede recibir cantidades modificadas (ej: se reservaron 12, solo se usaron 10).
+    Si no se envían cantidades, usa las cantidades originales.
     """
     try:
         pedido = Pedido.query.get(pedido_id)
         if not pedido:
             return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
         
+        # Obtener datos de confirmación (pueden incluir cantidades modificadas)
+        data = request.get_json() or {}
+        cantidades_usadas = data.get('cantidades_usadas', {})  # { 'flores': {id: cantidad}, 'contenedor': cantidad }
+        
         # Obtener insumos
         flores_seleccionadas = PedidoFlorSeleccionada.query.filter_by(pedido_id=pedido_id).all()
         contenedor_seleccionado = PedidoContenedorSeleccionado.query.filter_by(pedido_id=pedido_id).first()
         
-        # Validar stock
+        # Validar que no se haya confirmado ya
+        if all(f.descontado_stock for f in flores_seleccionadas) and (not contenedor_seleccionado or contenedor_seleccionado.descontado_stock):
+            return jsonify({'success': False, 'error': 'Los insumos de este pedido ya fueron confirmados'}), 400
+        
+        # PROCESAR FLORES
         errores = []
         for flor_sel in flores_seleccionadas:
             if flor_sel.descontado_stock:
-                continue  # Ya fue descontado
-                
+                continue  # Ya fue procesada
+            
             flor = Flor.query.get(flor_sel.flor_id)
             if not flor:
                 errores.append(f"Flor {flor_sel.flor_id} no encontrada")
-            elif flor.cantidad_stock < flor_sel.cantidad:
-                errores.append(f"{flor.tipo} {flor.color}: Stock insuficiente ({flor.cantidad_stock} disponibles, se necesitan {flor_sel.cantidad})")
+                continue
+            
+            # Cantidad a usar (puede ser modificada en Taller)
+            cantidad_a_usar = cantidades_usadas.get('flores', {}).get(str(flor_sel.id), flor_sel.cantidad)
+            cantidad_reservada = flor_sel.cantidad
+            
+            # Validar que la cantidad a usar sea válida
+            if cantidad_a_usar < 0:
+                errores.append(f"{flor.tipo} {flor.color}: Cantidad inválida ({cantidad_a_usar})")
+                continue
+            
+            if cantidad_a_usar > cantidad_reservada:
+                errores.append(f"{flor.tipo} {flor.color}: No se puede usar más de lo reservado (reservado: {cantidad_reservada}, solicitado: {cantidad_a_usar})")
+                continue
+            
+            # Validar que haya stock suficiente para descontar
+            if flor.cantidad_stock < cantidad_a_usar:
+                errores.append(f"{flor.tipo} {flor.color}: Stock total insuficiente ({flor.cantidad_stock} en stock, se necesitan {cantidad_a_usar})")
+                continue
+            
+            # APLICAR CAMBIOS:
+            # 1. Descontar del stock total lo que se usó
+            flor.cantidad_stock -= cantidad_a_usar
+            
+            # 2. Liberar del "En Uso" lo que estaba reservado
+            flor.cantidad_en_uso -= cantidad_reservada
+            
+            # 3. Lo no usado (cantidad_reservada - cantidad_a_usar) vuelve automáticamente a disponible
+            
+            # 4. Marcar como procesado
+            flor_sel.descontado_stock = True
+            
+            # 5. Actualizar la cantidad real usada en el registro (para historial)
+            flor_sel.cantidad = cantidad_a_usar
+            flor_sel.costo_total = flor_sel.costo_unitario * cantidad_a_usar
         
+        # PROCESAR CONTENEDOR
         if contenedor_seleccionado and not contenedor_seleccionado.descontado_stock:
             contenedor = Contenedor.query.get(contenedor_seleccionado.contenedor_id)
             if not contenedor:
                 errores.append(f"Contenedor {contenedor_seleccionado.contenedor_id} no encontrado")
-            elif contenedor.cantidad_stock < contenedor_seleccionado.cantidad:
-                errores.append(f"{contenedor.tipo}: Stock insuficiente ({contenedor.cantidad_stock} disponibles, se necesitan {contenedor_seleccionado.cantidad})")
+            else:
+                # Cantidad a usar (normalmente 1, pero puede variar)
+                cantidad_a_usar = cantidades_usadas.get('contenedor', contenedor_seleccionado.cantidad)
+                cantidad_reservada = contenedor_seleccionado.cantidad
+                
+                # Validar
+                if cantidad_a_usar < 0:
+                    errores.append(f"{contenedor.tipo}: Cantidad inválida ({cantidad_a_usar})")
+                elif cantidad_a_usar > cantidad_reservada:
+                    errores.append(f"{contenedor.tipo}: No se puede usar más de lo reservado (reservado: {cantidad_reservada}, solicitado: {cantidad_a_usar})")
+                elif contenedor.stock < cantidad_a_usar:
+                    errores.append(f"{contenedor.tipo}: Stock total insuficiente ({contenedor.stock} en stock, se necesitan {cantidad_a_usar})")
+                else:
+                    # APLICAR CAMBIOS
+                    contenedor.stock -= cantidad_a_usar
+                    contenedor.cantidad_en_uso -= cantidad_reservada
+                    contenedor_seleccionado.descontado_stock = True
+                    contenedor_seleccionado.cantidad = cantidad_a_usar
+                    contenedor_seleccionado.costo_total = contenedor_seleccionado.costo_unitario * cantidad_a_usar
         
         if errores:
-            return jsonify({'success': False, 'error': '\n'.join(errores)}), 400
-        
-        # Descontar stock
-        for flor_sel in flores_seleccionadas:
-            if flor_sel.descontado_stock:
-                continue
-                
-            flor = Flor.query.get(flor_sel.flor_id)
-            flor.cantidad_stock -= flor_sel.cantidad
-            flor_sel.descontado_stock = True
-        
-        if contenedor_seleccionado and not contenedor_seleccionado.descontado_stock:
-            contenedor = Contenedor.query.get(contenedor_seleccionado.contenedor_id)
-            contenedor.cantidad_stock -= contenedor_seleccionado.cantidad
-            contenedor_seleccionado.descontado_stock = True
+            return jsonify({'success': False, 'error': 'Errores de validación', 'detalles': errores}), 400
         
         # Cambiar estado del pedido
         pedido.estado = 'Listo para Despacho'
@@ -382,7 +486,7 @@ def confirmar_insumos_detallados(pedido_id):
         
         return jsonify({
             'success': True,
-            'message': 'Insumos confirmados y stock descontado exitosamente'
+            'message': 'Insumos confirmados. Stock descontado y cantidades no usadas liberadas exitosamente.'
         })
     
     except Exception as e:

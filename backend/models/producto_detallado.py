@@ -67,6 +67,8 @@ class ProductoColorFlor(db.Model):
             'flor_nombre': f"{self.flor.tipo} {self.flor.color}" if self.flor else None,
             'flor_costo': float(self.flor.costo_unitario) if self.flor else 0,
             'flor_stock': self.flor.cantidad_stock if self.flor else 0,
+            'flor_en_uso': self.flor.cantidad_en_uso if self.flor else 0,
+            'flor_disponible': self.flor.cantidad_disponible if self.flor else 0,
             'flor_unidad': self.flor.unidad if self.flor else 'tallo',
             'es_predeterminada': self.es_predeterminada,
             'notas': self.notas,
