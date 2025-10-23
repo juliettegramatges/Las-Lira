@@ -41,11 +41,11 @@ def crear_excel_pedidos():
         cell.alignment = Alignment(horizontal='center', vertical='center')
     
     # Datos
-    pedidos = Pedido.query.order_by(Pedido.fecha_creacion.desc()).all()
+    pedidos = Pedido.query.order_by(Pedido.fecha_pedido.desc()).all()
     
     for row_num, pedido in enumerate(pedidos, 2):
         ws.cell(row=row_num, column=1, value=pedido.id)
-        ws.cell(row=row_num, column=2, value=pedido.fecha_creacion.strftime('%Y-%m-%d') if pedido.fecha_creacion else '')
+        ws.cell(row=row_num, column=2, value=pedido.fecha_pedido.strftime('%Y-%m-%d') if pedido.fecha_pedido else '')
         ws.cell(row=row_num, column=3, value=pedido.fecha_entrega.strftime('%Y-%m-%d') if pedido.fecha_entrega else '')
         ws.cell(row=row_num, column=4, value=pedido.canal or '')
         ws.cell(row=row_num, column=5, value=pedido.shopify_order_number or '')
@@ -62,7 +62,7 @@ def crear_excel_pedidos():
         ws.cell(row=row_num, column=16, value=pedido.comuna or '')
         ws.cell(row=row_num, column=17, value=pedido.motivo or '')
         ws.cell(row=row_num, column=18, value=pedido.estado or '')
-        ws.cell(row=row_num, column=19, value='Sí' if pedido.pagado else 'No')
+        ws.cell(row=row_num, column=19, value=pedido.estado_pago or '')
     
     # Ajustar anchos de columna
     for col in ws.columns:
