@@ -3,7 +3,7 @@ Rutas para gestión de productos y catálogo
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.producto import Producto, RecetaProducto
 from models.inventario import Flor, Contenedor
 
@@ -11,10 +11,14 @@ bp = Blueprint('productos', __name__)
 
 @bp.route('/', methods=['GET'])
 def listar_productos():
-    """Listar todos los productos"""
+    """Listar productos con paginación"""
     try:
         disponible_shopify = request.args.get('disponible_shopify', type=bool)
         activo = request.args.get('activo', type=bool, default=True)
+        
+        # Parámetros de paginación
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 100))
         
         query = Producto.query
         
@@ -23,12 +27,19 @@ def listar_productos():
         if activo is not None:
             query = query.filter_by(activo=activo)
         
-        productos = query.order_by(Producto.nombre).all()
+        # Contar total antes de paginar
+        total = query.count()
+        
+        # Aplicar paginación
+        productos = query.order_by(Producto.nombre).limit(limit).offset((page - 1) * limit).all()
         
         return jsonify({
             'success': True,
             'data': [p.to_dict() for p in productos],
-            'total': len(productos)
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -77,30 +88,38 @@ def obtener_receta_producto(producto_id):
             if receta.insumo_tipo == 'Flor':
                 flor = Flor.query.get(receta.insumo_id)
                 if flor:
-                    detalle['nombre'] = f"{flor.tipo} {flor.color}"
-                    detalle['costo_unitario'] = float(flor.costo_unitario)
-                    detalle['stock_disponible'] = flor.cantidad_stock
-                    detalle['unidad_stock'] = flor.unidad
-                    detalle['costo_total'] = float(flor.costo_unitario) * receta.cantidad
+                    # Usar el nombre si existe, sino construirlo desde tipo y color
+                    detalle['nombre'] = flor.nombre or f"{flor.tipo or ''} {flor.color or ''}".strip() or 'Flor sin nombre'
+                    detalle['costo_unitario'] = float(flor.costo_unitario) if flor.costo_unitario else 0
+                    detalle['stock_disponible'] = flor.cantidad_stock or 0
+                    detalle['unidad_stock'] = flor.unidad or 'Tallos'
+                    detalle['costo_total'] = float(flor.costo_unitario if flor.costo_unitario else 0) * receta.cantidad
                     detalle['foto_url'] = flor.foto_url
                     costo_total_insumos += detalle['costo_total']
-                    detalle['disponible'] = flor.cantidad_stock >= receta.cantidad
+                    detalle['disponible'] = (flor.cantidad_stock or 0) >= receta.cantidad
                 else:
                     detalle['nombre'] = 'Flor no encontrada'
                     detalle['disponible'] = False
+                    detalle['costo_unitario'] = 0
+                    detalle['costo_total'] = 0
+                    detalle['stock_disponible'] = 0
                     
             else:  # Contenedor
                 contenedor = Contenedor.query.get(receta.insumo_id)
                 if contenedor:
-                    detalle['nombre'] = f"{contenedor.tipo} {contenedor.material} {contenedor.forma}"
-                    detalle['costo_unitario'] = float(contenedor.costo)
-                    detalle['stock_disponible'] = contenedor.stock
-                    detalle['costo_total'] = float(contenedor.costo) * receta.cantidad
-                    detalle['foto_url'] = contenedor.foto_url
+                    # Usar el nombre si existe, sino el tipo
+                    detalle['nombre'] = contenedor.nombre or contenedor.tipo or 'Contenedor sin nombre'
+                    detalle['costo_unitario'] = float(contenedor.costo) if contenedor.costo else 0
+                    detalle['stock_disponible'] = contenedor.cantidad_stock or 0
+                    detalle['costo_total'] = float(contenedor.costo if contenedor.costo else 0) * receta.cantidad
+                    detalle['foto_url'] = contenedor.foto_url if hasattr(contenedor, 'foto_url') else None
                     costo_total_insumos += detalle['costo_total']
-                    detalle['disponible'] = contenedor.stock >= receta.cantidad
+                    detalle['disponible'] = (contenedor.cantidad_stock or 0) >= receta.cantidad
                 else:
                     detalle['nombre'] = 'Contenedor no encontrado'
+                    detalle['costo_unitario'] = 0
+                    detalle['costo_total'] = 0
+                    detalle['stock_disponible'] = 0
                     detalle['disponible'] = False
             
             recetas_detalladas.append(detalle)

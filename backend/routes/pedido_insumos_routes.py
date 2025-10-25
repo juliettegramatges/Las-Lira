@@ -2,7 +2,7 @@
 Rutas API para gestión de insumos de pedidos
 """
 from flask import Blueprint, jsonify, request
-from app import db
+from extensions import db
 from models.pedido import PedidoInsumo, Pedido
 from models.inventario import Flor, Contenedor
 from models.producto_detallado import PedidoFlorSeleccionada, PedidoContenedorSeleccionado

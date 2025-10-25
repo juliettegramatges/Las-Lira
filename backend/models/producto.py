@@ -3,7 +3,7 @@ Modelo de Producto
 """
 
 from datetime import datetime
-from app import db
+from extensions import db
 
 class Producto(db.Model):
     __tablename__ = 'productos'
@@ -11,11 +11,7 @@ class Producto(db.Model):
     id = db.Column(db.String(10), primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
-    tipo_arreglo = db.Column(
-        db.Enum('Con Florero', 'Con Macetero', 'Con Canasto', 'Sin Contenedor', 'Con Caja', 
-                name='tipo_arreglo_enum'),
-        nullable=False
-    )
+    tipo_arreglo = db.Column(db.String(50))
     # Nuevos campos detallados
     colores_asociados = db.Column(db.String(300))  # Ej: "Rojo, Verde oscuro, Burdeo"
     flores_asociadas = db.Column(db.String(300))  # Ej: "Rosa roja, Clavel rojo, Eucalipto"
@@ -63,7 +59,7 @@ class RecetaProducto(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.String(10), db.ForeignKey('productos.id'), nullable=False)
-    insumo_tipo = db.Column(db.Enum('Flor', 'Contenedor', name='insumo_tipo_enum'), nullable=False)
+    insumo_tipo = db.Column(db.String(20), nullable=False)
     insumo_id = db.Column(db.String(10), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     unidad = db.Column(db.String(20), nullable=False)
@@ -71,11 +67,30 @@ class RecetaProducto(db.Model):
     notas = db.Column(db.Text)
     
     def to_dict(self):
+        # Obtener el nombre del insumo
+        insumo_nombre = None
+        insumo_costo = 0
+        
+        if self.insumo_tipo == 'Flor':
+            from models.inventario import Flor
+            flor = Flor.query.get(self.insumo_id)
+            if flor:
+                insumo_nombre = flor.nombre or f"{flor.tipo or ''} {flor.color or ''}".strip()
+                insumo_costo = float(flor.costo_unitario) if flor.costo_unitario else 0
+        elif self.insumo_tipo == 'Contenedor':
+            from models.inventario import Contenedor
+            contenedor = Contenedor.query.get(self.insumo_id)
+            if contenedor:
+                insumo_nombre = contenedor.nombre or contenedor.tipo or ''
+                insumo_costo = float(contenedor.costo) if contenedor.costo else 0
+        
         return {
             'id': self.id,
             'producto_id': self.producto_id,
             'insumo_tipo': self.insumo_tipo,
             'insumo_id': self.insumo_id,
+            'insumo_nombre': insumo_nombre,
+            'insumo_costo': insumo_costo,
             'cantidad': self.cantidad,
             'unidad': self.unidad,
             'es_opcional': self.es_opcional,

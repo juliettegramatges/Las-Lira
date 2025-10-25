@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState } from 'react'
 import Layout from './components/common/Layout'
 import TableroPage from './pages/TableroPage'
-import InventarioPage from './pages/InventarioPage'
+import InsumosPage from './pages/InsumosPage'
 import ProductosPage from './pages/ProductosPage'
 import PedidosPage from './pages/PedidosPage'
 import ClientesPage from './pages/ClientesPage'
@@ -26,7 +26,7 @@ function App() {
           <Route path="clientes" element={<ClientesPage />} />
           <Route path="cobranza" element={<CobranzaPage />} />
           <Route path="rutas" element={<RutasPage />} />
-          <Route path="inventario" element={<InventarioPage />} />
+          <Route path="inventario" element={<InsumosPage />} />
           <Route path="productos" element={<ProductosPage />} />
           <Route path="simulador-costos" element={<SimuladorCostosPage />} />
         </Route>

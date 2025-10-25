@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Calendar, Users, DollarSign, Package, Plus, X, CheckCircle, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react'
 
-const API_URL = 'http://localhost:8000/api'
+const API_URL = 'http://localhost:5001/api'
 
 const ESTADOS_EVENTO = [
   'Cotización',

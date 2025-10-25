@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle, Package } from 'lucide-react'
 import axios from 'axios'
 
-const API_URL = 'http://localhost:8000/api'
+const API_URL = 'http://localhost:5001/api'
 
 /**
  * Componente para seleccionar insumos (flores) por color para un producto

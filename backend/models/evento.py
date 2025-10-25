@@ -2,7 +2,7 @@
 Modelos para gestión de eventos
 """
 
-from app import db
+from extensions import db
 from datetime import datetime
 from sqlalchemy import Numeric
 

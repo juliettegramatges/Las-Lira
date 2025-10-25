@@ -2,7 +2,7 @@
 Modelo de Cliente para gestión de base de datos de clientes
 """
 
-from app import db
+from extensions import db
 from datetime import datetime
 
 class Cliente(db.Model):
@@ -10,7 +10,7 @@ class Cliente(db.Model):
     
     id = db.Column(db.String(10), primary_key=True)
     nombre = db.Column(db.String(200), nullable=False)
-    telefono = db.Column(db.String(20), nullable=False, unique=True)
+    telefono = db.Column(db.String(20))  # Sin unique ni nullable - datos históricos tienen duplicados
     email = db.Column(db.String(200))
     
     # Tipo de cliente / Etiquetas

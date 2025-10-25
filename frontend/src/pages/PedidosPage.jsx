@@ -1,11 +1,28 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Search, Filter, Plus, Eye, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download } from 'lucide-react'
+import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import SelectorInsumosColores from '../components/Pedidos/SelectorInsumosColores'
 
-const API_URL = 'http://localhost:8000/api'
+const API_URL = 'http://localhost:5001/api'
+
+// Motivos comunes de pedidos
+const MOTIVOS_PEDIDO = [
+  'Cumpleaños',
+  'Aniversario',
+  'Difunto',
+  'Condolencias',
+  'Amor / Romántico',
+  'Celebración',
+  'Agradecimiento',
+  'Bodas',
+  'Baby Shower',
+  'Graduación',
+  'Recuperación',
+  'Sin motivo específico',
+  'Otro'
+]
 
 function PedidosPage() {
   const [pedidos, setPedidos] = useState([])
@@ -14,6 +31,17 @@ function PedidosPage() {
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroCanal, setFiltroCanal] = useState('')
   const [pedidoDetalle, setPedidoDetalle] = useState(null)
+  const [clienteDetalle, setClienteDetalle] = useState(null)
+  const [historialCliente, setHistorialCliente] = useState([])
+  const [loadingCliente, setLoadingCliente] = useState(false)
+  const [modoEdicion, setModoEdicion] = useState(false)
+  const [pedidoEditado, setPedidoEditado] = useState(null)
+  
+  // Estados de paginación
+  const [paginaActual, setPaginaActual] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
+  const [totalPedidos, setTotalPedidos] = useState(0)
+  const [limitePorPagina] = useState(100)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [productos, setProductos] = useState([])
   const [comunas, setComunas] = useState([])
@@ -67,16 +95,94 @@ function PedidosPage() {
       const params = new URLSearchParams()
       if (filtroEstado) params.append('estado', filtroEstado)
       if (filtroCanal) params.append('canal', filtroCanal)
+      params.append('page', paginaActual)
+      params.append('limit', limitePorPagina)
       
       const response = await axios.get(`${API_URL}/pedidos?${params}`)
       if (response.data.success) {
         setPedidos(response.data.data)
+        setTotalPedidos(response.data.total)
+        setTotalPaginas(response.data.total_pages)
       }
     } catch (err) {
       console.error('Error al cargar pedidos:', err)
       alert('❌ No se pudo conectar con el servidor')
     } finally {
       setLoading(false)
+    }
+  }
+  
+  const cargarInfoCliente = async (clienteId) => {
+    if (!clienteId) return
+    
+    try {
+      setLoadingCliente(true)
+      // Cargar información del cliente y su historial en paralelo
+      const [clienteRes, historialRes] = await Promise.all([
+        axios.get(`${API_URL}/clientes/${clienteId}`),
+        axios.get(`${API_URL}/clientes/${clienteId}/pedidos`)
+      ])
+      
+      if (clienteRes.data.success) {
+        setClienteDetalle(clienteRes.data.data)
+      }
+      
+      if (historialRes.data.success) {
+        setHistorialCliente(historialRes.data.data.pedidos || [])
+      }
+    } catch (error) {
+      console.error('Error al cargar información del cliente:', error)
+    } finally {
+      setLoadingCliente(false)
+    }
+  }
+  
+  const handleAbrirPedido = (pedido) => {
+    setPedidoDetalle(pedido)
+    setPedidoEditado({...pedido})
+    setModoEdicion(true) // Abrir directamente en modo edición
+    setClienteDetalle(null)
+    setHistorialCliente([])
+    
+    // Cargar información del cliente si tiene ID
+    if (pedido.cliente_id) {
+      cargarInfoCliente(pedido.cliente_id)
+    }
+  }
+  
+  const handleActivarEdicion = () => {
+    setModoEdicion(true)
+    setPedidoEditado({...pedidoDetalle})
+  }
+  
+  const handleCancelarEdicion = () => {
+    setModoEdicion(false)
+    setPedidoEditado({...pedidoDetalle})
+  }
+  
+  const handleCampoEdicion = (campo, valor) => {
+    setPedidoEditado(prev => ({
+      ...prev,
+      [campo]: valor
+    }))
+  }
+  
+  const handleGuardarEdicion = async () => {
+    try {
+      const response = await axios.put(`${API_URL}/pedidos/${pedidoDetalle.id}`, pedidoEditado)
+      
+      if (response.data.success) {
+        alert('✅ Pedido actualizado correctamente')
+        setPedidoDetalle(response.data.data)
+        setPedidoEditado(response.data.data)
+        setModoEdicion(false)
+        
+        // Recargar la lista de pedidos
+        cargarPedidos()
+      }
+    } catch (error) {
+      console.error('Error al guardar pedido:', error)
+      alert('❌ Error al guardar los cambios')
     }
   }
   
@@ -514,8 +620,11 @@ function PedidosPage() {
   
   useEffect(() => {
     cargarPedidos()
+  }, [filtroEstado, filtroCanal, paginaActual])
+  
+  useEffect(() => {
     cargarDatosFormulario()
-  }, [filtroEstado, filtroCanal])
+  }, [])
   
   const estadoColor = {
     'Pedido': 'bg-blue-100 text-blue-800',
@@ -552,7 +661,7 @@ function PedidosPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Pedidos</h1>
           <p className="mt-1 text-sm text-gray-600">
-            {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} en total
+            {totalPedidos.toLocaleString()} pedidos en total • Página {paginaActual} de {totalPaginas}
           </p>
         </div>
         <div className="flex gap-3">
@@ -606,7 +715,10 @@ function PedidosPage() {
       <div className="mb-6 flex gap-4">
         <select
           value={filtroEstado}
-          onChange={(e) => setFiltroEstado(e.target.value)}
+          onChange={(e) => {
+            setFiltroEstado(e.target.value)
+            setPaginaActual(1)
+          }}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">Todos los estados</option>
@@ -623,13 +735,58 @@ function PedidosPage() {
         
         <select
           value={filtroCanal}
-          onChange={(e) => setFiltroCanal(e.target.value)}
+          onChange={(e) => {
+            setFiltroCanal(e.target.value)
+            setPaginaActual(1)
+          }}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="">Todos los canales</option>
           <option value="Shopify">Shopify</option>
           <option value="WhatsApp">WhatsApp</option>
         </select>
+      </div>
+      
+      {/* Controles de Paginación */}
+      <div className="mb-4 flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
+        <div className="text-sm text-gray-700">
+          Mostrando <span className="font-medium">{((paginaActual - 1) * limitePorPagina) + 1}</span> a{' '}
+          <span className="font-medium">{Math.min(paginaActual * limitePorPagina, totalPedidos)}</span> de{' '}
+          <span className="font-medium">{totalPedidos.toLocaleString()}</span> pedidos
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPaginaActual(1)}
+            disabled={paginaActual === 1}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Primero
+          </button>
+          <button
+            onClick={() => setPaginaActual(prev => Math.max(1, prev - 1))}
+            disabled={paginaActual === 1}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Anterior
+          </button>
+          <span className="px-4 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white">
+            {paginaActual} / {totalPaginas}
+          </span>
+          <button
+            onClick={() => setPaginaActual(prev => Math.min(totalPaginas, prev + 1))}
+            disabled={paginaActual === totalPaginas}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Siguiente
+          </button>
+          <button
+            onClick={() => setPaginaActual(totalPaginas)}
+            disabled={paginaActual === totalPaginas}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Último
+          </button>
+        </div>
       </div>
       
       {/* Tabla de pedidos */}
@@ -665,21 +822,18 @@ function PedidosPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Entrega
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan="8" className="px-6 py-8 text-center text-sm text-gray-500">
                     Cargando pedidos...
                   </td>
                 </tr>
               ) : pedidosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="px-6 py-8 text-center">
+                  <td colSpan="8" className="px-6 py-8 text-center">
                     {busqueda ? (
                       <>
                         <p className="text-gray-500 mb-2">🔍 No se encontraron pedidos</p>
@@ -699,7 +853,11 @@ function PedidosPage() {
                 </tr>
               ) : (
                 pedidosFiltrados.map((pedido) => (
-                  <tr key={pedido.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={pedido.id} 
+                    onClick={() => handleAbrirPedido(pedido)}
+                    className="hover:bg-primary-50 cursor-pointer transition-colors border-b border-gray-200"
+                  >
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{pedido.id}</div>
                       <div className="text-sm text-gray-500">{pedido.cliente_nombre}</div>
@@ -783,15 +941,6 @@ function PedidosPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {pedido.fecha_entrega ? formatFecha(pedido.fecha_entrega) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => setPedidoDetalle(pedido)}
-                        className="text-primary-600 hover:text-primary-900 flex items-center gap-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Ver
-                      </button>
-                    </td>
                   </tr>
                 ))
               )}
@@ -807,20 +956,25 @@ function PedidosPage() {
           onClick={() => setPedidoDetalle(null)}
         >
           <div 
-            className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Pedido {pedidoDetalle.id}</h2>
-                <span className={`mt-1 px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoColor[pedidoDetalle.estado]}`}>
+            <div className="sticky top-0 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-5 flex items-center justify-between z-10 shadow-lg rounded-t-lg">
+              <div className="flex items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Pedido #{pedidoDetalle.id}</h2>
+                  <p className="text-sm text-primary-100 mt-1">
+                    {pedidoDetalle.numero_pedido ? `Nº ${pedidoDetalle.numero_pedido}` : 'Sin número de pedido'}
+                  </p>
+                </div>
+                <span className={`px-4 py-2 text-xs leading-5 font-bold rounded-full shadow-md ${estadoColor[pedidoDetalle.estado]}`}>
                   {pedidoDetalle.estado}
                 </span>
               </div>
               <button 
                 onClick={() => setPedidoDetalle(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-white hover:text-primary-100 transition-colors p-2 hover:bg-white/10 rounded-lg"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -828,174 +982,583 @@ function PedidosPage() {
             
             {/* Contenido */}
             <div className="p-6 space-y-6">
-              {/* Cliente */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3 flex items-center">
-                  <User className="h-4 w-4 mr-2" />
-                  Información del Cliente
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Nombre</p>
-                    <p className="text-sm font-medium text-gray-900">{pedidoDetalle.cliente_nombre}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Teléfono</p>
-                    <p className="text-sm font-medium text-gray-900">{pedidoDetalle.cliente_telefono}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Canal</p>
-                    <p className="text-sm font-medium text-gray-900">{pedidoDetalle.canal}</p>
-                  </div>
-                  {pedidoDetalle.shopify_order_number && (
-                    <div>
-                      <p className="text-xs text-gray-500">Nº Shopify</p>
-                      <p className="text-sm font-medium text-gray-900">{pedidoDetalle.shopify_order_number}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Arreglo */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3 flex items-center">
-                  <Package className="h-4 w-4 mr-2" />
-                  Detalles del Arreglo
-                </h3>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Arreglo Pedido</p>
-                    <p className="text-sm font-medium text-gray-900">{pedidoDetalle.arreglo_pedido || 'Sin especificar'}</p>
-                  </div>
-                  {pedidoDetalle.detalles_adicionales && (
-                    <div>
-                      <p className="text-xs text-gray-500">Detalles Adicionales</p>
-                      <p className="text-sm text-gray-700">{pedidoDetalle.detalles_adicionales}</p>
-                    </div>
-                  )}
-                  {pedidoDetalle.motivo && (
-                    <div>
-                      <p className="text-xs text-gray-500">Motivo</p>
-                      <p className="text-sm text-gray-700">{pedidoDetalle.motivo}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Destinatario y Mensaje */}
-              {(pedidoDetalle.destinatario || pedidoDetalle.mensaje) && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3 flex items-center">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Mensaje y Destinatario
-                  </h3>
-                  <div className="space-y-2">
-                    {pedidoDetalle.destinatario && (
-                      <div>
-                        <p className="text-xs text-gray-500">Para</p>
-                        <p className="text-sm font-medium text-gray-900">{pedidoDetalle.destinatario}</p>
+              {/* Grid de 2 columnas para organizar mejor */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Columna Izquierda: Producto y Arreglo */}
+                <div className="space-y-6">
+                  
+                  {/* Producto del Catálogo (si existe) */}
+                  {pedidoDetalle.producto_nombre && (
+                    <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-5 rounded-lg border-2 border-primary-200 shadow-sm">
+                      <h3 className="text-sm font-bold text-primary-800 uppercase mb-4 flex items-center">
+                        <ShoppingBag className="h-5 w-5 mr-2" />
+                        Producto del Catálogo
+                      </h3>
+                      
+                      {/* Imagen del producto si existe */}
+                      {pedidoDetalle.producto_imagen && (
+                        <div className="mb-4">
+                          <img 
+                            src={pedidoDetalle.producto_imagen} 
+                            alt={pedidoDetalle.producto_nombre}
+                            className="w-full h-48 object-cover rounded-lg shadow-md border border-primary-200"
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-primary-700 font-semibold uppercase mb-1">Nombre del Producto</p>
+                          <p className="text-base font-bold text-primary-900">{pedidoDetalle.producto_nombre}</p>
+                        </div>
+                        
+                        {pedidoDetalle.producto_id && (
+                          <div>
+                            <p className="text-xs text-primary-700 font-semibold uppercase mb-1">ID Producto</p>
+                            <p className="text-sm text-primary-800 font-mono">{pedidoDetalle.producto_id}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {pedidoDetalle.mensaje && (
+                    </div>
+                  )}
+                  
+                  {/* Arreglo Pedido */}
+                  <div className="bg-white border-2 border-gray-200 p-5 rounded-lg shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-4 flex items-center">
+                      <Package className="h-5 w-5 mr-2 text-gray-600" />
+                      Detalles del Arreglo
+                    </h3>
+                    <div className="space-y-3">
                       <div>
-                        <p className="text-xs text-gray-500">Mensaje</p>
-                        <p className="text-sm text-gray-700 italic">"{pedidoDetalle.mensaje}"</p>
+                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Arreglo Solicitado</p>
+                        {modoEdicion ? (
+                          <input
+                            type="text"
+                            value={pedidoEditado.arreglo_pedido || ''}
+                            onChange={(e) => handleCampoEdicion('arreglo_pedido', e.target.value)}
+                            className="w-full text-base font-medium text-gray-900 bg-white p-3 rounded border-2 border-primary-300 focus:border-primary-500 focus:outline-none"
+                          />
+                        ) : (
+                          <p className="text-base font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200">
+                            {pedidoDetalle.arreglo_pedido || 'Sin especificar'}
+                          </p>
+                        )}
                       </div>
-                    )}
-                    {pedidoDetalle.firma && (
+                      
                       <div>
-                        <p className="text-xs text-gray-500">Firma</p>
-                        <p className="text-sm text-gray-700">{pedidoDetalle.firma}</p>
+                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Detalles Adicionales</p>
+                        {modoEdicion ? (
+                          <textarea
+                            value={pedidoEditado.detalles_adicionales || ''}
+                            onChange={(e) => handleCampoEdicion('detalles_adicionales', e.target.value)}
+                            rows="3"
+                            className="w-full text-sm text-gray-700 bg-white p-3 rounded border-2 border-yellow-300 focus:border-yellow-500 focus:outline-none"
+                          />
+                        ) : pedidoDetalle.detalles_adicionales && (
+                          <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200">
+                            {pedidoDetalle.detalles_adicionales}
+                          </p>
+                        )}
                       </div>
-                    )}
+                      
+                      {pedidoDetalle.motivo && (
+                        <div>
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Motivo</p>
+                          <span className="inline-flex px-3 py-1.5 bg-pink-100 text-pink-800 rounded-full text-sm font-medium border border-pink-200">
+                            💐 {pedidoDetalle.motivo}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Mensaje y Destinatario */}
+                  {(pedidoDetalle.destinatario || pedidoDetalle.mensaje || pedidoDetalle.firma) && (
+                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-5 rounded-lg border-2 border-pink-200 shadow-sm">
+                      <h3 className="text-sm font-bold text-pink-800 uppercase mb-4 flex items-center">
+                        <MessageSquare className="h-5 w-5 mr-2" />
+                        Mensaje y Destinatario
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Para</p>
+                          {modoEdicion ? (
+                            <input
+                              type="text"
+                              value={pedidoEditado.destinatario || ''}
+                              onChange={(e) => handleCampoEdicion('destinatario', e.target.value)}
+                              placeholder="Nombre del destinatario"
+                              className="w-full text-base font-medium text-pink-900 bg-white p-2 rounded border-2 border-pink-300 focus:border-pink-500 focus:outline-none"
+                            />
+                          ) : pedidoDetalle.destinatario && (
+                            <p className="text-base font-medium text-pink-900 bg-white p-2 rounded border border-pink-200">
+                              {pedidoDetalle.destinatario}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Mensaje</p>
+                          {modoEdicion ? (
+                            <textarea
+                              value={pedidoEditado.mensaje || ''}
+                              onChange={(e) => handleCampoEdicion('mensaje', e.target.value)}
+                              placeholder="Mensaje de la tarjeta"
+                              rows="3"
+                              className="w-full text-sm text-pink-900 bg-white p-3 rounded border-2 border-pink-300 focus:border-pink-500 focus:outline-none"
+                            />
+                          ) : pedidoDetalle.mensaje && (
+                            <p className="text-sm text-pink-900 italic bg-white p-3 rounded border border-pink-200">
+                              "{pedidoDetalle.mensaje}"
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Firma</p>
+                          {modoEdicion ? (
+                            <input
+                              type="text"
+                              value={pedidoEditado.firma || ''}
+                              onChange={(e) => handleCampoEdicion('firma', e.target.value)}
+                              placeholder="Firma del mensaje"
+                              className="w-full text-sm text-pink-900 bg-white p-2 rounded border-2 border-pink-300 focus:border-pink-500 focus:outline-none"
+                            />
+                          ) : pedidoDetalle.firma && (
+                            <p className="text-sm text-pink-900 bg-white p-2 rounded border border-pink-200">
+                              {pedidoDetalle.firma}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              {/* Entrega */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3 flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Información de Entrega
-                </h3>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Dirección Completa</p>
-                    <p className="text-sm font-medium text-gray-900">{pedidoDetalle.direccion_entrega}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Comuna</p>
-                    <p className="text-sm font-medium text-gray-900">{pedidoDetalle.comuna || 'Sin especificar'}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div>
-                      <p className="text-xs text-gray-500">Fecha de Pedido</p>
-                      <p className="text-sm text-gray-700">{formatFecha(pedidoDetalle.fecha_pedido)}</p>
+                
+                {/* Columna Derecha: Cliente, Entrega y Pago */}
+                <div className="space-y-6">
+                  
+                  {/* Cliente */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-lg border-2 border-blue-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-blue-800 uppercase mb-4 flex items-center">
+                      <User className="h-5 w-5 mr-2" />
+                      Información del Cliente
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Nombre Completo</p>
+                        <p className="text-base font-bold text-blue-900">{pedidoDetalle.cliente_nombre}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
+                            <Phone className="h-3 w-3 mr-1" /> Teléfono
+                          </p>
+                          <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200">
+                            {pedidoDetalle.cliente_telefono}
+                          </p>
+                        </div>
+                        
+                        {pedidoDetalle.cliente_email && (
+                          <div>
+                            <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
+                              <Mail className="h-3 w-3 mr-1" /> Email
+                            </p>
+                            <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200 truncate">
+                              {pedidoDetalle.cliente_email}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Canal</p>
+                          <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold ${
+                            pedidoDetalle.canal === 'Shopify' ? 'bg-green-100 text-green-800 border border-green-300' : 
+                            'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          }`}>
+                            {pedidoDetalle.canal}
+                          </span>
+                        </div>
+                        
+                        {pedidoDetalle.cliente_tipo && (
+                          <div>
+                            <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Tipo Cliente</p>
+                            <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                              {pedidoDetalle.cliente_tipo}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {pedidoDetalle.shopify_order_number && (
+                        <div>
+                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Nº Orden Shopify</p>
+                          <p className="text-sm font-mono font-medium text-blue-900 bg-white p-2 rounded border border-blue-200">
+                            {pedidoDetalle.shopify_order_number}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Fecha de Entrega</p>
-                      <p className="text-sm font-medium text-gray-900">{formatFecha(pedidoDetalle.fecha_entrega)}</p>
+                  </div>
+                  
+                  {/* Entrega */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-lg border-2 border-green-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-green-800 uppercase mb-4 flex items-center">
+                      <MapPin className="h-5 w-5 mr-2" />
+                      Información de Entrega
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-green-700 font-semibold uppercase mb-1">Dirección Completa</p>
+                        {modoEdicion ? (
+                          <textarea
+                            value={pedidoEditado.direccion_entrega || ''}
+                            onChange={(e) => handleCampoEdicion('direccion_entrega', e.target.value)}
+                            rows="2"
+                            className="w-full text-sm font-medium text-green-900 bg-white p-3 rounded border-2 border-green-300 focus:border-green-500 focus:outline-none"
+                          />
+                        ) : (
+                          <p className="text-sm font-medium text-green-900 bg-white p-3 rounded border border-green-200">
+                            {pedidoDetalle.direccion_entrega}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-green-700 font-semibold uppercase mb-1">Comuna</p>
+                        {modoEdicion ? (
+                          <input
+                            type="text"
+                            value={pedidoEditado.comuna || ''}
+                            onChange={(e) => handleCampoEdicion('comuna', e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white text-green-800 rounded-full text-sm font-bold border-2 border-green-300 focus:border-green-500 focus:outline-none"
+                          />
+                        ) : pedidoDetalle.comuna && (
+                          <span className="inline-flex px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-bold border border-green-300">
+                            📍 {pedidoDetalle.comuna}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <p className="text-xs text-green-700 font-semibold uppercase mb-1 flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" /> Fecha Pedido
+                          </p>
+                          <p className="text-sm text-green-900 bg-white p-2 rounded border border-green-200">
+                            {formatFecha(pedidoDetalle.fecha_pedido)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-700 font-semibold uppercase mb-1 flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" /> Fecha Entrega
+                          </p>
+                          <p className="text-sm font-bold text-green-900 bg-green-100 p-2 rounded border-2 border-green-300">
+                            {formatFecha(pedidoDetalle.fecha_entrega)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {pedidoDetalle.dia_entrega && (
+                        <div>
+                          <p className="text-xs text-green-700 font-semibold uppercase mb-1">Día de Entrega</p>
+                          <span className="inline-flex px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-bold border border-blue-300">
+                            {pedidoDetalle.dia_entrega}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
+                  
+                  {/* Precios y Pago */}
+                  <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-5 rounded-lg border-2 border-amber-300 shadow-sm">
+                    <h3 className="text-sm font-bold text-amber-900 uppercase mb-4 flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2" />
+                      Información de Pago
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center bg-white p-3 rounded border border-amber-200">
+                        <span className="text-sm text-gray-700">Precio del Arreglo:</span>
+                        {modoEdicion ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-base font-bold text-gray-900">$</span>
+                            <input
+                              type="number"
+                              value={pedidoEditado.precio_ramo || 0}
+                              onChange={(e) => handleCampoEdicion('precio_ramo', parseInt(e.target.value) || 0)}
+                              className="w-32 text-base font-bold text-gray-900 bg-amber-50 p-2 rounded border-2 border-amber-300 focus:border-amber-500 focus:outline-none text-right"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-base font-bold text-gray-900">
+                            ${pedidoDetalle.precio_ramo?.toLocaleString('es-CL') || '0'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center bg-white p-3 rounded border border-amber-200">
+                        <span className="text-sm text-gray-700">Costo de Envío:</span>
+                        {modoEdicion ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-base font-bold text-gray-900">$</span>
+                            <input
+                              type="number"
+                              value={pedidoEditado.precio_envio || 0}
+                              onChange={(e) => handleCampoEdicion('precio_envio', parseInt(e.target.value) || 0)}
+                              className="w-32 text-base font-bold text-gray-900 bg-amber-50 p-2 rounded border-2 border-amber-300 focus:border-amber-500 focus:outline-none text-right"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-base font-bold text-gray-900">
+                            ${pedidoDetalle.precio_envio?.toLocaleString('es-CL') || '0'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center bg-gradient-to-r from-amber-200 to-yellow-200 p-4 rounded-lg border-2 border-amber-400 shadow-md">
+                        <span className="text-base font-bold text-amber-900">TOTAL:</span>
+                        <span className="text-2xl font-black text-amber-900">
+                          ${((pedidoEditado.precio_ramo || 0) + (pedidoEditado.precio_envio || 0)).toLocaleString('es-CL')}
+                        </span>
+                      </div>
+                      
+                      {/* Estado de Pago */}
+                      <div className="pt-3 border-t border-amber-300">
+                        <div className="grid grid-cols-2 gap-3">
+                          {pedidoDetalle.estado_pago && (
+                            <div>
+                              <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Estado Pago</p>
+                              <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold border-2 ${
+                                pedidoDetalle.estado_pago === 'Pagado' 
+                                  ? 'bg-green-100 text-green-800 border-green-300' 
+                                  : 'bg-red-100 text-red-800 border-red-300'
+                              }`}>
+                                {pedidoDetalle.estado_pago === 'Pagado' ? '✓ Pagado' : '⏳ Pendiente'}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {pedidoDetalle.metodo_pago && pedidoDetalle.metodo_pago !== 'Pendiente' && (
+                            <div>
+                              <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Método Pago</p>
+                              <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border-2 border-purple-300">
+                                {pedidoDetalle.metodo_pago}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {pedidoDetalle.documento_tributario && (
+                          <div className="mt-3">
+                            <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Documento</p>
+                            <span className="inline-flex px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-xs font-bold border-2 border-gray-300">
+                              📄 {pedidoDetalle.documento_tributario}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {pedidoDetalle.numero_documento && (
+                          <div className="mt-2">
+                            <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Nº Documento</p>
+                            <p className="text-sm font-mono font-bold text-amber-900 bg-white p-2 rounded border border-amber-200">
+                              {pedidoDetalle.numero_documento}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Etiquetas y Notas */}
+                  {(pedidoDetalle.tipo_pedido || pedidoDetalle.cobranza) && (
+                    <div className="bg-gray-50 p-5 rounded-lg border-2 border-gray-200 shadow-sm">
+                      <h3 className="text-sm font-bold text-gray-700 uppercase mb-3">Información Adicional</h3>
+                      <div className="space-y-3">
+                        {pedidoDetalle.tipo_pedido && (
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Tipo de Pedido</p>
+                            <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-bold border border-purple-300">
+                              {pedidoDetalle.tipo_pedido}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {pedidoDetalle.cobranza && (
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Notas de Cobranza</p>
+                            <p className="text-sm text-gray-700 bg-white p-3 rounded border border-gray-300">
+                              {pedidoDetalle.cobranza}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              
-              {/* Precios */}
-              <div className="bg-primary-50 p-4 rounded-lg border-2 border-primary-200">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3 flex items-center">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Desglose de Precios
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-700">Precio del Ramo:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      ${pedidoDetalle.precio_ramo?.toLocaleString('es-CL') || '0'}
-                    </span>
+            </div>
+            
+            {/* Información Completa del Cliente */}
+            {pedidoDetalle.cliente_id && (
+              <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 border-t-4 border-indigo-500">
+                <h2 className="text-xl font-bold text-indigo-900 mb-4 flex items-center">
+                  <User className="h-6 w-6 mr-2" />
+                  Perfil Completo del Cliente
+                </h2>
+                
+                {loadingCliente ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+                    <p className="text-sm text-indigo-600 mt-2">Cargando información del cliente...</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-700">Precio del Envío:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      ${pedidoDetalle.precio_envio?.toLocaleString('es-CL') || '0'}
-                    </span>
+                ) : clienteDetalle ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Estadísticas del Cliente */}
+                    <div className="bg-white p-5 rounded-lg shadow-md border-2 border-indigo-200">
+                      <h3 className="text-sm font-bold text-indigo-800 uppercase mb-4">
+                        📊 Estadísticas
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 bg-indigo-50 rounded">
+                          <span className="text-sm text-indigo-700 font-medium">Total de Pedidos:</span>
+                          <span className="text-lg font-bold text-indigo-900">{clienteDetalle.total_pedidos || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-purple-50 rounded">
+                          <span className="text-sm text-purple-700 font-medium">Total Gastado:</span>
+                          <span className="text-lg font-bold text-purple-900">
+                            ${(clienteDetalle.total_gastado || 0).toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        {clienteDetalle.total_pedidos > 0 && (
+                          <div className="flex justify-between items-center p-3 bg-pink-50 rounded">
+                            <span className="text-sm text-pink-700 font-medium">Ticket Promedio:</span>
+                            <span className="text-lg font-bold text-pink-900">
+                              ${Math.round((clienteDetalle.total_gastado || 0) / (clienteDetalle.total_pedidos || 1)).toLocaleString('es-CL')}
+                            </span>
+                          </div>
+                        )}
+                        {clienteDetalle.tipo_cliente && (
+                          <div className="pt-3 border-t border-indigo-200">
+                            <span className="text-xs text-indigo-700 font-semibold uppercase mb-2 block">Segmento</span>
+                            <span className={`inline-flex px-4 py-2 rounded-full text-sm font-bold shadow-sm ${
+                              clienteDetalle.tipo_cliente === 'VIP' ? 'bg-yellow-400 text-yellow-900' :
+                              clienteDetalle.tipo_cliente === 'Fiel' ? 'bg-green-400 text-green-900' :
+                              clienteDetalle.tipo_cliente === 'Cumplidor' ? 'bg-blue-400 text-blue-900' :
+                              'bg-gray-300 text-gray-800'
+                            }`}>
+                              ⭐ {clienteDetalle.tipo_cliente}
+                            </span>
+                          </div>
+                        )}
+                        {clienteDetalle.ultima_compra && (
+                          <div className="text-xs text-indigo-600 pt-2 border-t border-indigo-200">
+                            Última compra: {formatFecha(clienteDetalle.ultima_compra)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Historial de Pedidos */}
+                    <div className="bg-white p-5 rounded-lg shadow-md border-2 border-purple-200">
+                      <h3 className="text-sm font-bold text-purple-800 uppercase mb-4 flex items-center justify-between">
+                        <span>📋 Historial de Pedidos</span>
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                          {historialCliente.length} pedidos
+                        </span>
+                      </h3>
+                      <div className="max-h-64 overflow-y-auto space-y-2 custom-scrollbar">
+                        {historialCliente.length > 0 ? (
+                          historialCliente.slice(0, 10).map((ped) => (
+                            <div 
+                              key={ped.id} 
+                              className={`p-3 rounded-lg border-2 transition-all ${
+                                ped.id === pedidoDetalle.id 
+                                  ? 'bg-indigo-100 border-indigo-400 shadow-md' 
+                                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                              }`}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-xs font-bold text-gray-800">
+                                  {ped.id === pedidoDetalle.id && '➤ '}Pedido #{ped.id}
+                                </span>
+                                <span className="text-xs font-semibold text-primary-600">
+                                  ${(ped.precio_total || 0).toLocaleString('es-CL')}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 truncate mb-1">
+                                {ped.arreglo_pedido || 'Sin descripción'}
+                              </p>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-gray-500">
+                                  📅 {formatFecha(ped.fecha_pedido)}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  ped.estado_pago === 'Pagado' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {ped.estado_pago === 'Pagado' ? '✓' : '⏳'}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            No hay historial de pedidos
+                          </p>
+                        )}
+                        {historialCliente.length > 10 && (
+                          <p className="text-xs text-center text-indigo-600 pt-2 italic">
+                            Mostrando últimos 10 de {historialCliente.length} pedidos
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between pt-2 border-t border-primary-300">
-                    <span className="text-base font-semibold text-gray-900">Total:</span>
-                    <span className="text-lg font-bold text-primary-600">
-                      ${pedidoDetalle.precio_total?.toLocaleString('es-CL') || '0'}
-                    </span>
+                ) : (
+                  <div className="text-center py-4 text-sm text-gray-500">
+                    No se pudo cargar la información del cliente
                   </div>
-                </div>
+                )}
               </div>
+            )}
+            
+            {/* Footer del Modal */}
+            <div className="sticky bottom-0 bg-gray-100 px-6 py-4 flex justify-between items-center rounded-b-lg border-t border-gray-200">
+              <button
+                onClick={() => setPedidoDetalle(null)}
+                className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+              >
+                Cerrar
+              </button>
               
-              {/* Etiquetas adicionales */}
-              {(pedidoDetalle.dia_entrega || pedidoDetalle.estado_pago || pedidoDetalle.tipo_pedido) && (
-                <div className="flex flex-wrap gap-2">
-                  {pedidoDetalle.dia_entrega && (
-                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                      {pedidoDetalle.dia_entrega}
-                    </span>
-                  )}
-                  {pedidoDetalle.estado_pago && (
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      pedidoDetalle.estado_pago === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {pedidoDetalle.estado_pago}
-                    </span>
-                  )}
-                  {pedidoDetalle.tipo_pedido && (
-                    <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-                      {pedidoDetalle.tipo_pedido}
-                    </span>
-                  )}
-                </div>
-              )}
-              
-              {pedidoDetalle.cobranza && (
-                <div className="text-xs text-gray-500">
-                  Cobranza: {pedidoDetalle.cobranza}
-                </div>
-              )}
+              <div className="flex gap-3">
+                {modoEdicion ? (
+                  <>
+                    <button
+                      onClick={handleCancelarEdicion}
+                      className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleGuardarEdicion}
+                      className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Guardar Cambios
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleActivarEdicion}
+                    className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Editar Pedido
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1400,8 +1963,8 @@ function PedidosPage() {
                   )}
                 </div>
                 
-                {/* Insumos del pedido (sección antigua - ahora oculta) */}
-                {false && formData.producto_id && (
+                {/* Insumos del pedido */}
+                {formData.producto_id && receta.length > 0 && (
                   <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-gray-700 uppercase flex items-center gap-2">

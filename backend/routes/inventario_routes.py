@@ -3,7 +3,7 @@ Rutas para gestión de inventario (flores y contenedores)
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.inventario import Flor, Contenedor, Bodega, Proveedor
 
 bp = Blueprint('inventario', __name__)
@@ -54,6 +54,46 @@ def obtener_flor(flor_id):
             'data': flor.to_dict()
         })
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/flores/<flor_id>', methods=['PATCH'])
+def actualizar_flor(flor_id):
+    """Actualizar cualquier campo de una flor"""
+    try:
+        flor = Flor.query.get(flor_id)
+        if not flor:
+            return jsonify({'success': False, 'error': 'Flor no encontrada'}), 404
+        
+        data = request.json
+        
+        # Actualizar campos permitidos
+        if 'cantidad_stock' in data:
+            flor.cantidad_stock = int(data['cantidad_stock'])
+        if 'cantidad_en_uso' in data:
+            flor.cantidad_en_uso = int(data['cantidad_en_uso'])
+        if 'cantidad_en_evento' in data:
+            flor.cantidad_en_evento = int(data['cantidad_en_evento'])
+        if 'ubicacion' in data:
+            flor.ubicacion = data['ubicacion']
+        if 'costo_unitario' in data:
+            flor.costo_unitario = float(data['costo_unitario'])
+        if 'color' in data:
+            flor.color = data['color']
+        
+        from datetime import date
+        flor.fecha_actualizacion = date.today()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': flor.to_dict(),
+            'message': 'Flor actualizada correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -116,6 +156,44 @@ def listar_contenedores():
             'total': len(contenedores)
         })
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/contenedores/<contenedor_id>', methods=['PATCH'])
+def actualizar_contenedor(contenedor_id):
+    """Actualizar cualquier campo de un contenedor"""
+    try:
+        contenedor = Contenedor.query.get(contenedor_id)
+        if not contenedor:
+            return jsonify({'success': False, 'error': 'Contenedor no encontrado'}), 404
+        
+        data = request.json
+        
+        # Actualizar campos permitidos
+        if 'cantidad_stock' in data:
+            contenedor.cantidad_stock = int(data['cantidad_stock'])
+        if 'cantidad_en_uso' in data:
+            contenedor.cantidad_en_uso = int(data['cantidad_en_uso'])
+        if 'cantidad_en_evento' in data:
+            contenedor.cantidad_en_evento = int(data['cantidad_en_evento'])
+        if 'ubicacion' in data:
+            contenedor.ubicacion = data['ubicacion']
+        if 'costo' in data:
+            contenedor.costo = float(data['costo'])
+        
+        from datetime import date
+        contenedor.fecha_actualizacion = date.today()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': contenedor.to_dict(),
+            'message': 'Contenedor actualizado correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

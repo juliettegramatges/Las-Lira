@@ -2,7 +2,7 @@
 Servicio para gestión de inventario y descuento automático de stock
 """
 
-from app import db
+from extensions import db
 from models.inventario import Flor, Contenedor
 from models.pedido import PedidoInsumo, Pedido
 from models.producto import RecetaProducto

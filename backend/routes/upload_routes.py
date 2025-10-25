@@ -5,7 +5,7 @@ Rutas para subida y gestión de imágenes
 from flask import Blueprint, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import os
-from app import db
+from extensions import db
 from models.inventario import Flor, Contenedor
 from models.producto import Producto
 

@@ -1,5 +1,5 @@
 """
-Modelo de Pedido
+Modelo de Pedido Actualizado - Versión flexible para datos históricos
 """
 
 from datetime import datetime
@@ -8,51 +8,76 @@ from extensions import db
 class Pedido(db.Model):
     __tablename__ = 'pedidos'
     
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # ID único autoincremental
-    numero_pedido = db.Column(db.String(20))  # Ej: "PED-00027" (puede repetirse)
+    id = db.Column(db.String(20), primary_key=True)
     fecha_pedido = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    fecha_entrega = db.Column(db.DateTime, nullable=False)
-    canal = db.Column(db.String(50), nullable=False, default='WhatsApp')  # Flexible para datos históricos
-    shopify_order_number = db.Column(db.String(50))  # Ej: "#SH1234"
+    fecha_entrega = db.Column(db.DateTime)
+    canal = db.Column(db.String(20), nullable=False, default='WhatsApp')  # Shopify, WhatsApp, etc.
+    shopify_order_number = db.Column(db.String(50))
+    
     # Cliente - Relación con tabla de clientes
     cliente_id = db.Column(db.String(10), db.ForeignKey('clientes.id'))
-    # Datos del cliente (se mantienen por compatibilidad)
-    cliente_nombre = db.Column(db.String(100), nullable=False)
-    cliente_telefono = db.Column(db.String(20), nullable=False)
-    cliente_email = db.Column(db.String(100))
+    cliente_nombre = db.Column(db.String(200), nullable=False)
+    cliente_telefono = db.Column(db.String(50))
+    cliente_email = db.Column(db.String(200))
+    
     # Producto
     producto_id = db.Column(db.String(10), db.ForeignKey('productos.id'))
-    arreglo_pedido = db.Column(db.String(200))  # Nombre textual del arreglo
+    arreglo_pedido = db.Column(db.String(300))  # Nombre del arreglo/producto
     detalles_adicionales = db.Column(db.Text)
+    
     # Precios
-    precio_ramo = db.Column(db.Numeric(10, 2), nullable=False)
+    precio_ramo = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     precio_envio = db.Column(db.Numeric(10, 2), default=0)
+    
     # Destinatario y mensaje
-    destinatario = db.Column(db.String(100))  # Para quién es el arreglo
-    mensaje = db.Column(db.Text)  # Mensaje en la tarjeta
-    firma = db.Column(db.String(100))  # Firma del mensaje
-    # Dirección y motivo
-    direccion_entrega = db.Column(db.String(300), nullable=False)
-    comuna = db.Column(db.String(100))  # Comuna de entrega
-    motivo = db.Column(db.String(50))  # Cumpleaños, Aniversario, etc.
-    # Estado (según flujo del Trello - ordenado por prioridad)
-    # Cambiado a String para soportar datos históricos variados
-    estado = db.Column(db.String(50), default='Pedidos Semana', nullable=False)
-    # Etiquetas (días de semana, estado de pago, tipo)
-    dia_entrega = db.Column(db.String(20))  # LUNES, MARTES, etc.
-    estado_pago = db.Column(db.String(50), default='No Pagado')  # Flexible para datos históricos
-    tipo_pedido = db.Column(db.String(50))  # EVENTO, MANTENCIONES, etc.
-    # Cobranza detallada
-    cobranza = db.Column(db.String(200))  # Legado (mantener por compatibilidad)
-    plazo_pago_dias = db.Column(db.Integer, default=0)  # Días de plazo para pagar
-    fecha_maxima_pago = db.Column(db.DateTime)  # Fecha límite para pagar (calculada)
-    # 💰 Pago - Estado del pago (flexible para datos históricos)
-    metodo_pago = db.Column(db.String(100), default='Pendiente')
-    # 🧾 Documento tributario (flexible para datos históricos)
-    documento_tributario = db.Column(db.String(100), default='Hacer boleta')
-    numero_documento = db.Column(db.String(50))  # Ej: "10301" o "FACT-2025-001"
-    # Foto del arreglo enviado (trazabilidad)
-    foto_enviado_url = db.Column(db.String(500))  # Foto tomada antes de enviar
+    destinatario = db.Column(db.String(200))
+    mensaje = db.Column(db.Text)
+    firma = db.Column(db.String(200))
+    
+    # Dirección y ubicación
+    direccion_entrega = db.Column(db.String(500))
+    comuna = db.Column(db.String(100))
+    motivo = db.Column(db.String(100))  # Cumpleaños, Aniversario, Difunto, etc.
+    
+    # Estado - Más flexible para datos históricos
+    estado = db.Column(db.String(50), default='Pedidos Semana')
+    # Opciones: Entregas de Hoy, Entregas para Mañana, En Proceso, 
+    #           Listo para Despacho, Despachados, Pedidos Semana, 
+    #           Eventos, Archivado, Cancelado, ACTIVO, ARCHIVADO
+    
+    # Información de entrega y pago
+    dia_entrega = db.Column(db.String(20))
+    estado_pago = db.Column(db.String(50), default='No Pagado')
+    # Opciones: Pagado, No Pagado, Pendiente, PAGADO, PENDIENTE
+    
+    tipo_pedido = db.Column(db.String(100))  # EVENTO, MANTENCIONES, etc.
+    
+    # Cobranza
+    cobranza = db.Column(db.String(300))
+    plazo_pago_dias = db.Column(db.Integer, default=0)
+    fecha_maxima_pago = db.Column(db.DateTime)
+    
+    # Método de pago - Flexible
+    metodo_pago = db.Column(db.String(100))
+    # Opciones: Tr. BICE, Tr. Santander, Tr. Itaú, Transferencia, 
+    #           Pago confirmado, Pago con tarjeta, Pendiente, TRANSFERENCIA, EFECTIVO, etc.
+    
+    # Documento tributario - Flexible
+    documento_tributario = db.Column(db.String(100))
+    # Opciones: Hacer boleta, Hacer factura, Boleta emitida, Factura emitida, 
+    #           No requiere, BOLETA, FACTURA, etc.
+    numero_documento = db.Column(db.String(50))
+    
+    # Información adicional de datos históricos
+    tipo_entrega = db.Column(db.String(20))  # ENVÍO, RETIRO
+    match_score = db.Column(db.String(200))  # Score de asociación con producto
+    insumos_extraidos = db.Column(db.Text)  # Insumos identificados en personalizaciones
+    dimensiones = db.Column(db.String(100))  # Dimensiones del producto
+    contenedor = db.Column(db.String(100))  # Tipo de contenedor
+    colores = db.Column(db.String(200))  # Colores del producto
+    
+    # Metadatos
+    foto_enviado_url = db.Column(db.String(500))
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relaciones
@@ -102,6 +127,12 @@ class Pedido(db.Model):
             'metodo_pago': self.metodo_pago,
             'documento_tributario': self.documento_tributario,
             'numero_documento': self.numero_documento,
+            'tipo_entrega': self.tipo_entrega,
+            'match_score': self.match_score,
+            'insumos_extraidos': self.insumos_extraidos,
+            'dimensiones': self.dimensiones,
+            'contenedor': self.contenedor,
+            'colores': self.colores,
             'foto_enviado_url': self.foto_enviado_url,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
         }
@@ -114,8 +145,8 @@ class PedidoInsumo(db.Model):
     __tablename__ = 'pedidos_insumos'
     
     id = db.Column(db.Integer, primary_key=True)
-    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)  # Cambio a Integer
-    insumo_tipo = db.Column(db.Enum('Flor', 'Contenedor', name='insumo_tipo_enum'), nullable=False)
+    pedido_id = db.Column(db.String(20), db.ForeignKey('pedidos.id'), nullable=False)
+    insumo_tipo = db.Column(db.String(20), nullable=False)  # Flor, Contenedor, etc.
     insumo_id = db.Column(db.String(10), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)

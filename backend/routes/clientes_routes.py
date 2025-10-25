@@ -3,7 +3,7 @@ Rutas API para gestión de clientes
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.cliente import Cliente
 from datetime import datetime
 
@@ -11,10 +11,14 @@ bp = Blueprint('clientes', __name__)
 
 @bp.route('/', methods=['GET'])
 def listar_clientes():
-    """Listar todos los clientes"""
+    """Listar clientes con paginación"""
     try:
         tipo = request.args.get('tipo')
         buscar = request.args.get('buscar', '').strip()
+        
+        # Parámetros de paginación
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 100))
         
         query = Cliente.query
         
@@ -28,12 +32,29 @@ def listar_clientes():
                 (Cliente.email.ilike(f'%{buscar}%'))
             )
         
-        clientes = query.order_by(Cliente.nombre).all()
+        # Contar total antes de paginar
+        total = query.count()
+        
+        # Aplicar paginación
+        clientes = query.order_by(Cliente.nombre).limit(limit).offset((page - 1) * limit).all()
+        
+        # Calcular estadísticas globales de TODOS los clientes (sin filtros)
+        total_global = Cliente.query.count()
+        stats = {
+            'total': total_global,
+            'vip': Cliente.query.filter_by(tipo_cliente='VIP').count(),
+            'fiel': Cliente.query.filter_by(tipo_cliente='Fiel').count(),
+            'nuevo': Cliente.query.filter_by(tipo_cliente='Nuevo').count(),
+        }
         
         return jsonify({
             'success': True,
             'data': [c.to_dict() for c in clientes],
-            'total': len(clientes)
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit,
+            'stats': stats  # Estadísticas globales
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

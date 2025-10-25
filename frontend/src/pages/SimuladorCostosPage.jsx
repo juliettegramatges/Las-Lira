@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { Calculator, RefreshCw, TrendingUp, Package, DollarSign, Plus, Trash2 } from 'lucide-react'
 
-const API_URL = 'http://localhost:8000/api'
+const API_URL = 'http://localhost:5001/api'
 
 function SimuladorCostosPage() {
   const [productos, setProductos] = useState([])

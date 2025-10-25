@@ -15,10 +15,7 @@ load_dotenv()
 # Inicializar Flask
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-
-# Configurar ruta correcta de la base de datos
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(basedir, "instance", "laslira.db")}')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///laslira.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Inicializar extensiones
@@ -60,10 +57,6 @@ app.register_blueprint(producto_colores_routes.bp, url_prefix='/api/productos')
 app.register_blueprint(evento_routes.bp, url_prefix='/api/eventos')
 app.register_blueprint(exportar_routes.bp, url_prefix='/api/exportar')
 
-@app.route('/')
-def index():
-    return jsonify({'app': 'Las-Lira Backend', 'status': 'running', 'version': '1.0'})
-
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Endpoint para verificar que el servidor esté funcionando"""
@@ -89,14 +82,6 @@ def api_info():
     })
 
 if __name__ == '__main__':
-    print("=" * 80)
-    print("🌸 LAS-LIRA BACKEND")
-    print("=" * 80)
-    print(f"\n📍 Servidor: http://127.0.0.1:5001")
-    print(f"📍 API: http://127.0.0.1:5001/api")
-    print(f"\n⚠️  Presiona CTRL+C para detener\n")
-    print("=" * 80)
-    
     # Crear tablas si no existen
     with app.app_context():
         db.create_all()
@@ -104,6 +89,7 @@ if __name__ == '__main__':
     # Ejecutar servidor
     app.run(
         host='0.0.0.0',
-        port=int(os.getenv('PORT', 5001)),
-        debug=False
+        port=int(os.getenv('PORT', 5001)),  # Puerto 5001 (5000 usado por AirPlay en macOS)
+        debug=os.getenv('FLASK_ENV') == 'development'
     )
+

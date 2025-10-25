@@ -3,22 +3,24 @@ Modelos de Inventario (Flores y Contenedores)
 """
 
 from datetime import datetime, date
-from app import db
+from extensions import db
 
 class Flor(db.Model):
     __tablename__ = 'flores'
     
     id = db.Column(db.String(10), primary_key=True)
     tipo = db.Column(db.String(50), nullable=False)
-    color = db.Column(db.String(30), nullable=False)
+    color = db.Column(db.String(30))
+    nombre = db.Column(db.String(100))  # Nombre completo (ej: "Rosa Roja")
+    ubicacion = db.Column(db.String(100))  # Taller, Bodega 1, etc.
     foto_url = db.Column(db.String(500))  # URL o nombre de archivo de la foto
     proveedor_id = db.Column(db.String(10), db.ForeignKey('proveedores.id'))
-    costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
+    costo_unitario = db.Column(db.Numeric(10, 2), default=0)
     cantidad_stock = db.Column(db.Integer, default=0, nullable=False)
     cantidad_en_uso = db.Column(db.Integer, default=0, nullable=False)  # Reservadas en pedidos confirmados
     cantidad_en_evento = db.Column(db.Integer, default=0, nullable=False)  # Reservadas en eventos
     # Las flores NO tienen bodega, se compran según necesidad
-    unidad = db.Column(db.String(20), nullable=False)
+    unidad = db.Column(db.String(20), default='Tallos')
     fecha_actualizacion = db.Column(db.Date, default=date.today)
     
     @property
@@ -34,10 +36,12 @@ class Flor(db.Model):
             'id': self.id,
             'tipo': self.tipo,
             'color': self.color,
+            'nombre': self.nombre or f"{self.tipo} {self.color}".strip(),
+            'ubicacion': self.ubicacion,
             'foto_url': self.foto_url,
             'proveedor_id': self.proveedor_id,
             'proveedor_nombre': self.proveedor.nombre if self.proveedor else None,
-            'costo_unitario': float(self.costo_unitario),
+            'costo_unitario': float(self.costo_unitario) if self.costo_unitario else 0,
             'cantidad_stock': self.cantidad_stock,
             'cantidad_en_uso': self.cantidad_en_uso,
             'cantidad_en_evento': self.cantidad_en_evento,
@@ -54,18 +58,29 @@ class Contenedor(db.Model):
     __tablename__ = 'contenedores'
     
     id = db.Column(db.String(10), primary_key=True)
-    tipo = db.Column(db.Enum('Florero', 'Macetero', 'Canasto', name='contenedor_tipo_enum'), nullable=False)
-    material = db.Column(db.String(30), nullable=False)
-    forma = db.Column(db.String(30), nullable=False)
-    tamano = db.Column(db.String(50), nullable=False)
-    color = db.Column(db.String(30), nullable=False)
+    nombre = db.Column(db.String(100))  # Nombre completo del contenedor
+    tipo = db.Column(db.String(50))  # Tipo flexible (no Enum)
+    material = db.Column(db.String(30))
+    forma = db.Column(db.String(30))
+    tamano = db.Column(db.String(50))
+    color = db.Column(db.String(30))
+    ubicacion = db.Column(db.String(100))  # Bodega 1, Bodega 2, etc.
     foto_url = db.Column(db.String(500))  # URL o nombre de archivo de la foto
-    costo = db.Column(db.Numeric(10, 2), nullable=False)
-    stock = db.Column(db.Integer, default=0, nullable=False)
+    costo = db.Column(db.Numeric(10, 2), default=0)
+    cantidad_stock = db.Column(db.Integer, default=0, nullable=False)  # Renombrado de stock
     cantidad_en_uso = db.Column(db.Integer, default=0, nullable=False)  # Reservados en pedidos confirmados
     cantidad_en_evento = db.Column(db.Integer, default=0, nullable=False)  # Reservados en eventos
-    bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'), nullable=False)
+    bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'))  # Ahora opcional
     fecha_actualizacion = db.Column(db.Date, default=date.today)
+    
+    # Compatibilidad con código antiguo
+    @property
+    def stock(self):
+        return self.cantidad_stock
+    
+    @stock.setter
+    def stock(self, value):
+        self.cantidad_stock = value
     
     @property
     def cantidad_disponible(self):
@@ -78,14 +93,17 @@ class Contenedor(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'nombre': self.nombre or f"{self.tipo or ''} {self.tamano or ''}".strip(),
             'tipo': self.tipo,
             'material': self.material,
             'forma': self.forma,
             'tamano': self.tamano,
             'color': self.color,
+            'ubicacion': self.ubicacion,
             'foto_url': self.foto_url,
-            'costo': float(self.costo),
-            'stock': self.stock,
+            'costo': float(self.costo) if self.costo else 0,
+            'cantidad_stock': self.cantidad_stock,
+            'stock': self.stock,  # Compatibilidad
             'cantidad_en_uso': self.cantidad_en_uso,
             'cantidad_en_evento': self.cantidad_en_evento,
             'cantidad_disponible': self.cantidad_disponible,

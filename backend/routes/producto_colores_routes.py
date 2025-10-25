@@ -3,12 +3,57 @@ Rutas para gestionar colores y flores de productos
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.producto_detallado import ProductoColor, ProductoColorFlor
 from models.producto import Producto
 from models.inventario import Flor
 
 bp = Blueprint('producto_colores', __name__)
+
+@bp.route('/<producto_id>/colores-sugeridos', methods=['GET'])
+def obtener_colores_sugeridos(producto_id):
+    """Obtiene los colores sugeridos desde colores_asociados del producto"""
+    try:
+        producto = Producto.query.get(producto_id)
+        if not producto:
+            return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+        
+        colores_sugeridos = []
+        
+        if producto.colores_asociados:
+            # Dividir por comas
+            colores_lista = producto.colores_asociados.split(',')
+            
+            for color in colores_lista:
+                color_limpio = color.strip()
+                
+                # Remover paréntesis finales mal formados
+                import re
+                color_limpio = re.sub(r'\)$', '', color_limpio).strip()
+                
+                # Si contiene "y", dividir
+                if ' y ' in color_limpio:
+                    partes = color_limpio.split(' y ')
+                    for parte in partes:
+                        if parte.strip():
+                            colores_sugeridos.append(parte.strip().capitalize())
+                else:
+                    if color_limpio:
+                        colores_sugeridos.append(color_limpio.capitalize())
+        
+        # Eliminar duplicados manteniendo orden
+        colores_unicos = []
+        for color in colores_sugeridos:
+            if color not in colores_unicos and color not in ['', '—', 'A elección', 'Mixtos', 'Variable']:
+                colores_unicos.append(color)
+        
+        return jsonify({
+            'success': True,
+            'data': colores_unicos
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @bp.route('/<producto_id>/colores', methods=['GET'])
 def obtener_colores_producto(producto_id):

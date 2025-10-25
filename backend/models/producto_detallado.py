@@ -3,7 +3,7 @@ Modelos para el sistema detallado de colores y flores por producto
 """
 
 from datetime import datetime
-from app import db
+from extensions import db
 
 class ProductoColor(db.Model):
     """

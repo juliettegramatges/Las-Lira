@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { pedidosAPI } from '../services/api'
 import ColumnaKanban from '../components/Tablero/ColumnaKanban'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 
 function TableroPage() {
   const [tablero, setTablero] = useState({
@@ -15,6 +15,8 @@ function TableroPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [mensajeActualizacion, setMensajeActualizacion] = useState(null)
+  const [actualizando, setActualizando] = useState(false)
   
   // Estados según flujo del Trello de Las-Lira (orden de prioridad)
   const estados = [
@@ -30,10 +32,15 @@ function TableroPage() {
   const cargarTablero = async (autoClasificar = true) => {
     try {
       setLoading(true)
+      setMensajeActualizacion(null)
       
       // 🚀 PASO 1: Actualizar automáticamente estados según fecha (solo si autoClasificar=true)
       if (autoClasificar) {
-        await pedidosAPI.actualizarEstadosPorFecha()
+        const actualizacionRes = await pedidosAPI.actualizarEstadosPorFecha()
+        if (actualizacionRes.data.success && actualizacionRes.data.actualizados > 0) {
+          setMensajeActualizacion(actualizacionRes.data.message)
+          setTimeout(() => setMensajeActualizacion(null), 5000)
+        }
       }
       
       // 📊 PASO 2: Cargar tablero con estados actualizados
@@ -46,6 +53,15 @@ function TableroPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  const forzarActualizacion = async () => {
+    try {
+      setActualizando(true)
+      await cargarTablero(true)
+    } finally {
+      setActualizando(false)
     }
   }
   
@@ -95,10 +111,30 @@ function TableroPage() {
     <div className="px-4 sm:px-0">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Tablero de Pedidos</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {totalPedidos} pedido{totalPedidos !== 1 ? 's' : ''} pendiente{totalPedidos !== 1 ? 's' : ''}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tablero de Pedidos</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {totalPedidos} pedido{totalPedidos !== 1 ? 's' : ''} pendiente{totalPedidos !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <button
+            onClick={forzarActualizacion}
+            disabled={actualizando}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <RefreshCw className={`h-5 w-5 ${actualizando ? 'animate-spin' : ''}`} />
+            {actualizando ? 'Actualizando...' : 'Actualizar Estados'}
+          </button>
+        </div>
+        
+        {/* Mensaje de Actualización */}
+        {mensajeActualizacion && (
+          <div className="mt-4 p-3 bg-green-100 border border-green-300 text-green-800 rounded-lg flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <span className="text-sm font-medium">{mensajeActualizacion}</span>
+          </div>
+        )}
       </div>
       
       {/* Tablero Kanban */}

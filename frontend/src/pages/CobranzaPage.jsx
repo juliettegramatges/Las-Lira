@@ -1,12 +1,34 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { DollarSign, FileText, AlertCircle, CheckCircle } from 'lucide-react'
+import { DollarSign, FileText, AlertCircle, CheckCircle, X, Package, User, MapPin, Calendar, Phone, Mail } from 'lucide-react'
 import { API_URL } from '../services/api'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+const formatFecha = (fecha) => {
+  if (!fecha) return '-'
+  try {
+    return format(new Date(fecha), 'dd MMM yyyy', { locale: es })
+  } catch {
+    return '-'
+  }
+}
 
 const CobranzaPage = () => {
   const [loading, setLoading] = useState(true)
   const [resumen, setResumen] = useState(null)
   const [editandoPedido, setEditandoPedido] = useState(null)
+  
+  // Estados para modal de detalle
+  const [pedidoDetalle, setPedidoDetalle] = useState(null)
+  const [clienteDetalle, setClienteDetalle] = useState(null)
+  const [historialCliente, setHistorialCliente] = useState([])
+  const [loadingCliente, setLoadingCliente] = useState(false)
+  
+  // Estados para paginación
+  const [paginaPagos, setPaginaPagos] = useState(1)
+  const [paginaDocumentos, setPaginaDocumentos] = useState(1)
+  const itemsPorPagina = 10
   
   // Catálogos de opciones estandarizadas (3 ETAPAS)
   
@@ -66,6 +88,38 @@ const CobranzaPage = () => {
     }
   }
 
+  const cargarInfoCliente = async (clienteId) => {
+    try {
+      setLoadingCliente(true)
+      const [detalleResponse, historialResponse] = await Promise.all([
+        axios.get(`${API_URL}/clientes/${clienteId}`),
+        axios.get(`${API_URL}/clientes/${clienteId}/pedidos`)
+      ])
+      
+      if (detalleResponse.data.success) {
+        setClienteDetalle(detalleResponse.data.data)
+      }
+      
+      if (historialResponse.data.success) {
+        setHistorialCliente(historialResponse.data.data.pedidos || [])
+      }
+    } catch (err) {
+      console.error('Error al cargar info del cliente:', err)
+    } finally {
+      setLoadingCliente(false)
+    }
+  }
+
+  const handleAbrirPedido = (pedido) => {
+    setPedidoDetalle(pedido)
+    setClienteDetalle(null)
+    setHistorialCliente([])
+    
+    if (pedido.cliente_id) {
+      cargarInfoCliente(pedido.cliente_id)
+    }
+  }
+
   const getIconoPago = (metodo) => {
     if (metodo === 'Pago confirmado' || metodo === 'Pago con tarjeta') {
       return <CheckCircle className="h-4 w-4 text-green-600" />
@@ -93,202 +147,255 @@ const CobranzaPage = () => {
     return <div className="p-6">Cargando...</div>
   }
 
+  // Calcular datos para paginación
+  const pedidosSinPagar = resumen?.sin_pagar?.pedidos || []
+  const pedidosSinDocumentar = resumen?.sin_documentar?.pedidos || []
+  
+  const totalPaginasPagos = Math.ceil(pedidosSinPagar.length / itemsPorPagina)
+  const totalPaginasDocumentos = Math.ceil(pedidosSinDocumentar.length / itemsPorPagina)
+  
+  const pedidosPagosActuales = pedidosSinPagar.slice(
+    (paginaPagos - 1) * itemsPorPagina,
+    paginaPagos * itemsPorPagina
+  )
+  
+  const pedidosDocumentosActuales = pedidosSinDocumentar.slice(
+    (paginaDocumentos - 1) * itemsPorPagina,
+    paginaDocumentos * itemsPorPagina
+  )
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">💰 Cobranza</h1>
 
-      {/* Resumen */}
+      {/* Resumen Mejorado */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm text-red-600 font-medium">Pedidos sin Pagar</p>
-              <p className="text-3xl font-bold text-red-700">{resumen?.sin_pagar?.cantidad || 0}</p>
-              <p className="text-sm text-red-600 mt-2">Total: ${resumen?.sin_pagar?.total?.toLocaleString('es-CL') || 0}</p>
+              <p className="text-red-100 text-sm font-medium mb-1">💸 PAGOS PENDIENTES</p>
+              <p className="text-4xl font-bold">{resumen?.sin_pagar?.cantidad || 0}</p>
+              <p className="text-red-100 text-xs mt-1">casos sin pagar</p>
             </div>
-            <DollarSign className="h-12 w-12 text-red-400" />
+            <DollarSign className="h-16 w-16 text-red-200 opacity-50" />
+          </div>
+          <div className="pt-4 border-t border-red-400">
+            <p className="text-sm text-red-100">Total no pagado</p>
+            <p className="text-2xl font-bold">${resumen?.sin_pagar?.total?.toLocaleString('es-CL') || 0}</p>
           </div>
         </div>
 
-        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm text-yellow-600 font-medium">Sin Documentar</p>
-              <p className="text-3xl font-bold text-yellow-700">{resumen?.sin_documentar?.cantidad || 0}</p>
-              <p className="text-sm text-yellow-600 mt-2">Boletas/Facturas pendientes</p>
+              <p className="text-yellow-100 text-sm font-medium mb-1">📋 DOCUMENTOS PENDIENTES</p>
+              <p className="text-4xl font-bold">{resumen?.sin_documentar?.cantidad || 0}</p>
+              <p className="text-yellow-100 text-xs mt-1">documentos por hacer</p>
             </div>
-            <FileText className="h-12 w-12 text-yellow-400" />
+            <FileText className="h-16 w-16 text-yellow-200 opacity-50" />
+          </div>
+          <div className="pt-4 border-t border-yellow-400">
+            <p className="text-sm text-yellow-100">Boletas y Facturas</p>
+            <p className="text-lg font-semibold">por emitir</p>
           </div>
         </div>
       </div>
 
-      {/* Tabla de Pedidos sin Pagar */}
-      <div className="bg-white rounded-lg shadow-md mb-8">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">🚨 Pendientes de Pago</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">💰 Pago</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">🧾 Documento</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">📅 Plazo Pago</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {resumen?.sin_pagar?.pedidos?.map((pedido) => (
-                <tr key={pedido.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{pedido.id}</div>
-                    <div className="text-xs text-gray-500">{pedido.arreglo_pedido}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{pedido.cliente_nombre}</div>
-                    <div className="text-xs text-gray-500">{pedido.cliente_telefono}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {getIconoPago(pedido.metodo_pago)}
-                      <span className="text-sm">{pedido.metodo_pago}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm">
-                      {pedido.documento_tributario === 'Boleta emitida' && pedido.numero_documento 
-                        ? `Boleta N° ${pedido.numero_documento}`
-                        : pedido.documento_tributario === 'Factura emitida' && pedido.numero_documento
-                        ? `Factura N° ${pedido.numero_documento}`
-                        : pedido.documento_tributario}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {pedido.fecha_maxima_pago ? (
-                      <>
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatearFecha(pedido.fecha_maxima_pago)}
-                        </div>
-                        {(() => {
-                          const dias = calcularDiasFaltantes(pedido.fecha_maxima_pago)
-                          if (dias < 0) {
-                            return (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                ⚠️ Vencido hace {Math.abs(dias)} días
-                              </span>
-                            )
-                          } else if (dias === 0) {
-                            return (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                                ⏰ Vence hoy
-                              </span>
-                            )
-                          } else if (dias <= 3) {
-                            return (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                ⚠️ {dias} días restantes
-                              </span>
-                            )
-                          } else {
-                            return (
-                              <span className="text-xs text-gray-500">
-                                ✅ {dias} días restantes
-                              </span>
-                            )
-                          }
-                        })()}
-                      </>
-                    ) : (
-                      <span className="text-sm text-gray-400">Pago inmediato</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-gray-900">
-                      ${pedido.precio_total?.toLocaleString('es-CL')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => setEditandoPedido(pedido)}
-                      className="text-primary-600 hover:text-primary-900 text-sm font-medium"
-                    >
-                      Actualizar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {(!resumen?.sin_pagar?.pedidos || resumen.sin_pagar.pedidos.length === 0) && (
+      {/* DOS BLOQUES LADO A LADO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* BLOQUE 1: Pagos Pendientes */}
+        <div className="bg-white rounded-lg shadow-md">
+          <div className="px-4 py-3 border-b border-gray-200 bg-red-50">
+            <h2 className="text-lg font-bold text-red-700">🚨 Pagos Pendientes</h2>
+            <p className="text-xs text-red-600">Mostrando {pedidosPagosActuales.length} de {pedidosSinPagar.length}</p>
+          </div>
+          
+          <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            <table className="w-full">
+              <thead className="bg-gray-50 sticky top-0">
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
-                    ✅ No hay pedidos pendientes de pago
-                  </td>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Pedido</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Cliente</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Total</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Acción</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {pedidosPagosActuales.map((pedido) => (
+                  <tr 
+                    key={pedido.id} 
+                    onClick={() => handleAbrirPedido(pedido)}
+                    className="hover:bg-red-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-3 py-2">
+                      <div className="text-xs font-medium text-gray-900">{pedido.numero_pedido || pedido.id}</div>
+                      <div className="text-xs text-gray-500 truncate max-w-[120px]">{pedido.arreglo_pedido}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="text-xs text-gray-900">{pedido.cliente_nombre}</div>
+                      <div className="text-xs text-gray-500">{pedido.cliente_telefono}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="text-sm font-bold text-red-600">
+                        ${pedido.precio_total?.toLocaleString('es-CL')}
+                      </div>
+                      {pedido.fecha_maxima_pago && (() => {
+                        const dias = calcularDiasFaltantes(pedido.fecha_maxima_pago)
+                        if (dias < 0) {
+                          return (
+                            <span className="text-xs text-red-600 font-medium">
+                              Vencido
+                            </span>
+                          )
+                        } else if (dias <= 3) {
+                          return (
+                            <span className="text-xs text-orange-600 font-medium">
+                              {dias}d restantes
+                            </span>
+                          )
+                        }
+                        return null
+                      })()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditandoPedido(pedido)
+                        }}
+                        className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200 font-medium"
+                      >
+                        Actualizar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {pedidosPagosActuales.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-3 py-6 text-center text-gray-500 text-sm">
+                      ✅ No hay pagos pendientes
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Paginación Pagos */}
+          {totalPaginasPagos > 1 && (
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+              <button
+                onClick={() => setPaginaPagos(p => Math.max(1, p - 1))}
+                disabled={paginaPagos === 1}
+                className="text-xs px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-gray-600">
+                Página {paginaPagos} de {totalPaginasPagos}
+              </span>
+              <button
+                onClick={() => setPaginaPagos(p => Math.min(totalPaginasPagos, p + 1))}
+                disabled={paginaPagos === totalPaginasPagos}
+                className="text-xs px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Tabla de Pedidos sin Documentar */}
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">📋 Pendientes de Documentar</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">🧾 Estado Documento</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° Documento</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {resumen?.sin_documentar?.pedidos?.map((pedido) => (
-                <tr key={pedido.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{pedido.id}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{pedido.cliente_nombre}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      pedido.documento_tributario === 'Hacer boleta' ? 'bg-yellow-100 text-yellow-800' :
-                      pedido.documento_tributario === 'Hacer factura' ? 'bg-yellow-100 text-yellow-800' :
-                      pedido.documento_tributario === 'Falta boleta o factura' ? 'bg-red-100 text-red-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {pedido.documento_tributario}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm">{pedido.numero_documento || '-'}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => setEditandoPedido(pedido)}
-                      className="text-primary-600 hover:text-primary-900 text-sm font-medium"
-                    >
-                      Actualizar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {(!resumen?.sin_documentar?.pedidos || resumen.sin_documentar.pedidos.length === 0) && (
+        {/* BLOQUE 2: Documentos Pendientes */}
+        <div className="bg-white rounded-lg shadow-md">
+          <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50">
+            <h2 className="text-lg font-bold text-yellow-700">📋 Documentos Pendientes</h2>
+            <p className="text-xs text-yellow-600">Mostrando {pedidosDocumentosActuales.length} de {pedidosSinDocumentar.length}</p>
+          </div>
+          
+          <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            <table className="w-full">
+              <thead className="bg-gray-50 sticky top-0">
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                    ✅ Todos los pedidos están documentados
-                  </td>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Pedido</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Cliente</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Documento</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Acción</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {pedidosDocumentosActuales.map((pedido) => (
+                  <tr 
+                    key={pedido.id} 
+                    onClick={() => handleAbrirPedido(pedido)}
+                    className="hover:bg-yellow-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-3 py-2">
+                      <div className="text-xs font-medium text-gray-900">{pedido.numero_pedido || pedido.id}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="text-xs text-gray-900">{pedido.cliente_nombre}</div>
+                      <div className="text-xs text-gray-500">{pedido.cliente_telefono}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        pedido.documento_tributario === 'Hacer boleta' ? 'bg-yellow-100 text-yellow-800' :
+                        pedido.documento_tributario === 'Hacer factura' ? 'bg-yellow-100 text-yellow-800' :
+                        pedido.documento_tributario === 'Falta boleta o factura' ? 'bg-red-100 text-red-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {pedido.documento_tributario}
+                      </span>
+                      {pedido.numero_documento && (
+                        <div className="text-xs text-gray-500 mt-1">N° {pedido.numero_documento}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditandoPedido(pedido)
+                        }}
+                        className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 font-medium"
+                      >
+                        Actualizar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {pedidosDocumentosActuales.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="px-3 py-6 text-center text-gray-500 text-sm">
+                      ✅ Todos los documentos al día
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Paginación Documentos */}
+          {totalPaginasDocumentos > 1 && (
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+              <button
+                onClick={() => setPaginaDocumentos(p => Math.max(1, p - 1))}
+                disabled={paginaDocumentos === 1}
+                className="text-xs px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-gray-600">
+                Página {paginaDocumentos} de {totalPaginasDocumentos}
+              </span>
+              <button
+                onClick={() => setPaginaDocumentos(p => Math.min(totalPaginasDocumentos, p + 1))}
+                disabled={paginaDocumentos === totalPaginasDocumentos}
+                className="text-xs px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -403,6 +510,350 @@ const CobranzaPage = () => {
               <button
                 onClick={() => setEditandoPedido(null)}
                 className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalle del Pedido */}
+      {pedidoDetalle && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full my-8">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 rounded-t-lg flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  Pedido #{pedidoDetalle.numero_pedido || pedidoDetalle.id}
+                </h2>
+                <p className="text-red-100 text-sm mt-1">Detalle completo del pedido</p>
+              </div>
+              <button
+                onClick={() => setPedidoDetalle(null)}
+                className="text-white hover:text-red-100 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Contenido del Modal */}
+            <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Columna Izquierda */}
+                <div className="space-y-6">
+                  
+                  {/* Producto del Catálogo */}
+                  {pedidoDetalle.producto_catalogo && (
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                      <h3 className="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Producto del Catálogo
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        {pedidoDetalle.producto_imagen && (
+                          <img 
+                            src={pedidoDetalle.producto_imagen} 
+                            alt={pedidoDetalle.producto_catalogo}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium text-purple-900">{pedidoDetalle.producto_catalogo}</p>
+                          <p className="text-xs text-purple-700">ID: {pedidoDetalle.producto_id || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Detalles del Arreglo */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Detalles del Arreglo</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-500">Arreglo solicitado</p>
+                        <p className="text-sm font-medium text-gray-900">{pedidoDetalle.arreglo_pedido || '-'}</p>
+                      </div>
+                      {pedidoDetalle.detalles_adicionales && (
+                        <div>
+                          <p className="text-xs text-gray-500">Detalles adicionales</p>
+                          <p className="text-sm text-gray-700">{pedidoDetalle.detalles_adicionales}</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.motivo && (
+                        <div className="mt-2 inline-block px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-xs font-medium">
+                          {pedidoDetalle.motivo}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mensaje y Destinatario */}
+                  {(pedidoDetalle.destinatario || pedidoDetalle.mensaje || pedidoDetalle.firma) && (
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <h3 className="text-sm font-semibold text-blue-900 mb-3">Mensaje y Destinatario</h3>
+                      {pedidoDetalle.destinatario && (
+                        <div className="mb-2">
+                          <p className="text-xs text-blue-600">Para:</p>
+                          <p className="text-sm font-medium text-blue-900">{pedidoDetalle.destinatario}</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.mensaje && (
+                        <div className="mb-2 bg-white p-2 rounded">
+                          <p className="text-xs text-blue-600">Mensaje:</p>
+                          <p className="text-sm text-gray-700 italic">"{pedidoDetalle.mensaje}"</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.firma && (
+                        <div>
+                          <p className="text-xs text-blue-600">Firma:</p>
+                          <p className="text-sm font-medium text-blue-900">{pedidoDetalle.firma}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Información del Cliente */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                    <h3 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Información del Cliente
+                    </h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-green-600">Nombre</p>
+                        <p className="text-sm font-medium text-green-900">{pedidoDetalle.cliente_nombre}</p>
+                      </div>
+                      {pedidoDetalle.cliente_telefono && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3 w-3 text-green-600" />
+                          <p className="text-sm text-gray-700">{pedidoDetalle.cliente_telefono}</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.correo_cliente && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3 w-3 text-green-600" />
+                          <p className="text-sm text-gray-700">{pedidoDetalle.correo_cliente}</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.canal && (
+                        <div>
+                          <span className="inline-block px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-medium">
+                            {pedidoDetalle.canal}
+                          </span>
+                        </div>
+                      )}
+                      {clienteDetalle && (
+                        <div className="mt-2 pt-2 border-t border-green-200">
+                          <p className="text-xs text-green-600">Tipo de cliente</p>
+                          <span className="inline-block px-2 py-1 bg-white text-green-800 rounded text-xs font-medium">
+                            {clienteDetalle.tipo_cliente}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Columna Derecha */}
+                <div className="space-y-6">
+                  
+                  {/* Información de Entrega */}
+                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <h3 className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Información de Entrega
+                    </h3>
+                    <div className="space-y-2">
+                      {pedidoDetalle.direccion_entrega && (
+                        <div>
+                          <p className="text-xs text-amber-600">Dirección</p>
+                          <p className="text-sm font-medium text-gray-900">{pedidoDetalle.direccion_entrega}</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.comuna && (
+                        <div>
+                          <p className="text-xs text-amber-600">Comuna</p>
+                          <p className="text-sm text-gray-700">{pedidoDetalle.comuna}</p>
+                        </div>
+                      )}
+                      {pedidoDetalle.fecha_pedido && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-amber-600" />
+                          <div>
+                            <p className="text-xs text-amber-600">Fecha del pedido</p>
+                            <p className="text-sm text-gray-700">{formatFecha(pedidoDetalle.fecha_pedido)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {pedidoDetalle.fecha_entrega && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-amber-600" />
+                          <div>
+                            <p className="text-xs text-amber-600">Fecha de entrega</p>
+                            <p className="text-sm font-medium text-gray-900">{formatFecha(pedidoDetalle.fecha_entrega)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {pedidoDetalle.dia_entrega && (
+                        <div>
+                          <span className="inline-block px-2 py-1 bg-amber-200 text-amber-800 rounded text-xs font-medium">
+                            {pedidoDetalle.dia_entrega}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Información de Pago */}
+                  <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border-2 border-red-300">
+                    <h3 className="text-sm font-semibold text-red-900 mb-3 flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Información de Pago
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-red-600">Precio Ramo</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            ${pedidoDetalle.precio_ramo?.toLocaleString('es-CL') || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-red-600">Precio Envío</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            ${pedidoDetalle.precio_envio?.toLocaleString('es-CL') || 0}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t-2 border-red-300">
+                        <p className="text-xs text-red-600">Total</p>
+                        <p className="text-2xl font-bold text-red-700">
+                          ${pedidoDetalle.precio_total?.toLocaleString('es-CL') || 0}
+                        </p>
+                      </div>
+                      <div className="pt-2 border-t border-red-200">
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-xs text-red-600">Estado de pago</p>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            pedidoDetalle.estado_pago === 'Pagado' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-200 text-red-800'
+                          }`}>
+                            {pedidoDetalle.estado_pago || 'No Pagado'}
+                          </span>
+                        </div>
+                        {pedidoDetalle.metodo_pago && (
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-xs text-red-600">Método de pago</p>
+                            <p className="text-sm text-gray-700">{pedidoDetalle.metodo_pago}</p>
+                          </div>
+                        )}
+                        {pedidoDetalle.documento_tributario && (
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs text-red-600">Documento</p>
+                            <p className="text-sm text-gray-700">{pedidoDetalle.documento_tributario}</p>
+                          </div>
+                        )}
+                        {pedidoDetalle.numero_documento && (
+                          <div className="flex justify-between items-center mt-1">
+                            <p className="text-xs text-red-600">N° Documento</p>
+                            <p className="text-sm font-medium text-gray-900">{pedidoDetalle.numero_documento}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Perfil del Cliente (si está cargado) */}
+                  {clienteDetalle && (
+                    <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
+                      <h3 className="text-sm font-semibold text-indigo-900 mb-3">
+                        📊 Perfil Completo del Cliente
+                      </h3>
+                      {loadingCliente ? (
+                        <div className="text-center py-4">
+                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                          <p className="text-xs text-indigo-600 mt-2">Cargando...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <p className="text-indigo-600">Total pedidos</p>
+                              <p className="font-semibold text-indigo-900">{clienteDetalle.total_pedidos}</p>
+                            </div>
+                            <div>
+                              <p className="text-indigo-600">Total gastado</p>
+                              <p className="font-semibold text-indigo-900">
+                                ${clienteDetalle.total_gastado?.toLocaleString('es-CL')}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-indigo-600">Ticket promedio</p>
+                              <p className="font-semibold text-indigo-900">
+                                ${clienteDetalle.ticket_promedio?.toLocaleString('es-CL')}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-indigo-600">Segmento</p>
+                              <p className="font-semibold text-indigo-900">{clienteDetalle.segmento || '-'}</p>
+                            </div>
+                          </div>
+                          
+                          {historialCliente.length > 0 && (
+                            <div className="pt-3 border-t border-indigo-200">
+                              <p className="text-xs font-medium text-indigo-900 mb-2">
+                                Historial de Pedidos ({historialCliente.length})
+                              </p>
+                              <div className="max-h-40 overflow-y-auto space-y-1">
+                                {historialCliente.slice(0, 5).map((orden) => (
+                                  <div
+                                    key={orden.id}
+                                    className={`p-2 rounded text-xs ${
+                                      orden.id === pedidoDetalle.id
+                                        ? 'bg-indigo-200 border border-indigo-400'
+                                        : 'bg-white'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-medium">{orden.numero_pedido || orden.id}</span>
+                                      <span className="text-indigo-600">
+                                        ${orden.precio_total?.toLocaleString('es-CL')}
+                                      </span>
+                                    </div>
+                                    <div className="text-indigo-600 text-xs">
+                                      {formatFecha(orden.fecha_pedido)}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-between items-center border-t">
+              <button
+                onClick={() => {
+                  setPedidoDetalle(null)
+                  setEditandoPedido(pedidoDetalle)
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
+              >
+                Actualizar Cobranza
+              </button>
+              <button
+                onClick={() => setPedidoDetalle(null)}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium transition-colors"
               >
                 Cerrar
               </button>

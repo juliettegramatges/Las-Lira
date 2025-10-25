@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from datetime import datetime
 
-from app import db
+from extensions import db
 from models.pedido import Pedido
 from models.producto import Producto
 from models.cliente import Cliente

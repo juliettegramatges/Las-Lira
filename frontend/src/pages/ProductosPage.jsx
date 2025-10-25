@@ -2,7 +2,32 @@ import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download } from 'lucide-react'
 
-const API_URL = 'http://localhost:8000/api'
+const API_URL = 'http://localhost:5001/api'
+
+// Colores comunes para productos
+const COLORES_PRODUCTOS = [
+  'Rojo',
+  'Rosado',
+  'Blanco',
+  'Amarillo',
+  'Naranja',
+  'Morado',
+  'Lila',
+  'Azul',
+  'Verde',
+  'Fucsia',
+  'Coral',
+  'Crema',
+  'Burdeo',
+  'Multicolor',
+  'Natural',
+  'Blancos',
+  'Rojos',
+  'Rosados',
+  'Verdes',
+  'Azules',
+  'Naranjos'
+]
 
 function ProductosPage() {
   const [productos, setProductos] = useState([])
@@ -22,6 +47,7 @@ function ProductosPage() {
     contenedor: null
   })
   const [contenedores, setContenedores] = useState([])
+  const [todasLasFlores, setTodasLasFlores] = useState([]) // Todas las flores del inventario
   const [guardandoReceta, setGuardandoReceta] = useState(false)
   const [coloresEditables, setColoresEditables] = useState([]) // Lista editable de colores
   const [precioVentaEditado, setPrecioVentaEditado] = useState(null) // Precio de venta modificado
@@ -110,8 +136,22 @@ function ProductosPage() {
   const abrirSimulador = async () => {
     setMostrarSimulador(true)
     setPrecioVentaEditado(null) // Resetear precio editado
-    await cargarConfiguracionProducto()
-    await cargarContenedores()
+    await Promise.all([
+      cargarConfiguracionProducto(),
+      cargarContenedores(),
+      cargarTodasLasFlores()
+    ])
+  }
+  
+  const cargarTodasLasFlores = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/inventario/flores`)
+      if (response.data.success) {
+        setTodasLasFlores(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error al cargar flores:', error)
+    }
   }
   
   const cargarConfiguracionProducto = async () => {
@@ -125,36 +165,102 @@ function ProductosPage() {
         const config = response.data.data
         setConfiguracion(config)
         
-        // Inicializar colores editables
-        setColoresEditables(config.colores.map(c => ({
-          id: c.id,
-          nombre_color: c.nombre_color,
-          cantidad_flores_sugerida: c.cantidad_flores_sugerida,
-          flores_disponibles: c.flores_disponibles,
-          esNuevo: false
-        })))
-        
-        // Inicializar simulación con valores predeterminados
-        const floresIniciales = {}
-        config.colores.forEach(color => {
-          const florPredeterminada = color.flores_disponibles.find(f => f.es_predeterminada)
-          if (florPredeterminada) {
-            floresIniciales[color.id] = [{
-              id: Date.now(),
-              florId: florPredeterminada.flor_id,
-              cantidad: color.cantidad_flores_sugerida,
-              costo: florPredeterminada.flor_costo
-            }]
+        // Si hay colores configurados, usarlos
+        if (config.colores && config.colores.length > 0) {
+          // Inicializar colores editables
+          setColoresEditables(config.colores.map(c => ({
+            id: c.id,
+            nombre_color: c.nombre_color,
+            cantidad_flores_sugerida: c.cantidad_flores_sugerida,
+            flores_disponibles: c.flores_disponibles,
+            esNuevo: false
+          })))
+          
+          // Inicializar simulación con valores predeterminados
+          const floresIniciales = {}
+          config.colores.forEach(color => {
+            const florPredeterminada = color.flores_disponibles.find(f => f.es_predeterminada)
+            if (florPredeterminada) {
+              floresIniciales[color.id] = [{
+                id: Date.now(),
+                florId: florPredeterminada.flor_id,
+                cantidad: color.cantidad_flores_sugerida,
+                costo: florPredeterminada.flor_costo
+              }]
+            }
+          })
+          
+          setSimulacion({
+            flores: floresIniciales,
+            contenedor: config.contenedor_receta ? {
+              contenedorId: config.contenedor_receta.id,
+              costo: config.contenedor_receta.costo
+            } : null
+          })
+        } else {
+          // Si no hay colores configurados, cargar colores sugeridos desde colores_asociados
+          try {
+            const coloresResponse = await axios.get(`${API_URL}/productos/${productoDetalle.id}/colores-sugeridos`)
+            
+            if (coloresResponse.data.success && coloresResponse.data.data.length > 0) {
+              const coloresSugeridos = coloresResponse.data.data
+              
+              // Crear colores editables con IDs temporales
+              const coloresTemp = coloresSugeridos.map((nombreColor, index) => ({
+                id: `temp-${index}`,
+                nombre_color: nombreColor,
+                cantidad_flores_sugerida: 10, // Cantidad por defecto
+                flores_disponibles: [],
+                esNuevo: true
+              }))
+              
+              setColoresEditables(coloresTemp)
+              
+              // Inicializar simulación vacía
+              const floresIniciales = {}
+              coloresTemp.forEach(color => {
+                floresIniciales[color.id] = []
+              })
+              
+              setSimulacion({
+                flores: floresIniciales,
+                contenedor: config.contenedor_receta ? {
+                  contenedorId: config.contenedor_receta.id,
+                  costo: config.contenedor_receta.costo
+                } : null
+              })
+            } else {
+              // Si no hay colores sugeridos, inicializar con un color vacío
+              setColoresEditables([{
+                id: 'temp-0',
+                nombre_color: 'Nuevo Color',
+                cantidad_flores_sugerida: 10,
+                flores_disponibles: [],
+                esNuevo: true
+              }])
+              
+              setSimulacion({
+                flores: { 'temp-0': [] },
+                contenedor: null
+              })
+            }
+          } catch (err) {
+            console.error('Error al cargar colores sugeridos:', err)
+            // Fallback: inicializar con un color vacío
+            setColoresEditables([{
+              id: 'temp-0',
+              nombre_color: 'Nuevo Color',
+              cantidad_flores_sugerida: 10,
+              flores_disponibles: [],
+              esNuevo: true
+            }])
+            
+            setSimulacion({
+              flores: { 'temp-0': [] },
+              contenedor: null
+            })
           }
-        })
-        
-        setSimulacion({
-          flores: floresIniciales,
-          contenedor: config.contenedor_receta ? {
-            contenedorId: config.contenedor_receta.id,
-            costo: config.contenedor_receta.costo
-          } : null
-        })
+        }
       }
     } catch (error) {
       console.error('Error al cargar configuración:', error)
@@ -199,8 +305,11 @@ function ProductosPage() {
   }
   
   const handleFlorChange = (colorId, florIndex, florId) => {
-    const color = configuracion?.colores.find(c => c.id === colorId)
-    const florSeleccionada = color?.flores_disponibles.find(f => f.flor_id === florId)
+    const color = coloresEditables.find(c => c.id === colorId)
+    
+    // Buscar la flor en las flores filtradas por color
+    const floresFiltradas = obtenerFloresPorColor(color?.nombre_color || '')
+    const florSeleccionada = floresFiltradas.find(f => f.flor_id === florId)
     
     setSimulacion(prev => ({
       ...prev,
@@ -279,6 +388,32 @@ function ProductosPage() {
     setColoresEditables(prev => prev.map(c => 
       c.id === colorId ? { ...c, nombre_color: nuevoNombre } : c
     ))
+  }
+  
+  // Función para obtener flores filtradas por color
+  const obtenerFloresPorColor = (nombreColor) => {
+    if (!nombreColor || !todasLasFlores || todasLasFlores.length === 0) {
+      return []
+    }
+    
+    // Filtrar flores que coincidan con el color
+    return todasLasFlores
+      .filter(flor => {
+        const colorFlor = (flor.color || '').toLowerCase().trim()
+        const colorBuscado = nombreColor.toLowerCase().trim()
+        
+        // Coincidencia exacta o parcial
+        return colorFlor === colorBuscado || 
+               colorFlor.includes(colorBuscado) ||
+               colorBuscado.includes(colorFlor)
+      })
+      .map(flor => ({
+        flor_id: flor.id,
+        flor_nombre: flor.nombre,
+        flor_costo: flor.costo_unitario || 0,
+        flor_disponible: flor.cantidad_disponible || 0,
+        color: flor.color
+      }))
   }
   
   const resetearReceta = () => {
@@ -958,14 +1093,17 @@ function ProductosPage() {
                                     className="w-6 h-6 rounded-full border-2 border-gray-300 flex-shrink-0"
                                     style={{ backgroundColor: color.nombre_color.toLowerCase() }}
                                   ></div>
-                                  {/* Input editable para nombre del color */}
-                                  <input
-                                    type="text"
+                                  {/* Select editable para nombre del color */}
+                                  <select
                                     value={color.nombre_color}
                                     onChange={(e) => handleEditarNombreColor(color.id, e.target.value)}
-                                    className="font-semibold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:outline-none px-1 py-0.5"
-                                    placeholder="Nombre del color"
-                                  />
+                                    className="font-semibold text-gray-900 bg-white border border-gray-300 hover:border-primary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 px-2 py-1 rounded"
+                                  >
+                                    <option value="">Seleccionar color...</option>
+                                    {COLORES_PRODUCTOS.map(colorOpcion => (
+                                      <option key={colorOpcion} value={colorOpcion}>{colorOpcion}</option>
+                                    ))}
+                                  </select>
                                   <span className="text-xs text-gray-500">
                                     ({totalTallos} tallos - ${costoColor.toLocaleString('es-CL')})
                                   </span>
@@ -981,7 +1119,8 @@ function ProductosPage() {
                               
                               <div className="space-y-2">
                                 {floresColor.map((flor, florIndex) => {
-                                  const florInfo = color.flores_disponibles.find(f => f.flor_id === flor.florId)
+                                  const floresFiltradas = obtenerFloresPorColor(color.nombre_color)
+                                  const florInfo = floresFiltradas.find(f => f.flor_id === flor.florId)
                                   const costoLinea = (flor.cantidad || 0) * (flor.costo || 0)
                                   
                                   return (
@@ -993,13 +1132,16 @@ function ProductosPage() {
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                       >
                                         <option value="">Seleccionar flor...</option>
-                                        {color.flores_disponibles.map(f => (
-                                          <option key={f.flor_id} value={f.flor_id}>
-                                            {f.es_predeterminada ? '⭐ ' : ''}{f.flor_nombre} 
-                                            - ${f.flor_costo.toLocaleString('es-CL')} 
-                                            (Stock: {f.flor_disponible || 0})
-                                          </option>
-                                        ))}
+                                        {floresFiltradas.length > 0 ? (
+                                          floresFiltradas.map(f => (
+                                            <option key={f.flor_id} value={f.flor_id}>
+                                              {f.flor_nombre} - ${f.flor_costo.toLocaleString('es-CL')} 
+                                              (Stock: {f.flor_disponible || 0})
+                                            </option>
+                                          ))
+                                        ) : (
+                                          <option value="" disabled>No hay flores de este color en inventario</option>
+                                        )}
                                       </select>
                                       
                                       {/* Cantidad */}

@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare, Image as ImageIcon, X, User, CreditCard, FileText, Package } from 'lucide-react'
+import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare, Image as ImageIcon, X, User, CreditCard, FileText, Package, Camera, Upload, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import axios from 'axios'
+
+const API_URL = 'http://localhost:5001/api'
 
 const canalColor = {
   'Shopify': 'bg-green-100 text-green-800',
@@ -26,6 +29,10 @@ const pagoColor = {
 
 function TarjetaPedido({ pedido, onRecargar }) {
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [mostrarModalFoto, setMostrarModalFoto] = useState(false)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
   
   const handleDragStart = (e) => {
     e.dataTransfer.setData('pedidoId', pedido.id)
@@ -37,8 +44,51 @@ function TarjetaPedido({ pedido, onRecargar }) {
     setMostrarModal(true)
   }
   
+  const handleSeleccionarArchivo = (e) => {
+    const archivo = e.target.files[0]
+    if (archivo) {
+      setArchivoSeleccionado(archivo)
+      setPreviewUrl(URL.createObjectURL(archivo))
+    }
+  }
+  
+  const handleSubirFoto = async () => {
+    if (!archivoSeleccionado) return
+    
+    try {
+      setSubiendoFoto(true)
+      const formData = new FormData()
+      formData.append('imagen', archivoSeleccionado)
+      
+      await axios.post(`${API_URL}/pedidos/${pedido.id}/foto-respaldo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      alert('✅ Foto de respaldo subida correctamente')
+      setMostrarModalFoto(false)
+      setArchivoSeleccionado(null)
+      setPreviewUrl(null)
+      
+      // Recargar el tablero para actualizar
+      if (onRecargar) onRecargar()
+    } catch (error) {
+      console.error('Error al subir foto:', error)
+      alert('❌ Error al subir la foto')
+    } finally {
+      setSubiendoFoto(false)
+    }
+  }
+  
+  const handleAbrirModalFoto = (e) => {
+    e.stopPropagation()
+    setMostrarModalFoto(true)
+  }
+  
   const fechaEntrega = pedido.fecha_entrega ? new Date(pedido.fecha_entrega) : null
   const fechaPedido = pedido.fecha_pedido ? new Date(pedido.fecha_pedido) : null
+  
+  // Determinar si necesita foto de respaldo
+  const necesitaFotoRespaldo = ['Listo para Despacho', 'Despachados'].includes(pedido.estado) && !pedido.foto_enviado_url
   
   return (
     <>
@@ -84,20 +134,61 @@ function TarjetaPedido({ pedido, onRecargar }) {
         </div>
         
         {/* Etiquetas */}
-        <div className="flex flex-wrap gap-1 mb-2">
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {/* Etiqueta de Canal */}
+          <span className={`px-2 py-1 rounded-full text-xs font-bold ${canalColor[pedido.canal]} border-2 ${pedido.canal === 'Shopify' ? 'border-green-300' : 'border-emerald-300'}`}>
+            {pedido.canal === 'Shopify' ? '🛍️ Shopify' : '📱 WhatsApp'}
+          </span>
+          
+          {/* Día de la semana */}
           {pedido.dia_entrega && (
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${diaColor[pedido.dia_entrega]}`}>
-              {pedido.dia_entrega}
+            <span className={`px-2 py-1 rounded-full text-xs font-bold ${diaColor[pedido.dia_entrega]} shadow-sm`}>
+              📅 {pedido.dia_entrega}
             </span>
           )}
+          
+          {/* Estado de Pago - MÁS VISIBLE */}
           {pedido.estado_pago && (
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${pagoColor[pedido.estado_pago]}`}>
-              {pedido.estado_pago === 'No Pagado' ? '❌ NO PAGADO' : pedido.estado_pago}
+            <span className={`px-2 py-1 rounded-full text-xs font-bold ${pagoColor[pedido.estado_pago]} border-2 ${
+              pedido.estado_pago === 'Pagado' ? 'border-green-300' : 'border-red-300'
+            } shadow-sm`}>
+              {pedido.estado_pago === 'No Pagado' ? '❌ NO PAGADO' : 
+               pedido.estado_pago === 'Pagado' ? '✅ PAGADO' : pedido.estado_pago}
             </span>
           )}
+          
+          {/* Método de Pago */}
+          {pedido.metodo_pago && pedido.metodo_pago !== 'Pendiente' && (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+              💳 {pedido.metodo_pago}
+            </span>
+          )}
+          
+          {/* Documento Tributario */}
+          {pedido.documento_tributario && pedido.documento_tributario !== 'No requiere' && (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+              📄 {pedido.documento_tributario}
+            </span>
+          )}
+          
+          {/* Tipo de Pedido Especial */}
           {pedido.tipo_pedido && pedido.tipo_pedido !== 'Normal' && (
-            <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-white">
-              {pedido.tipo_pedido}
+            <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-900 text-white shadow-sm">
+              ⭐ {pedido.tipo_pedido}
+            </span>
+          )}
+          
+          {/* Etiqueta de URGENTE para entregas de hoy */}
+          {pedido.estado === 'Entregas de Hoy' && (
+            <span className="px-2 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-lg animate-pulse">
+              🔥 URGENTE HOY
+            </span>
+          )}
+          
+          {/* Motivo del pedido */}
+          {pedido.motivo && pedido.motivo !== 'Sin motivo específico' && (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800 border border-pink-200">
+              💐 {pedido.motivo}
             </span>
           )}
         </div>
@@ -144,6 +235,27 @@ function TarjetaPedido({ pedido, onRecargar }) {
           {pedido.cliente_telefono}
         </div>
       </div>
+      
+      {/* Botón para agregar foto de respaldo */}
+      {necesitaFotoRespaldo && (
+        <div className="mt-3">
+          <button
+            onClick={handleAbrirModalFoto}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm animate-pulse"
+          >
+            <Camera className="h-4 w-4" />
+            Agregar Foto de Respaldo
+          </button>
+        </div>
+      )}
+      
+      {/* Indicador de foto subida */}
+      {pedido.foto_enviado_url && ['Listo para Despacho', 'Despachados'].includes(pedido.estado) && (
+        <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <span className="text-xs font-medium text-green-700">Foto de respaldo subida ✓</span>
+        </div>
+      )}
       
       {/* Precio */}
       <div className="mt-3 pt-3 border-t border-gray-100">
@@ -383,6 +495,102 @@ function TarjetaPedido({ pedido, onRecargar }) {
               className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Modal para subir foto de respaldo */}
+    {mostrarModalFoto && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setMostrarModalFoto(false)}>
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="bg-amber-500 text-white px-6 py-4 flex items-center justify-between rounded-t-lg">
+            <div className="flex items-center gap-2">
+              <Camera className="h-6 w-6" />
+              <h2 className="text-xl font-bold">Foto de Respaldo</h2>
+            </div>
+            <button
+              onClick={() => setMostrarModalFoto(false)}
+              className="p-2 hover:bg-amber-600 rounded-lg transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Contenido */}
+          <div className="p-6 space-y-4">
+            <p className="text-gray-600 text-sm">
+              Sube una foto del arreglo antes de despacharlo para tener un respaldo visual.
+            </p>
+            
+            {/* Input de archivo */}
+            <div>
+              <label className="block w-full">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-500 transition-colors cursor-pointer">
+                  <Upload className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">
+                    {archivoSeleccionado ? archivoSeleccionado.name : 'Haz clic o arrastra una imagen aquí'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG o WEBP (máx. 5MB)</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSeleccionarArchivo}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            
+            {/* Preview de la imagen */}
+            {previewUrl && (
+              <div className="mt-4">
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="w-full h-64 object-contain bg-gray-50 rounded-lg border border-gray-200"
+                />
+              </div>
+            )}
+            
+            {/* Información del pedido */}
+            <div className="bg-gray-50 rounded-lg p-3 text-sm">
+              <p className="font-medium text-gray-700">Pedido: {pedido.id}</p>
+              <p className="text-gray-600">{pedido.cliente_nombre}</p>
+              <p className="text-gray-600">{pedido.arreglo_pedido}</p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+            <button
+              onClick={() => {
+                setMostrarModalFoto(false)
+                setArchivoSeleccionado(null)
+                setPreviewUrl(null)
+              }}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubirFoto}
+              disabled={!archivoSeleccionado || subiendoFoto}
+              className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              {subiendoFoto ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Subiendo...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Subir Foto
+                </>
+              )}
             </button>
           </div>
         </div>

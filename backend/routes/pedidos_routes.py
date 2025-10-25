@@ -3,7 +3,7 @@ Rutas para gestión de pedidos
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.pedido import Pedido, PedidoInsumo
 from models.cliente import Cliente
 from config.plazos_pago import obtener_plazo_pago
@@ -14,13 +14,17 @@ bp = Blueprint('pedidos', __name__)
 
 @bp.route('/', methods=['GET'], strict_slashes=False)
 def listar_pedidos():
-    """Listar todos los pedidos con filtros opcionales"""
+    """Listar pedidos con filtros opcionales y paginación"""
     try:
         # Parámetros de filtro
         estado = request.args.get('estado')
         canal = request.args.get('canal')
         fecha_desde = request.args.get('fecha_desde')
         fecha_hasta = request.args.get('fecha_hasta')
+        
+        # Parámetros de paginación
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 100))
         
         query = Pedido.query
         
@@ -33,12 +37,19 @@ def listar_pedidos():
         if fecha_hasta:
             query = query.filter(Pedido.fecha_pedido <= datetime.fromisoformat(fecha_hasta))
         
-        pedidos = query.order_by(Pedido.fecha_pedido.desc()).all()
+        # Contar total antes de paginar
+        total = query.count()
+        
+        # Aplicar paginación
+        pedidos = query.order_by(Pedido.fecha_pedido.desc()).limit(limit).offset((page - 1) * limit).all()
         
         return jsonify({
             'success': True,
             'data': [p.to_dict() for p in pedidos],
-            'total': len(pedidos)
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -292,7 +303,14 @@ def obtener_tablero():
         tablero = {}
         
         for estado in estados:
-            pedidos = Pedido.query.filter_by(estado=estado).order_by(Pedido.fecha_entrega.asc()).all()
+            if estado == 'Despachados':
+                # Combinar Despachados y Archivado en una sola columna
+                pedidos = Pedido.query.filter(
+                    (Pedido.estado == 'Despachados') | (Pedido.estado == 'Archivado')
+                ).order_by(Pedido.fecha_entrega.desc()).limit(50).all()
+            else:
+                pedidos = Pedido.query.filter_by(estado=estado).order_by(Pedido.fecha_entrega.asc()).all()
+            
             tablero[estado] = [p.to_dict() for p in pedidos]
         
         return jsonify({
@@ -383,17 +401,17 @@ def actualizar_cobranza(pedido_id):
 def resumen_cobranza():
     """Obtener resumen de cobranza pendiente"""
     try:
-        # Pedidos sin pagar
+        # Pedidos sin pagar (ordenados por fecha_pedido descendente - más nuevos primero)
         sin_pagar = Pedido.query.filter(
             Pedido.estado_pago == 'No Pagado',
             Pedido.estado.notin_(['Cancelado', 'Archivado'])
-        ).order_by(Pedido.fecha_entrega.desc()).all()
+        ).order_by(Pedido.fecha_pedido.desc()).all()
         
-        # Pedidos sin documentar
+        # Pedidos sin documentar (ordenados por fecha_pedido descendente - más nuevos primero)
         sin_documentar = Pedido.query.filter(
             Pedido.documento_tributario.in_(['Hacer boleta', 'Hacer factura', 'Falta boleta o factura']),
             Pedido.estado.notin_(['Cancelado'])
-        ).order_by(Pedido.fecha_entrega.desc()).all()
+        ).order_by(Pedido.fecha_pedido.desc()).all()
         
         # Calcular totales
         total_sin_pagar = sum((p.precio_ramo or 0) + (p.precio_envio or 0) for p in sin_pagar)
@@ -421,32 +439,119 @@ def resumen_cobranza():
 def actualizar_estados_por_fecha():
     """
     Actualiza automáticamente los estados de pedidos según su fecha de entrega
-    Se ejecuta al cargar el tablero para mantener pedidos en la columna correcta
+    - Pedidos con fecha pasada → Despachados
+    - Pedidos actuales → Clasificación por fecha
     """
     try:
-        # Solo actualizar pedidos que no estén finalizados
-        estados_activos = ['Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy', 'En Proceso', 'Listo para Despacho']
+        from datetime import datetime, date
         
-        pedidos_activos = Pedido.query.filter(Pedido.estado.in_(estados_activos)).all()
+        hoy = date.today()
+        
+        # Estados que pueden ser actualizados (incluye Archivado para convertir a Despachados)
+        estados_actualizables = [
+            'Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy', 
+            'En Proceso', 'Listo para Despacho', 'Archivado'
+        ]
+        
+        pedidos_actualizables = Pedido.query.filter(Pedido.estado.in_(estados_actualizables)).all()
         
         actualizados = 0
-        for pedido in pedidos_activos:
-            # Reclasificar según fecha actual
-            clasificacion = clasificar_pedido(pedido.fecha_entrega)
+        despachados_automaticos = 0
+        
+        for pedido in pedidos_actualizables:
+            # Convertir fecha_entrega a date si es datetime
+            fecha_entrega = pedido.fecha_entrega.date() if isinstance(pedido.fecha_entrega, datetime) else pedido.fecha_entrega
             
-            # Solo actualizar si el estado cambió Y el pedido aún no está en proceso
-            if pedido.estado in ['Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy']:
-                if pedido.estado != clasificacion['estado']:
-                    pedido.estado = clasificacion['estado']
-                    pedido.dia_entrega = clasificacion['dia_entrega']
+            # Si la fecha de entrega ya pasó → marcar como Despachados
+            if fecha_entrega < hoy:
+                if pedido.estado != 'Despachados':
+                    pedido.estado = 'Despachados'
                     actualizados += 1
+                    despachados_automaticos += 1
+            else:
+                # Si la fecha es hoy o futura → reclasificar según fecha
+                clasificacion = clasificar_pedido(pedido.fecha_entrega)
+                
+                # Solo actualizar si el estado cambió Y el pedido aún no está en proceso
+                if pedido.estado in ['Pedido', 'Pedidos Semana', 'Entregas para Mañana', 'Entregas de Hoy']:
+                    if pedido.estado != clasificacion['estado']:
+                        pedido.estado = clasificacion['estado']
+                        pedido.dia_entrega = clasificacion['dia_entrega']
+                        actualizados += 1
         
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': f'{actualizados} pedidos reclasificados automáticamente',
-            'actualizados': actualizados
+            'message': f'{actualizados} pedidos reclasificados ({despachados_automaticos} marcados como Despachados)',
+            'actualizados': actualizados,
+            'despachados': despachados_automaticos
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<pedido_id>/foto-respaldo', methods=['POST'])
+def subir_foto_respaldo(pedido_id):
+    """
+    Subir foto de respaldo del arreglo antes del despacho
+    """
+    try:
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        # Verificar que el pedido esté en estado correcto
+        if pedido.estado not in ['Listo para Despacho', 'Despachados']:
+            return jsonify({
+                'success': False, 
+                'error': 'Solo se pueden subir fotos de respaldo para pedidos "Listo para Despacho" o "Despachados"'
+            }), 400
+        
+        # Verificar que se envió un archivo
+        if 'imagen' not in request.files:
+            return jsonify({'success': False, 'error': 'No se envió ninguna imagen'}), 400
+        
+        archivo = request.files['imagen']
+        if archivo.filename == '':
+            return jsonify({'success': False, 'error': 'Archivo vacío'}), 400
+        
+        # Validar tipo de archivo
+        extensiones_permitidas = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+        extension = archivo.filename.rsplit('.', 1)[1].lower() if '.' in archivo.filename else ''
+        
+        if extension not in extensiones_permitidas:
+            return jsonify({
+                'success': False, 
+                'error': 'Formato no permitido. Solo: JPG, PNG, WEBP, GIF'
+            }), 400
+        
+        # Guardar archivo
+        import os
+        from werkzeug.utils import secure_filename
+        
+        # Crear directorio si no existe
+        upload_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'fotos_respaldo')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # Nombre del archivo: pedido_id_timestamp.extension
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nombre_archivo = f"{pedido_id}_{timestamp}.{extension}"
+        ruta_archivo = os.path.join(upload_folder, nombre_archivo)
+        
+        # Guardar
+        archivo.save(ruta_archivo)
+        
+        # Actualizar pedido
+        pedido.foto_enviado_url = nombre_archivo
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Foto de respaldo subida correctamente',
+            'foto_url': nombre_archivo
         })
         
     except Exception as e:

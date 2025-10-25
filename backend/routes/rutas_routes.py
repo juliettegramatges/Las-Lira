@@ -3,7 +3,7 @@ Rutas para optimización de despachos y rutas
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.pedido import Pedido
 from config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS, COMUNAS_PRECIOS
 from datetime import datetime, timedelta

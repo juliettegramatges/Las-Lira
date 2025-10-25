@@ -3,7 +3,7 @@ Rutas para gestión de eventos
 """
 
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from models.evento import Evento, EventoInsumo, ProductoEvento
 from models.inventario import Flor, Contenedor
 from models.producto import Producto
