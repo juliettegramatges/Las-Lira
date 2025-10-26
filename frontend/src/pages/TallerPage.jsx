@@ -142,6 +142,14 @@ function TallerPage() {
       return
     }
 
+    // Calcular el stock realmente disponible para este pedido
+    const reservadoEnEstePedido = insumos
+      .filter(i => i.insumo_tipo === nuevoInsumo.tipo)
+      .filter(i => (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === insumoSeleccionado.id)
+      .reduce((sum, i) => sum + (i.cantidad || 0), 0)
+    
+    const stockDisponibleReal = (insumoSeleccionado.cantidad_disponible || 0) + reservadoEnEstePedido
+
     // Crear nuevo insumo para la lista
     const nuevoInsumoItem = {
       id: `temp-${Date.now()}`, // ID temporal para el frontend
@@ -152,7 +160,7 @@ function TallerPage() {
       cantidad: parseInt(nuevoInsumo.cantidad),
       costo_unitario: insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0,
       costo_total: (insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0) * parseInt(nuevoInsumo.cantidad),
-      stock_disponible: insumoSeleccionado.cantidad_disponible || 0,
+      stock_disponible: stockDisponibleReal, // Stock real incluyendo lo reservado en este pedido
       flor_id: nuevoInsumo.tipo === 'Flor' ? insumoSeleccionado.id : null,
       contenedor_id: nuevoInsumo.tipo === 'Contenedor' ? insumoSeleccionado.id : null,
       es_nuevo: true // Marcar como nuevo para el backend
@@ -586,15 +594,30 @@ function TallerPage() {
                   {(() => {
                     const lista = nuevoInsumo.tipo === 'Flor' ? flores : contenedores
                     const listaSegura = Array.isArray(lista) ? lista : []
-                    console.log(`🔍 Renderizando selector - Tipo: ${nuevoInsumo.tipo}, Items: ${listaSegura.length}`, listaSegura)
-                    return listaSegura.map((insumo) => (
-                      <option key={insumo.id} value={insumo.id}>
-                        {insumo.nombre || insumo.tipo}
-                        {insumo.color && ` - ${insumo.color}`}
-                        {' '}
-                        (Stock: {insumo.cantidad_disponible || 0})
-                      </option>
-                    ))
+                    
+                    return listaSegura.map((insumo) => {
+                      // Calcular cuánto de este insumo ya está reservado en ESTE pedido
+                      const reservadoEnEstePedido = insumos
+                        .filter(i => i.insumo_tipo === nuevoInsumo.tipo)
+                        .filter(i => (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === insumo.id)
+                        .reduce((sum, i) => sum + (i.cantidad || 0), 0)
+                      
+                      // El stock "realmente disponible" incluye lo que ya tenemos reservado
+                      const stockDisponibleReal = (insumo.cantidad_disponible || 0) + reservadoEnEstePedido
+                      
+                      const stockInfo = reservadoEnEstePedido > 0
+                        ? `Stock: ${insumo.cantidad_disponible || 0} + ${reservadoEnEstePedido} en pedido = ${stockDisponibleReal}`
+                        : `Stock: ${insumo.cantidad_disponible || 0}`
+                      
+                      return (
+                        <option key={insumo.id} value={insumo.id}>
+                          {insumo.nombre || insumo.tipo}
+                          {insumo.color && ` - ${insumo.color}`}
+                          {' '}
+                          ({stockInfo})
+                        </option>
+                      )
+                    })
                   })()}
                 </select>
               </div>
