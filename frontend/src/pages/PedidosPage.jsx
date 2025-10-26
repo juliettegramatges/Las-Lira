@@ -4,7 +4,6 @@ import axios from 'axios'
 import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import SelectorInsumosColores from '../components/Pedidos/SelectorInsumosColores'
 
 const API_URL = 'http://localhost:5001/api'
 
@@ -128,9 +127,6 @@ function PedidosPage() {
   const [flores, setFlores] = useState([])
   const [contenedores, setContenedores] = useState([])
   
-  // Estados para selector de insumos por color
-  const [insumosSeleccionados, setInsumosSeleccionados] = useState(null)
-  const [costoCalculado, setCostoCalculado] = useState(null)
   
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -388,21 +384,6 @@ function PedidosPage() {
     } else {
       setReceta([])
       setInsumosModificados([])
-    }
-  }
-  
-  const handleInsumosChange = (insumos) => {
-    setInsumosSeleccionados(insumos)
-  }
-  
-  const handleCostoChange = (costo) => {
-    setCostoCalculado(costo)
-    // Auto-actualizar el precio del ramo con el costo calculado
-    if (costo && costo.total > 0) {
-      setFormData(prev => ({
-        ...prev,
-        precio_ramo: Math.ceil(costo.total * 1.5) // Margen sugerido del 50%
-      }))
     }
   }
   
@@ -699,17 +680,8 @@ function PedidosPage() {
       if (response.data.success) {
         const nuevoPedidoId = response.data.data.id
         
-        // Si hay insumos seleccionados (nueva estructura por color), guardarlos
-        if (insumosSeleccionados && (insumosSeleccionados.flores?.length > 0 || insumosSeleccionados.contenedor)) {
-          try {
-            await axios.post(`${API_URL}/pedidos/${nuevoPedidoId}/insumos-detallados`, insumosSeleccionados)
-          } catch (insumosErr) {
-            console.error('Error al guardar insumos:', insumosErr)
-            alert('⚠️ Pedido creado pero error al guardar insumos: ' + (insumosErr.response?.data?.error || insumosErr.message))
-          }
-        }
-        // Si hay insumos modificados (estructura antigua), guardarlos también
-        else if (insumosModificados.length > 0) {
+        // Si hay insumos modificados, guardarlos
+        if (insumosModificados.length > 0) {
           try {
             await axios.post(`${API_URL}/pedidos/${nuevoPedidoId}/insumos`, {
               insumos: insumosModificados
@@ -2166,41 +2138,6 @@ function PedidosPage() {
                   </div>
                 </div>
                 
-                {/* Selector de Insumos por Color */}
-                <div className="bg-white p-4 rounded-lg border-2 border-primary-300">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3 flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Selecciona los Insumos
-                  </h3>
-                  <SelectorInsumosColores
-                    productoId={formData.producto_id}
-                    onInsumosChange={handleInsumosChange}
-                    onCostoChange={handleCostoChange}
-                  />
-                  
-                  {costoCalculado && (
-                    <div className="mt-4 bg-primary-50 p-3 rounded-lg">
-                      <div className="text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-gray-700">Costo Flores:</span>
-                          <span className="font-semibold">${costoCalculado.flores?.toLocaleString('es-CL')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-700">Costo Contenedor:</span>
-                          <span className="font-semibold">${costoCalculado.contenedor?.toLocaleString('es-CL')}</span>
-                        </div>
-                        <div className="flex justify-between border-t border-primary-200 pt-1 mt-1">
-                          <span className="text-gray-900 font-semibold">Costo Total:</span>
-                          <span className="text-primary-600 font-bold text-lg">${costoCalculado.total?.toLocaleString('es-CL')}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          💡 El precio del ramo se calculó automáticamente con un margen del 50%
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
                 {/* Insumos del pedido */}
                 {formData.producto_id && (
                   <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
@@ -2586,16 +2523,6 @@ function PedidosPage() {
                       </div>
                     </div>
                   </div>
-                  {costoCalculado && (
-                    <div className="mt-3 p-3 bg-white rounded border border-amber-200">
-                      <p className="text-xs text-gray-600">
-                        💡 <strong>Costo de insumos:</strong> ${costoCalculado.total?.toLocaleString('es-CL')} 
-                        <span className="ml-2">•</span> 
-                        <strong className="ml-2">Margen:</strong> ${(formData.precio_ramo - (costoCalculado.total || 0)).toLocaleString('es-CL')} 
-                        ({Math.round(((formData.precio_ramo - (costoCalculado.total || 0)) / (costoCalculado.total || 1)) * 100)}%)
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             </form>
