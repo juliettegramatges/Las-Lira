@@ -110,9 +110,21 @@ function TallerPage() {
     }
 
     const listaInsumos = nuevoInsumo.tipo === 'Flor' ? flores : contenedores
+    console.log('🔍 Buscando insumo:', {
+      tipo: nuevoInsumo.tipo,
+      id_buscado: nuevoInsumo.id,
+      id_buscado_tipo: typeof nuevoInsumo.id,
+      id_buscado_parsed: parseInt(nuevoInsumo.id),
+      total_en_lista: listaInsumos?.length,
+      primer_item_lista: listaInsumos?.[0],
+      ids_en_lista: listaInsumos?.slice(0, 5).map(i => ({ id: i.id, tipo: typeof i.id, nombre: i.nombre }))
+    })
+    
     const insumoSeleccionado = listaInsumos.find(i => i.id === parseInt(nuevoInsumo.id))
+    console.log('🎯 Resultado búsqueda:', insumoSeleccionado)
     
     if (!insumoSeleccionado) {
+      console.error('❌ No encontrado. IDs disponibles:', listaInsumos.map(i => i.id))
       alert('Insumo no encontrado')
       return
     }
