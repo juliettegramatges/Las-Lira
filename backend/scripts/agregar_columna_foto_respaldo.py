@@ -62,3 +62,4 @@ with app.app_context():
         db.session.rollback()
         sys.exit(1)
 
+

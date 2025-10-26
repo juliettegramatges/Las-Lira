@@ -76,3 +76,4 @@ def extraer_colores():
 if __name__ == '__main__':
     extraer_colores()
 
+

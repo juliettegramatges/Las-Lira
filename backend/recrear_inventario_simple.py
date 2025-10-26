@@ -108,3 +108,4 @@ with app.app_context():
     print("\n💡 Recarga el navegador y ve a 'Inventario'")
     print("=" * 80)
 
+

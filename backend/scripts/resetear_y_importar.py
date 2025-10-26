@@ -35,3 +35,4 @@ with app.app_context():
     print("   python3 scripts/importar_datos_historicos.py")
     print("")
 
+

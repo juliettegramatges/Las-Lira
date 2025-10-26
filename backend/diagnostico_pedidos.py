@@ -58,3 +58,4 @@ with app.app_context():
     
     print("\n" + "=" * 80)
 
+

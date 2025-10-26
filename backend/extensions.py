@@ -8,3 +8,4 @@ from flask_sqlalchemy import SQLAlchemy
 # Inicializar extensiones sin app
 db = SQLAlchemy()
 
+

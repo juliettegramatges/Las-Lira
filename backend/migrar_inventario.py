@@ -110,3 +110,4 @@ with app.app_context():
     print("   python3 importar_insumos_csv.py")
     print("=" * 80)
 
+

@@ -152,3 +152,4 @@ with app.app_context():
     print("\n💡 Recarga la página de Insumos en el navegador para verlos")
     print("=" * 80)
 
+

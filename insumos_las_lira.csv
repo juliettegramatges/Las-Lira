@@ -1,0 +1,130 @@
+tipo_insumo,nombre,categoria,ubicacion,unidad_medida,es_vendible
+Flor,Rosas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Rosas Rojas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Rosas Blancas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Rosas Rosadas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Lilium,Flores y Follajes,Taller,Tallos,Sí
+Flor,Lilium Blanco,Flores y Follajes,Taller,Tallos,Sí
+Flor,Lilium Rosado,Flores y Follajes,Taller,Tallos,Sí
+Flor,Peonías,Flores y Follajes,Taller,Tallos,Sí
+Flor,Peonías Rosadas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Peonías Blancas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Peonías Rojas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Dalias,Flores y Follajes,Taller,Tallos,Sí
+Flor,Tulipanes,Flores y Follajes,Taller,Tallos,Sí
+Flor,Orquídeas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Lisianthus,Flores y Follajes,Taller,Tallos,Sí
+Flor,Hortensias,Flores y Follajes,Taller,Tallos,Sí
+Flor,Anémonas,Flores y Follajes,Taller,Tallos,Sí
+Flor,Claveles,Flores y Follajes,Taller,Tallos,Sí
+Flor,Gladiolos,Flores y Follajes,Taller,Tallos,No
+Flor,Gerberas,Flores y Follajes,Taller,Tallos,No
+Flor,Girasoles,Flores y Follajes,Taller,Tallos,No
+Flor,Margaritas,Flores y Follajes,Taller,Tallos,No
+Flor,Alstroemerias,Flores y Follajes,Taller,Tallos,No
+Flor,Fresias,Flores y Follajes,Taller,Tallos,No
+Flor,Ranúnculos,Flores y Follajes,Taller,Tallos,No
+Flor,Brassicas (col ornamental),Flores y Follajes,Taller,Tallos,No
+Flor,Jacintos,Flores y Follajes,Taller,Tallos,Sí
+Flor,Amaryllis,Flores y Follajes,Taller,Tallos,Sí
+Flor,Narcisos,Flores y Follajes,Taller,Tallos,Sí
+Flor,Narcisos Tête à Tête,Flores y Follajes,Taller,Tallos,Sí
+Flor,Rusco,Flores y Follajes,Taller,Tallos,No
+Flor,Eucalipto,Flores y Follajes,Taller,Tallos,No
+Flor,Follaje verde mixto,Flores y Follajes,Taller,Tallos,No
+Flor,Helecho,Flores y Follajes,Taller,Tallos,No
+Contenedor,Florero de vidrio cilíndrico,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero de vidrio rectangular,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero de vidrio alto,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Florero de vidrio bajo,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero de vidrio redondo,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Florero de vidrio cuadrado,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero de cerámica,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero metálico,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Florero tipo copa,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero tipo cáliz,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero tipo ampolla,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Florero tipo ánfora,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero para muro,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Florero Aura (doble pared),Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Frutera de vidrio,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Frutera de alambre,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Matero de vidrio,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Matero de cerámica,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Paila decorativa,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Paila de cerámica,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Hielera decorativa,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Copón,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Brisero,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Bandeja rectangular,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Bandeja redonda,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Base de vidrio,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Base de metal,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Base de madera,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Bowl de cerámica,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Bowl de vidrio,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Cubo de vidrio,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Canasto de mimbre,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Canasto redondo,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Canasto con asa,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Caja de madera,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Caja rectangular,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Caja cuadrada,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Boîte (caja decorativa),Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Macetero de cerámica,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Macetero decorativo,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Maceta con drenaje,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Vaso de vidrio,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Cilindro de vidrio,Contenedores,Bodega 2,Unidades,Sí
+Contenedor,Ampolla uniflor,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Ánfora pequeña,Contenedores,Bodega 1,Unidades,Sí
+Contenedor,Ánfora grande,Contenedores,Bodega 2,Unidades,Sí
+Material,OASIS (espuma floral),Materiales,Bodega 1,Rollos/Metros,No
+Material,Espuma floral seca,Materiales,Bodega 1,Rollos/Metros,No
+Material,Malla floral,Materiales,Bodega 1,Rollos/Metros,No
+Material,Papel decorativo,Materiales,Bodega 1,Rollos/Metros,No
+Material,Celofán,Materiales,Bodega 1,Rollos/Metros,No
+Material,Rafia,Materiales,Bodega 1,Rollos/Metros,No
+Material,Cinta decorativa,Materiales,Bodega 1,Rollos/Metros,No
+Material,Cinta de raso,Materiales,Bodega 1,Rollos/Metros,No
+Material,Hilo decorativo,Materiales,Bodega 1,Rollos/Metros,No
+Material,Alambre floral,Materiales,Bodega 1,Rollos/Metros,No
+Material,Alambre decorativo,Materiales,Bodega 2,Rollos/Metros,No
+Material,Musgo,Materiales,Bodega 1,Rollos/Metros,No
+Material,Musgo verde,Materiales,Bodega 1,Rollos/Metros,No
+Material,Corteza decorativa,Materiales,Bodega 1,Rollos/Metros,No
+Material,Tarjeta de mensaje,Materiales,Bodega 1,Unidades,No
+Material,Pinchos florales,Materiales,Bodega 1,Rollos/Metros,No
+Material,Cinta adhesiva floral,Materiales,Bodega 1,Rollos/Metros,No
+Decorativo,Candelabro negro,Accesorios Decorativos,Bodega 2,Unidades,Sí
+Decorativo,Candelabro antiguo dorado,Accesorios Decorativos,Bodega 2,Unidades,Sí
+Decorativo,Candelabro de metal,Accesorios Decorativos,Bodega 1,Unidades,Sí
+Decorativo,Corona metálica decorativa,Accesorios Decorativos,Bodega 1,Unidades,Sí
+Decorativo,Escultura decorativa (Bola Pájaro),Accesorios Decorativos,Bodega 2,Unidades,Sí
+Decorativo,Frutera de alambre dorado grande,Accesorios Decorativos,Bodega 1,Unidades,Sí
+Decorativo,Frutera de alambre dorado pequeña,Accesorios Decorativos,Bodega 2,Unidades,Sí
+Decorativo,Cerámica decorativa (Volcano),Accesorios Decorativos,Bodega 2,Unidades,Sí
+Decorativo,Cerámica rectangular baja,Accesorios Decorativos,Bodega 2,Unidades,Sí
+Decorativo,Cerámica Calypso,Accesorios Decorativos,Bodega 1,Unidades,Sí
+Decorativo,Estructura metálica para florero,Accesorios Decorativos,Bodega 1,Unidades,Sí
+Complemento,Limones decorativos,Complementos,Bodega 1,Unidades,No
+Complemento,Kumquats decorativos,Complementos,Bodega 1,Unidades,No
+Complemento,Frutas decorativas,Complementos,Bodega 2,Unidades,No
+Complemento,Velas decorativas,Complementos,Bodega 2,Unidades,Sí
+Flores y Follajes,Fucsias,Flores,Taller,Tallo,Sí
+Flor,Narcisos Amarillos,Flores,Taller,Tallo,Sí
+Flor,Green Ball,Flores,Taller,Tallo,No
+Follaje,Ruscus,Follajes,Taller,Tallo,No
+Fruto,Hipericus Blanco,Frutos decorativos,Taller,Tallo,No
+Flor,Astromelias Blancas,Flores,Taller,Tallo,Sí
+Flor,Astromelias,Flores,Taller,Tallo,Sí
+Flor,Orquídeas Dobles,Flores,Taller,Tallo,Sí
+Flor,Lirios,Flores,Taller,Tallo,Sí
+Contenedor,Cilindro 14×20,Contenedores,Bodega 1,Unidad,No
+Contenedor,Cilindro,Contenedores,Bodega 1,Unidad,No
+Contenedor,Florero,Contenedores,Bodega 1,Unidad,Sí
+Contenedor,Jarrón Europeo,Contenedores,Bodega 1,Unidad,No
+Contenedor,Macetero Greda 20×20,Contenedores,Bodega 2,Unidad,No
+Contenedor,Macetero Greda,Contenedores,Bodega 2,Unidad,No
+Contenedor,Base Metálica Dorada,Bases decorativas,Bodega 1,Unidad,No
+Contenedor,Hielera,Contenedores,Bodega 2,Unidad,No

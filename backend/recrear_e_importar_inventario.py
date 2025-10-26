@@ -150,3 +150,4 @@ with app.app_context():
     print("\n💡 Recarga la página de Inventario en el navegador para verlos")
     print("=" * 80)
 
+
