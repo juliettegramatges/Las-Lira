@@ -802,14 +802,14 @@ function PedidosPage() {
             onClick={() => {
               window.open(`${API_URL}/exportar/pedidos`, '_blank')
             }}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+            className="px-5 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 shadow-sm hover:shadow-md transition-all duration-200 flex items-center font-medium"
           >
             <Download className="h-5 w-5 mr-2" />
             Descargar Excel
           </button>
           <button 
             onClick={() => setMostrarFormulario(true)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center"
+            className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 shadow-sm hover:shadow-md transition-all duration-200 flex items-center font-medium"
           >
             <Plus className="h-5 w-5 mr-2" />
             Nuevo Pedido
@@ -818,53 +818,56 @@ function PedidosPage() {
       </div>
       
       {/* Barra de búsqueda */}
-      <div className="mb-4">
+      <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por ID, cliente, teléfono, arreglo, comuna, destinatario..."
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full pl-12 pr-12 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
           />
           {busqueda && (
             <button
               onClick={() => setBusqueda('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
           )}
         </div>
         {busqueda && (
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-3 text-sm text-gray-600 font-medium">
             📊 Mostrando {pedidosFiltrados.length} de {pedidos.length} pedidos
           </p>
         )}
       </div>
 
       {/* Filtros */}
-      <div className="mb-6 flex gap-4">
-        <select
-          value={filtroEstado}
-          onChange={(e) => {
-            setFiltroEstado(e.target.value)
-            setPaginaActual(1)
-          }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="">Todos los estados</option>
-          <option value="Entregas de Hoy">Entregas de Hoy</option>
-          <option value="Entregas para Mañana">Entregas para Mañana</option>
-          <option value="En Proceso">En Proceso</option>
-          <option value="Listo para Despacho">Listo para Despacho</option>
-          <option value="Despachados">Despachados</option>
-          <option value="Pedidos Semana">Pedidos Semana</option>
-          <option value="Eventos">Eventos</option>
-          <option value="Archivado">Archivado</option>
-          <option value="Cancelado">Cancelado</option>
-        </select>
+      <div className="mb-6 flex gap-3">
+        <div className="flex items-center gap-2 flex-1">
+          <Filter className="h-5 w-5 text-gray-400" />
+          <select
+            value={filtroEstado}
+            onChange={(e) => {
+              setFiltroEstado(e.target.value)
+              setPaginaActual(1)
+            }}
+            className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-white font-medium text-gray-700"
+          >
+            <option value="">Todos los estados</option>
+            <option value="Entregas de Hoy">🔥 Entregas de Hoy</option>
+            <option value="Entregas para Mañana">📅 Entregas para Mañana</option>
+            <option value="En Proceso">⚙️ En Proceso</option>
+            <option value="Listo para Despacho">✅ Listo para Despacho</option>
+            <option value="Despachados">🚚 Despachados</option>
+            <option value="Pedidos Semana">📆 Pedidos Semana</option>
+            <option value="Eventos">🎉 Eventos</option>
+            <option value="Archivado">📦 Archivado</option>
+            <option value="Cancelado">❌ Cancelado</option>
+          </select>
+        </div>
         
         <select
           value={filtroCanal}
@@ -872,50 +875,50 @@ function PedidosPage() {
             setFiltroCanal(e.target.value)
             setPaginaActual(1)
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 bg-white font-medium text-gray-700"
         >
           <option value="">Todos los canales</option>
-          <option value="Shopify">Shopify</option>
-          <option value="WhatsApp">WhatsApp</option>
+          <option value="Shopify">🛒 Shopify</option>
+          <option value="WhatsApp">💬 WhatsApp</option>
         </select>
       </div>
       
       {/* Controles de Paginación */}
-      <div className="mb-4 flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
-        <div className="text-sm text-gray-700">
-          Mostrando <span className="font-medium">{((paginaActual - 1) * limitePorPagina) + 1}</span> a{' '}
-          <span className="font-medium">{Math.min(paginaActual * limitePorPagina, totalPedidos)}</span> de{' '}
-          <span className="font-medium">{totalPedidos.toLocaleString()}</span> pedidos
+      <div className="mb-6 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-xl border border-gray-200">
+        <div className="text-sm text-gray-700 font-medium">
+          Mostrando <span className="text-pink-600 font-bold">{((paginaActual - 1) * limitePorPagina) + 1}</span> a{' '}
+          <span className="text-pink-600 font-bold">{Math.min(paginaActual * limitePorPagina, totalPedidos)}</span> de{' '}
+          <span className="text-pink-600 font-bold">{totalPedidos.toLocaleString()}</span> pedidos
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPaginaActual(1)}
             disabled={paginaActual === 1}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-pink-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
           >
             Primero
           </button>
           <button
             onClick={() => setPaginaActual(prev => Math.max(1, prev - 1))}
             disabled={paginaActual === 1}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-pink-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
           >
             Anterior
           </button>
-          <span className="px-4 py-1 border border-gray-300 rounded-md text-sm font-medium bg-white">
+          <span className="px-5 py-2 border-2 border-pink-200 bg-pink-50 rounded-lg text-sm font-bold text-pink-600">
             {paginaActual} / {totalPaginas}
           </span>
           <button
             onClick={() => setPaginaActual(prev => Math.min(totalPaginas, prev + 1))}
             disabled={paginaActual === totalPaginas}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-pink-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
           >
             Siguiente
           </button>
           <button
             onClick={() => setPaginaActual(totalPaginas)}
             disabled={paginaActual === totalPaginas}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-pink-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
           >
             Último
           </button>
@@ -923,7 +926,7 @@ function PedidosPage() {
       </div>
       
       {/* Tabla de pedidos */}
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+      <div className="bg-white shadow-md rounded-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
