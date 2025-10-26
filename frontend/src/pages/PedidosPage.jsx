@@ -113,9 +113,7 @@ function PedidosPage() {
   // Estados para personalización
   const [esPersonalizacion, setEsPersonalizacion] = useState(false)
   const [datosPersonalizacion, setDatosPersonalizacion] = useState({
-    colores_deseados: [],
-    producto_shopify_referencia: '',
-    notas_personalizacion: ''
+    producto_shopify_referencia: ''
   })
   const [plazoPagoManual, setPlazoPagoManual] = useState(false)
   const [sugerenciasClientes, setSugerenciasClientes] = useState([])
@@ -397,16 +395,7 @@ function PedidosPage() {
     }
   }
   
-  // Funciones para personalización
-  const handleToggleColor = (color) => {
-    setDatosPersonalizacion(prev => {
-      const colores = prev.colores_deseados.includes(color)
-        ? prev.colores_deseados.filter(c => c !== color)
-        : [...prev.colores_deseados, color]
-      return { ...prev, colores_deseados: colores }
-    })
-  }
-  
+  // Función para personalización
   const handlePersonalizacionChange = (campo, valor) => {
     setDatosPersonalizacion(prev => ({
       ...prev,
@@ -428,9 +417,7 @@ function PedidosPage() {
     setCostoCalculado(null)
     setEsPersonalizacion(false)
     setDatosPersonalizacion({
-      colores_deseados: [],
-      producto_shopify_referencia: '',
-      notas_personalizacion: ''
+      producto_shopify_referencia: ''
     })
     setFormData({
       canal: 'WhatsApp',
@@ -668,26 +655,11 @@ function PedidosPage() {
       // Construir detalles adicionales incluyendo datos de personalización
       let detallesCompletos = formData.detalles_adicionales || ''
       
-      if (esPersonalizacion) {
-        let detallesPersonalizacion = []
-        
-        if (datosPersonalizacion.colores_deseados.length > 0) {
-          detallesPersonalizacion.push(`🎨 Colores: ${datosPersonalizacion.colores_deseados.join(', ')}`)
-        }
-        
-        if (datosPersonalizacion.producto_shopify_referencia) {
-          detallesPersonalizacion.push(`🛍️ Ref Shopify: ${datosPersonalizacion.producto_shopify_referencia}`)
-        }
-        
-        if (datosPersonalizacion.notas_personalizacion) {
-          detallesPersonalizacion.push(`📝 Notas: ${datosPersonalizacion.notas_personalizacion}`)
-        }
-        
-        if (detallesPersonalizacion.length > 0) {
-          detallesCompletos = detallesCompletos 
-            ? `${detallesCompletos}\n\n--- PERSONALIZACIÓN ---\n${detallesPersonalizacion.join('\n')}`
-            : detallesPersonalizacion.join('\n')
-        }
+      if (esPersonalizacion && datosPersonalizacion.producto_shopify_referencia) {
+        const refShopify = `🛍️ Ref Shopify: ${datosPersonalizacion.producto_shopify_referencia}`
+        detallesCompletos = detallesCompletos 
+          ? `${detallesCompletos}\n\n${refShopify}`
+          : refShopify
       }
       
       const pedidoData = {
@@ -2148,79 +2120,23 @@ function PedidosPage() {
                       )}
                     </div>
                     
-                    {/* Opciones especiales para Personalización */}
+                    {/* Campo para Personalización */}
                     {esPersonalizacion && (
-                      <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-300">
-                        <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
-                          <Palette className="h-5 w-5" />
-                          Opciones de Personalización
-                        </h4>
-                        
-                        {/* 1. Definir Colores */}
-                        <div className="mb-4">
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            1️⃣ Colores Deseados (selecciona uno o más)
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {COLORES_DISPONIBLES.map(color => (
-                              <button
-                                key={color}
-                                type="button"
-                                onClick={() => handleToggleColor(color)}
-                                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                                  datosPersonalizacion.colores_deseados.includes(color)
-                                    ? 'bg-purple-600 text-white ring-2 ring-purple-400'
-                                    : 'bg-white text-gray-700 border border-gray-300 hover:border-purple-400'
-                                }`}
-                              >
-                                {datosPersonalizacion.colores_deseados.includes(color) && '✓ '}
-                                {color}
-                              </button>
-                            ))}
-                          </div>
-                          {datosPersonalizacion.colores_deseados.length > 0 && (
-                            <p className="text-xs text-purple-600 mt-2">
-                              ✓ Seleccionados: {datosPersonalizacion.colores_deseados.join(', ')}
-                            </p>
-                          )}
-                        </div>
-                        
-                        {/* 2. Producto Shopify Parecido */}
-                        <div className="mb-4">
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            2️⃣ Producto en Shopify Parecido (opcional)
-                          </label>
-                          <input
-                            type="text"
-                            value={datosPersonalizacion.producto_shopify_referencia}
-                            onChange={(e) => handlePersonalizacionChange('producto_shopify_referencia', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                            placeholder="Ej: Ramo Pasión, URL de Shopify, código del producto..."
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            💡 Nombre o link del producto de referencia en tu tienda online
-                          </p>
-                        </div>
-                        
-                        {/* 3. Notas de Personalización */}
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            3️⃣ Notas Adicionales de Personalización
-                          </label>
-                          <textarea
-                            value={datosPersonalizacion.notas_personalizacion}
-                            onChange={(e) => handlePersonalizacionChange('notas_personalizacion', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                            rows="3"
-                            placeholder="Ej: Cliente quiere rosas grandes, sin follaje verde, estilo romántico..."
-                          />
-                        </div>
-                        
-                        <div className="mt-3 p-2 bg-white rounded border border-purple-200">
-                          <p className="text-xs text-gray-600">
-                            💡 <strong>Siguiente paso:</strong> Define los insumos específicos (flores y contenedor) en la sección de abajo
-                          </p>
-                        </div>
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <label className="block text-sm font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                          <Palette className="h-4 w-4" />
+                          Producto en Shopify Parecido (opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={datosPersonalizacion.producto_shopify_referencia}
+                          onChange={(e) => handlePersonalizacionChange('producto_shopify_referencia', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                          placeholder="Ej: Ramo Pasión, Bouquet XL, URL del producto..."
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Referencia visual para el taller
+                        </p>
                       </div>
                     )}
                     
@@ -2422,52 +2338,6 @@ function PedidosPage() {
                   </div>
                 )}
                 
-                {/* Precios */}
-                <div className="bg-primary-50 p-4 rounded-lg border-2 border-primary-200">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">
-                    Precios
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio Ramo <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        step="1000"
-                        value={formData.precio_ramo}
-                        onChange={(e) => setFormData({...formData, precio_ramo: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="35000"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio Envío
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={formData.precio_envio}
-                        onChange={(e) => setFormData({...formData, precio_envio: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="7000"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Total
-                      </label>
-                      <div className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg font-bold text-primary-600 text-lg">
-                        ${totalPedido.toLocaleString('es-CL')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
                 {/* Mensaje y Destinatario */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
@@ -2624,6 +2494,69 @@ function PedidosPage() {
                       <option key={motivo} value={motivo}>{motivo}</option>
                     ))}
                   </select>
+                </div>
+                
+                {/* Precios - Al Final */}
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-5 rounded-lg border-2 border-amber-400 shadow-md">
+                  <h3 className="text-sm font-bold text-amber-900 uppercase mb-4 flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2" />
+                    💰 Precios del Pedido
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Precio Ramo <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3 text-gray-500 font-bold">$</span>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="1000"
+                          value={formData.precio_ramo}
+                          onChange={(e) => setFormData({...formData, precio_ramo: e.target.value})}
+                          className="w-full pl-8 pr-4 py-2 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold"
+                          placeholder="35000"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Precio Envío
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3 text-gray-500 font-bold">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={formData.precio_envio}
+                          onChange={(e) => setFormData({...formData, precio_envio: e.target.value})}
+                          className="w-full pl-8 pr-4 py-2 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold"
+                          placeholder="7000"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        💵 Total a Cobrar
+                      </label>
+                      <div className="w-full px-4 py-2 bg-gradient-to-r from-amber-200 to-yellow-200 border-2 border-amber-500 rounded-lg font-black text-amber-900 text-2xl text-center shadow-inner">
+                        ${totalPedido.toLocaleString('es-CL')}
+                      </div>
+                    </div>
+                  </div>
+                  {costoCalculado && (
+                    <div className="mt-3 p-3 bg-white rounded border border-amber-200">
+                      <p className="text-xs text-gray-600">
+                        💡 <strong>Costo de insumos:</strong> ${costoCalculado.total?.toLocaleString('es-CL')} 
+                        <span className="ml-2">•</span> 
+                        <strong className="ml-2">Margen:</strong> ${(formData.precio_ramo - (costoCalculado.total || 0)).toLocaleString('es-CL')} 
+                        ({Math.round(((formData.precio_ramo - (costoCalculado.total || 0)) / (costoCalculado.total || 1)) * 100)}%)
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </form>
