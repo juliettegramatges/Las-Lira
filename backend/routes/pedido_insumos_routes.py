@@ -159,21 +159,52 @@ def confirmar_insumos_y_descontar(pedido_id):
         db.session.flush()  # Guardar cambios de cantidades
         
         # Verificar disponibilidad de stock
+        # IMPORTANTE: El stock disponible DEBE incluir lo que este pedido ya tiene en uso
+        # Porque al confirmar, primero liberamos el "en uso" de este pedido, luego descontamos del total
         errores_stock = []
         for insumo in insumos:
             if insumo.insumo_tipo == 'Flor':
                 flor = Flor.query.get(insumo.insumo_id)
                 if not flor:
                     errores_stock.append(f'Flor {insumo.insumo_id} no encontrada')
-                elif flor.cantidad_disponible < insumo.cantidad:
-                    errores_stock.append(f'{flor.tipo} {flor.color}: Stock insuficiente (Disponible: {flor.cantidad_disponible}, Requerido: {insumo.cantidad})')
+                else:
+                    # Calcular cuánto de este insumo está reservado por ESTE pedido
+                    reservado_este_pedido = sum(
+                        i.cantidad for i in insumos 
+                        if i.insumo_tipo == 'Flor' and i.insumo_id == insumo.insumo_id
+                    )
+                    
+                    # Stock realmente disponible = disponible general + lo que este pedido tiene reservado
+                    # (porque al confirmar, liberamos primero lo de este pedido)
+                    stock_real_disponible = flor.cantidad_disponible + reservado_este_pedido
+                    
+                    if stock_real_disponible < insumo.cantidad:
+                        errores_stock.append(
+                            f'{flor.tipo} {flor.color}: Stock insuficiente '
+                            f'(Disponible: {flor.cantidad_disponible}, En este pedido: {reservado_este_pedido}, '
+                            f'Total disponible: {stock_real_disponible}, Requerido: {insumo.cantidad})'
+                        )
             
             elif insumo.insumo_tipo == 'Contenedor':
                 contenedor = Contenedor.query.get(insumo.insumo_id)
                 if not contenedor:
                     errores_stock.append(f'Contenedor {insumo.insumo_id} no encontrado')
-                elif contenedor.cantidad_disponible < insumo.cantidad:
-                    errores_stock.append(f'{contenedor.tipo}: Stock insuficiente (Disponible: {contenedor.cantidad_disponible}, Requerido: {insumo.cantidad})')
+                else:
+                    # Calcular cuánto de este insumo está reservado por ESTE pedido
+                    reservado_este_pedido = sum(
+                        i.cantidad for i in insumos 
+                        if i.insumo_tipo == 'Contenedor' and i.insumo_id == insumo.insumo_id
+                    )
+                    
+                    # Stock realmente disponible = disponible general + lo que este pedido tiene reservado
+                    stock_real_disponible = contenedor.cantidad_disponible + reservado_este_pedido
+                    
+                    if stock_real_disponible < insumo.cantidad:
+                        errores_stock.append(
+                            f'{contenedor.tipo}: Stock insuficiente '
+                            f'(Disponible: {contenedor.cantidad_disponible}, En este pedido: {reservado_este_pedido}, '
+                            f'Total disponible: {stock_real_disponible}, Requerido: {insumo.cantidad})'
+                        )
         
         if errores_stock:
             return jsonify({
