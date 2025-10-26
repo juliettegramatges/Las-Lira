@@ -1964,7 +1964,7 @@ function PedidosPage() {
                 </div>
                 
                 {/* Insumos del pedido */}
-                {formData.producto_id && receta.length > 0 && (
+                {formData.producto_id && (receta.length > 0 || insumosModificados.length > 0) && (
                   <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-gray-700 uppercase flex items-center gap-2">
@@ -1991,7 +1991,7 @@ function PedidosPage() {
                     
                     {loadingReceta ? (
                       <div className="text-center py-4 text-gray-500">Cargando insumos...</div>
-                    ) : insumosModificados.length === 0 ? (
+                    ) : insumosModificados.length === 0 && receta.length === 0 ? (
                       <div className="text-center py-4 text-gray-500">
                         No hay insumos definidos. Haz clic en "+ Flor" o "+ Contenedor" para agregar.
                       </div>
@@ -2294,27 +2294,9 @@ function PedidosPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
                     <option value="">-- Seleccionar motivo --</option>
-                    <option value="Cumpleaños">Cumpleaños</option>
-                    <option value="Aniversario">Aniversario</option>
-                    <option value="San Valentín">San Valentín</option>
-                    <option value="Día de la Madre">Día de la Madre</option>
-                    <option value="Día del Padre">Día del Padre</option>
-                    <option value="Mejórate">Mejórate</option>
-                    <option value="Condolencias">Condolencias</option>
-                    <option value="Agradecimiento">Agradecimiento</option>
-                    <option value="Felicitaciones">Felicitaciones</option>
-                    <option value="Graduación">Graduación</option>
-                    <option value="Nacimiento">Nacimiento</option>
-                    <option value="Boda">Boda</option>
-                    <option value="Propuesta">Propuesta</option>
-                    <option value="Amor y Romance">Amor y Romance</option>
-                    <option value="Solo porque sí">Solo porque sí</option>
-                    <option value="Disculpas">Disculpas</option>
-                    <option value="Nuevo hogar">Nuevo hogar</option>
-                    <option value="Nuevo trabajo">Nuevo trabajo</option>
-                    <option value="Navidad">Navidad</option>
-                    <option value="Año Nuevo">Año Nuevo</option>
-                    <option value="Otro">Otro</option>
+                    {MOTIVOS_PEDIDO.map(motivo => (
+                      <option key={motivo} value={motivo}>{motivo}</option>
+                    ))}
                   </select>
                 </div>
               </div>
