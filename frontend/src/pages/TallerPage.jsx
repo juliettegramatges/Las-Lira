@@ -322,17 +322,9 @@ function TallerPage() {
                 <div className="text-center py-12">
                   <div className="text-gray-500">Cargando insumos...</div>
                 </div>
-              ) : insumos.length === 0 ? (
-                <div className="text-center py-12">
-                  <AlertCircle className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Este pedido aún no tiene insumos definidos</p>
-                  <p className="text-gray-400 text-sm mt-2">
-                    Los insumos se definen al crear el pedido
-                  </p>
-                </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Botón para agregar insumo */}
+                  {/* Botón para agregar insumo - SIEMPRE VISIBLE */}
                   <div className="flex justify-end">
                     <button
                       onClick={() => setMostrarSelectorInsumo(true)}
@@ -343,8 +335,18 @@ function TallerPage() {
                     </button>
                   </div>
 
-                  {/* Tabla de insumos */}
-                  <div className="overflow-x-auto">
+                  {insumos.length === 0 ? (
+                    <div className="text-center py-12">
+                      <AlertCircle className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
+                      <p className="text-gray-600">Este pedido aún no tiene insumos definidos</p>
+                      <p className="text-gray-400 text-sm mt-2">
+                        Usa el botón "Agregar Insumo" para comenzar
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Tabla de insumos */}
+                      <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -471,6 +473,8 @@ function TallerPage() {
                       </div>
                     </div>
                   )}
+                </>
+              )}
                 </div>
               )}
             </div>
