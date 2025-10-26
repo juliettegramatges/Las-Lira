@@ -48,9 +48,15 @@ function TallerPage() {
       ])
       console.log('📦 Flores recibidas:', floresRes.data)
       console.log('📦 Contenedores recibidos:', contenedoresRes.data)
-      setFlores(floresRes.data)
-      setContenedores(contenedoresRes.data)
-      console.log('✅ Estados actualizados - Flores:', floresRes.data?.length, 'Contenedores:', contenedoresRes.data?.length)
+      
+      // La respuesta tiene estructura {data: Array, success: true, total: N}
+      const floresArray = floresRes.data.data || floresRes.data
+      const contenedoresArray = contenedoresRes.data.data || contenedoresRes.data
+      
+      setFlores(Array.isArray(floresArray) ? floresArray : [])
+      setContenedores(Array.isArray(contenedoresArray) ? contenedoresArray : [])
+      
+      console.log('✅ Estados actualizados - Flores:', floresArray?.length, 'Contenedores:', contenedoresArray?.length)
     } catch (err) {
       console.error('Error al cargar insumos disponibles:', err)
     }
