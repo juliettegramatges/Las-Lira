@@ -2279,30 +2279,74 @@ function PedidosPage() {
                         </table>
                       </div>
                     ) : receta.length > 0 ? (
-                      <div className="text-center py-6 bg-white rounded-lg border-2 border-dashed border-green-300">
-                        <div className="mb-3">
-                          <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
+                      <div className="py-4 bg-white rounded-lg border-2 border-dashed border-green-300">
+                        <div className="text-center mb-4">
+                          <div className="mb-2">
+                            <CheckCircle className="h-10 w-10 mx-auto text-green-500" />
+                          </div>
+                          <p className="text-gray-700 font-medium mb-1">
+                            ✅ Receta cargada: {receta.length} insumo{receta.length > 1 ? 's' : ''}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            La receta del producto está lista. Estos insumos se usarán automáticamente.
+                          </p>
                         </div>
-                        <p className="text-gray-700 font-medium mb-1">
-                          ✅ Receta cargada: {receta.length} insumo{receta.length > 1 ? 's' : ''}
-                        </p>
-                        <p className="text-sm text-gray-500 mb-3">
-                          La receta del producto está lista. Estos insumos se usarán automáticamente.
-                        </p>
-                        <div className="max-w-md mx-auto text-left bg-gray-50 p-3 rounded">
+                        
+                        <div className="max-w-2xl mx-auto px-4 space-y-2">
                           {receta.map((insumo, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-sm py-1 border-b border-gray-200 last:border-b-0">
-                              <span className="text-gray-700">
-                                <span className={`inline-block w-16 text-xs px-2 py-0.5 rounded ${insumo.insumo_tipo === 'Flor' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                  {insumo.insumo_tipo}
-                                </span>
-                                {' '}{insumo.insumo_nombre}
-                              </span>
-                              <span className="font-semibold text-gray-900">x{insumo.cantidad}</span>
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-300 transition-colors">
+                              {/* Foto del insumo */}
+                              <div className="flex-shrink-0">
+                                {insumo.insumo_foto ? (
+                                  <img 
+                                    src={`${API_URL}/upload/imagen/${insumo.insumo_foto}`}
+                                    alt={insumo.insumo_nombre}
+                                    className="w-16 h-16 object-cover rounded-lg border-2 border-gray-200"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none'
+                                      e.target.nextSibling.style.display = 'flex'
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={insumo.insumo_foto ? 'hidden' : 'flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg'}>
+                                  <Package className="h-8 w-8 text-gray-400" />
+                                </div>
+                              </div>
+                              
+                              {/* Info del insumo */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${insumo.insumo_tipo === 'Flor' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {insumo.insumo_tipo}
+                                  </span>
+                                  {insumo.insumo_color && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+                                      <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                                      {insumo.insumo_color}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="font-semibold text-gray-900 truncate">
+                                  {insumo.insumo_nombre}
+                                </p>
+                                {insumo.stock_disponible !== undefined && (
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    Stock disponible: {insumo.stock_disponible}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Cantidad */}
+                              <div className="flex-shrink-0 text-right">
+                                <div className="bg-white px-3 py-2 rounded-lg border-2 border-green-300">
+                                  <span className="text-lg font-bold text-green-700">x{insumo.cantidad}</span>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-gray-400 mt-3">
+                        
+                        <p className="text-xs text-gray-400 mt-4 text-center">
                           💡 Puedes agregar más insumos usando los botones arriba
                         </p>
                       </div>
