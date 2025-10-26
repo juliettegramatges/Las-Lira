@@ -46,8 +46,11 @@ function TallerPage() {
         inventarioAPI.listarFlores(),
         inventarioAPI.listarContenedores()
       ])
+      console.log('📦 Flores recibidas:', floresRes.data)
+      console.log('📦 Contenedores recibidos:', contenedoresRes.data)
       setFlores(floresRes.data)
       setContenedores(contenedoresRes.data)
+      console.log('✅ Estados actualizados - Flores:', floresRes.data?.length, 'Contenedores:', contenedoresRes.data?.length)
     } catch (err) {
       console.error('Error al cargar insumos disponibles:', err)
     }
@@ -554,6 +557,7 @@ function TallerPage() {
                   {(() => {
                     const lista = nuevoInsumo.tipo === 'Flor' ? flores : contenedores
                     const listaSegura = Array.isArray(lista) ? lista : []
+                    console.log(`🔍 Renderizando selector - Tipo: ${nuevoInsumo.tipo}, Items: ${listaSegura.length}`, listaSegura)
                     return listaSegura.map((insumo) => (
                       <option key={insumo.id} value={insumo.id}>
                         {insumo.nombre || insumo.tipo}
