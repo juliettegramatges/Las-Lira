@@ -2220,15 +2220,15 @@ function PedidosPage() {
                       <div className="text-center py-4 text-gray-500">
                         <div className="animate-pulse">⏳ Cargando insumos del producto...</div>
                       </div>
-                    ) : insumosModificados.length === 0 ? (
+                    ) : insumosModificados.length === 0 && receta.length === 0 ? (
                       <div className="text-center py-6 bg-white rounded-lg border-2 border-dashed border-yellow-300">
                         <div className="mb-3">
                           <Package className="h-12 w-12 mx-auto text-yellow-400" />
                         </div>
                         <p className="text-gray-700 font-medium mb-1">
-                          {receta.length === 0 
-                            ? 'Este producto no tiene insumos predefinidos' 
-                            : 'Insumos listos para agregar'}
+                          {esPersonalizacion
+                            ? '✨ Personalización: Empieza agregando insumos'
+                            : 'Este producto no tiene insumos predefinidos'}
                         </p>
                         <p className="text-sm text-gray-500 mb-3">
                           Usa los botones <span className="font-semibold text-green-600">+ Flor</span> o <span className="font-semibold text-blue-600">+ Contenedor</span> arriba para agregar insumos al pedido
@@ -2237,7 +2237,7 @@ function PedidosPage() {
                           💡 Los insumos te ayudan a gestionar el stock automáticamente
                         </p>
                       </div>
-                    ) : (
+                    ) : insumosModificados.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-300">
                           <thead className="bg-yellow-100">
@@ -2330,7 +2330,35 @@ function PedidosPage() {
                           </tfoot>
                         </table>
                       </div>
-                    )}
+                    ) : receta.length > 0 ? (
+                      <div className="text-center py-6 bg-white rounded-lg border-2 border-dashed border-green-300">
+                        <div className="mb-3">
+                          <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
+                        </div>
+                        <p className="text-gray-700 font-medium mb-1">
+                          ✅ Receta cargada: {receta.length} insumo{receta.length > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-sm text-gray-500 mb-3">
+                          La receta del producto está lista. Estos insumos se usarán automáticamente.
+                        </p>
+                        <div className="max-w-md mx-auto text-left bg-gray-50 p-3 rounded">
+                          {receta.map((insumo, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-sm py-1 border-b border-gray-200 last:border-b-0">
+                              <span className="text-gray-700">
+                                <span className={`inline-block w-16 text-xs px-2 py-0.5 rounded ${insumo.insumo_tipo === 'Flor' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                  {insumo.insumo_tipo}
+                                </span>
+                                {' '}{insumo.insumo_nombre}
+                              </span>
+                              <span className="font-semibold text-gray-900">x{insumo.cantidad}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-3">
+                          💡 Puedes agregar más insumos usando los botones arriba
+                        </p>
+                      </div>
+                    ) : null}
                     
                     <p className="text-xs text-gray-600 mt-2">
                       💡 Estos insumos se guardarán con el pedido y se usarán en el Taller para confirmar y descontar stock.
