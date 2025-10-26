@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download } from 'lucide-react'
+import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 
 const API_URL = 'http://localhost:5001/api'
 
@@ -38,6 +38,19 @@ function ProductosPage() {
   const [receta, setReceta] = useState(null)
   const [loadingReceta, setLoadingReceta] = useState(false)
   
+  // Estados de paginación y búsqueda
+  const [busqueda, setBusqueda] = useState('')
+  const [paginaActual, setPaginaActual] = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
+  const [totalProductos, setTotalProductos] = useState(0)
+  const [statsGlobales, setStatsGlobales] = useState({
+    total_global: 0,
+    con_foto: 0,
+    sin_foto: 0,
+    disponibles_shopify: 0
+  })
+  const limitePorPagina = 50
+  
   // Estados del Simulador de Costos
   const [mostrarSimulador, setMostrarSimulador] = useState(false)
   const [configuracion, setConfiguracion] = useState(null)
@@ -55,9 +68,20 @@ function ProductosPage() {
   const cargarProductos = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${API_URL}/productos`)
+      const response = await axios.get(`${API_URL}/productos`, {
+        params: {
+          page: paginaActual,
+          limit: limitePorPagina,
+          busqueda: busqueda || undefined
+        }
+      })
       if (response.data.success) {
         setProductos(response.data.data)
+        setTotalProductos(response.data.total)
+        setTotalPaginas(response.data.total_pages)
+        if (response.data.stats) {
+          setStatsGlobales(response.data.stats)
+        }
       }
     } catch (err) {
       console.error('Error al cargar productos:', err)
@@ -538,27 +562,90 @@ function ProductosPage() {
   
   useEffect(() => {
     cargarProductos()
-  }, [])
+  }, [paginaActual, busqueda])
+  
+  // Función para manejar cambio de búsqueda
+  const handleBusquedaChange = (valor) => {
+    setBusqueda(valor)
+    setPaginaActual(1) // Resetear a página 1 al buscar
+  }
   
   return (
     <div className="px-4 sm:px-0">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Catálogo de Productos</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            {productos.length} producto{productos.length !== 1 ? 's' : ''} en el catálogo
-          </p>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Catálogo de Productos</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {totalProductos} producto{totalProductos !== 1 ? 's' : ''} en total • Página {paginaActual} de {totalPaginas}
+            </p>
+          </div>
+          <button 
+            onClick={() => {
+              window.open(`${API_URL}/exportar/productos`, '_blank')
+            }}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Descargar Excel
+          </button>
         </div>
-        <button 
-          onClick={() => {
-            window.open(`${API_URL}/exportar/productos`, '_blank')
-          }}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-        >
-          <Download className="h-5 w-5 mr-2" />
-          Descargar Excel
-        </button>
+        
+        {/* Estadísticas Globales */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Total Productos</p>
+                <p className="text-2xl font-bold text-gray-900">{statsGlobales.total_global}</p>
+              </div>
+              <Package className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Con Foto</p>
+                <p className="text-2xl font-bold text-green-600">{statsGlobales.con_foto}</p>
+              </div>
+              <Camera className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Sin Foto</p>
+                <p className="text-2xl font-bold text-orange-600">{statsGlobales.sin_foto}</p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-orange-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">En Shopify</p>
+                <p className="text-2xl font-bold text-purple-600">{statsGlobales.disponibles_shopify}</p>
+              </div>
+              <ShoppingBag className="h-8 w-8 text-purple-500" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Barra de Búsqueda */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar productos por nombre, descripción o categoría..."
+            value={busqueda}
+            onChange={(e) => handleBusquedaChange(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
       </div>
       
       {/* Grid de productos */}
@@ -705,6 +792,80 @@ function ProductosPage() {
           ))
         )}
       </div>
+      
+      {/* Paginación */}
+      {!loading && totalPaginas > 1 && (
+        <div className="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+              disabled={paginaActual === 1}
+              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
+              disabled={paginaActual === totalPaginas}
+              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Mostrando{' '}
+                <span className="font-medium">{(paginaActual - 1) * limitePorPagina + 1}</span>
+                {' '}-{' '}
+                <span className="font-medium">
+                  {Math.min(paginaActual * limitePorPagina, totalProductos)}
+                </span>
+                {' '}de{' '}
+                <span className="font-medium">{totalProductos}</span>
+                {' '}productos
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={() => setPaginaActual(1)}
+                  disabled={paginaActual === 1}
+                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronsLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+                  disabled={paginaActual === 1}
+                  className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                
+                <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                  {paginaActual} / {totalPaginas}
+                </span>
+                
+                <button
+                  onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
+                  disabled={paginaActual === totalPaginas}
+                  className="relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setPaginaActual(totalPaginas)}
+                  disabled={paginaActual === totalPaginas}
+                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronsRight className="h-5 w-5" />
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modal de detalles del producto */}
       {productoDetalle && (

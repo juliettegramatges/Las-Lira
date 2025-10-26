@@ -11,14 +11,15 @@ bp = Blueprint('productos', __name__)
 
 @bp.route('/', methods=['GET'])
 def listar_productos():
-    """Listar productos con paginación"""
+    """Listar productos con paginación y búsqueda"""
     try:
         disponible_shopify = request.args.get('disponible_shopify', type=bool)
         activo = request.args.get('activo', type=bool, default=True)
+        busqueda = request.args.get('busqueda', '').strip()
         
         # Parámetros de paginación
         page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 100))
+        limit = int(request.args.get('limit', 50))
         
         query = Producto.query
         
@@ -27,8 +28,27 @@ def listar_productos():
         if activo is not None:
             query = query.filter_by(activo=activo)
         
+        # Aplicar búsqueda
+        if busqueda:
+            query = query.filter(
+                db.or_(
+                    Producto.nombre.ilike(f'%{busqueda}%'),
+                    Producto.descripcion.ilike(f'%{busqueda}%'),
+                    Producto.categoria.ilike(f'%{busqueda}%')
+                )
+            )
+        
         # Contar total antes de paginar
         total = query.count()
+        
+        # Estadísticas globales (sin filtro de búsqueda)
+        stats_query = Producto.query
+        if activo is not None:
+            stats_query = stats_query.filter_by(activo=activo)
+        
+        total_global = stats_query.count()
+        con_foto = stats_query.filter(Producto.foto_url.isnot(None)).count()
+        disponibles_shopify = stats_query.filter_by(disponible_shopify=True).count()
         
         # Aplicar paginación
         productos = query.order_by(Producto.nombre).limit(limit).offset((page - 1) * limit).all()
@@ -39,7 +59,13 @@ def listar_productos():
             'total': total,
             'page': page,
             'limit': limit,
-            'total_pages': (total + limit - 1) // limit
+            'total_pages': (total + limit - 1) // limit,
+            'stats': {
+                'total_global': total_global,
+                'con_foto': con_foto,
+                'disponibles_shopify': disponibles_shopify,
+                'sin_foto': total_global - con_foto
+            }
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
