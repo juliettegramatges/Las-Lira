@@ -8,6 +8,13 @@ import SelectorInsumosColores from '../components/Pedidos/SelectorInsumosColores
 
 const API_URL = 'http://localhost:5001/api'
 
+// Colores comunes para personalización
+const COLORES_DISPONIBLES = [
+  'Blanco', 'Rojo', 'Rosado', 'Fucsia', 'Naranja', 'Amarillo',
+  'Verde', 'Azul', 'Morado', 'Lila', 'Celeste', 'Durazno',
+  'Salmón', 'Coral', 'Burdeo', 'Mixto', 'Pastel', 'Vibrantes'
+]
+
 // Motivos comunes de pedidos
 const MOTIVOS_PEDIDO = [
   // Celebraciones personales
@@ -102,6 +109,14 @@ function PedidosPage() {
   const [loadingFormulario, setLoadingFormulario] = useState(false)
   const [clienteEncontrado, setClienteEncontrado] = useState(null)
   const [buscandoCliente, setBuscandoCliente] = useState(false)
+  
+  // Estados para personalización
+  const [esPersonalizacion, setEsPersonalizacion] = useState(false)
+  const [datosPersonalizacion, setDatosPersonalizacion] = useState({
+    colores_deseados: [],
+    producto_shopify_referencia: '',
+    notas_personalizacion: ''
+  })
   const [plazoPagoManual, setPlazoPagoManual] = useState(false)
   const [sugerenciasClientes, setSugerenciasClientes] = useState([])
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
@@ -324,6 +339,11 @@ function PedidosPage() {
   
   const handleProductoChange = async (productoId) => {
     const productoSeleccionado = productos.find(p => p.id === productoId)
+    
+    // Detectar si es una personalización
+    const esProductoPersonalizado = productoSeleccionado?.nombre?.toLowerCase().includes('personaliz')
+    setEsPersonalizacion(esProductoPersonalizado)
+    
     setFormData(prev => ({
       ...prev,
       producto_id: productoId,
@@ -375,6 +395,65 @@ function PedidosPage() {
         precio_ramo: Math.ceil(costo.total * 1.5) // Margen sugerido del 50%
       }))
     }
+  }
+  
+  // Funciones para personalización
+  const handleToggleColor = (color) => {
+    setDatosPersonalizacion(prev => {
+      const colores = prev.colores_deseados.includes(color)
+        ? prev.colores_deseados.filter(c => c !== color)
+        : [...prev.colores_deseados, color]
+      return { ...prev, colores_deseados: colores }
+    })
+  }
+  
+  const handlePersonalizacionChange = (campo, valor) => {
+    setDatosPersonalizacion(prev => ({
+      ...prev,
+      [campo]: valor
+    }))
+  }
+  
+  const handleCerrarFormulario = () => {
+    setMostrarFormulario(false)
+    setClienteEncontrado(null)
+    setPlazoPagoManual(false)
+    setSugerenciasClientes([])
+    setMostrarSugerencias(false)
+    setHistorialPedidos([])
+    setCargandoHistorial(false)
+    setReceta([])
+    setInsumosModificados([])
+    setInsumosSeleccionados(null)
+    setCostoCalculado(null)
+    setEsPersonalizacion(false)
+    setDatosPersonalizacion({
+      colores_deseados: [],
+      producto_shopify_referencia: '',
+      notas_personalizacion: ''
+    })
+    setFormData({
+      canal: 'WhatsApp',
+      shopify_order_number: '',
+      cliente_id: '',
+      cliente_nombre: '',
+      cliente_telefono: '',
+      cliente_email: '',
+      arreglo_pedido: '',
+      producto_id: '',
+      detalles_adicionales: '',
+      precio_ramo: '',
+      precio_envio: '',
+      lleva_mensaje: false,
+      destinatario: '',
+      mensaje: '',
+      firma: '',
+      direccion_entrega: '',
+      comuna: '',
+      motivo: '',
+      fecha_entrega: '',
+      plazo_pago_dias: 0
+    })
   }
   
   // Plazos de pago según tipo de cliente
@@ -586,6 +665,31 @@ function PedidosPage() {
     try {
       setLoadingFormulario(true)
       
+      // Construir detalles adicionales incluyendo datos de personalización
+      let detallesCompletos = formData.detalles_adicionales || ''
+      
+      if (esPersonalizacion) {
+        let detallesPersonalizacion = []
+        
+        if (datosPersonalizacion.colores_deseados.length > 0) {
+          detallesPersonalizacion.push(`🎨 Colores: ${datosPersonalizacion.colores_deseados.join(', ')}`)
+        }
+        
+        if (datosPersonalizacion.producto_shopify_referencia) {
+          detallesPersonalizacion.push(`🛍️ Ref Shopify: ${datosPersonalizacion.producto_shopify_referencia}`)
+        }
+        
+        if (datosPersonalizacion.notas_personalizacion) {
+          detallesPersonalizacion.push(`📝 Notas: ${datosPersonalizacion.notas_personalizacion}`)
+        }
+        
+        if (detallesPersonalizacion.length > 0) {
+          detallesCompletos = detallesCompletos 
+            ? `${detallesCompletos}\n\n--- PERSONALIZACIÓN ---\n${detallesPersonalizacion.join('\n')}`
+            : detallesPersonalizacion.join('\n')
+        }
+      }
+      
       const pedidoData = {
         canal: formData.canal,
         shopify_order_number: formData.shopify_order_number || null,
@@ -594,7 +698,7 @@ function PedidosPage() {
         cliente_email: formData.cliente_email || null,
         arreglo_pedido: formData.arreglo_pedido || null,
         producto_id: formData.producto_id || null,
-        detalles_adicionales: formData.detalles_adicionales || null,
+        detalles_adicionales: detallesCompletos || null,
         precio_ramo: precioRamo,
         precio_envio: precioEnvio,
         precio_total: precioRamo + precioEnvio,
@@ -634,39 +738,7 @@ function PedidosPage() {
         }
         
         alert('✅ Pedido creado exitosamente: ' + nuevoPedidoId)
-        setMostrarFormulario(false)
-        setClienteEncontrado(null)
-        setPlazoPagoManual(false)
-        setSugerenciasClientes([])
-        setMostrarSugerencias(false)
-        setHistorialPedidos([])
-        setCargandoHistorial(false)
-        setReceta([])
-        setInsumosModificados([])
-        setInsumosSeleccionados(null)
-        setCostoCalculado(null)
-        setFormData({
-          canal: 'WhatsApp',
-          shopify_order_number: '',
-          cliente_id: '',
-          cliente_nombre: '',
-          cliente_telefono: '',
-          cliente_email: '',
-          arreglo_pedido: '',
-          producto_id: '',
-          detalles_adicionales: '',
-          precio_ramo: '',
-          precio_envio: '',
-          lleva_mensaje: false,
-          destinatario: '',
-          mensaje: '',
-          firma: '',
-          direccion_entrega: '',
-          comuna: '',
-          motivo: '',
-          fecha_entrega: '',
-          plazo_pago_dias: 0
-        })
+        handleCerrarFormulario()
         cargarPedidos()
       }
     } catch (err) {
@@ -1732,7 +1804,7 @@ function PedidosPage() {
       {mostrarFormulario && (
         <div 
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setMostrarFormulario(false)}
+          onClick={handleCerrarFormulario}
         >
           <div 
             className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
@@ -1742,7 +1814,7 @@ function PedidosPage() {
             <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
               <h2 className="text-2xl font-bold text-gray-900">Nuevo Pedido</h2>
               <button 
-                onClick={() => setMostrarFormulario(false)}
+                onClick={handleCerrarFormulario}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="h-6 w-6" />
@@ -2075,6 +2147,83 @@ function PedidosPage() {
                         </p>
                       )}
                     </div>
+                    
+                    {/* Opciones especiales para Personalización */}
+                    {esPersonalizacion && (
+                      <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-300">
+                        <h4 className="text-sm font-bold text-purple-900 mb-3 flex items-center gap-2">
+                          <Palette className="h-5 w-5" />
+                          Opciones de Personalización
+                        </h4>
+                        
+                        {/* 1. Definir Colores */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            1️⃣ Colores Deseados (selecciona uno o más)
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {COLORES_DISPONIBLES.map(color => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => handleToggleColor(color)}
+                                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                                  datosPersonalizacion.colores_deseados.includes(color)
+                                    ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+                                    : 'bg-white text-gray-700 border border-gray-300 hover:border-purple-400'
+                                }`}
+                              >
+                                {datosPersonalizacion.colores_deseados.includes(color) && '✓ '}
+                                {color}
+                              </button>
+                            ))}
+                          </div>
+                          {datosPersonalizacion.colores_deseados.length > 0 && (
+                            <p className="text-xs text-purple-600 mt-2">
+                              ✓ Seleccionados: {datosPersonalizacion.colores_deseados.join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* 2. Producto Shopify Parecido */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            2️⃣ Producto en Shopify Parecido (opcional)
+                          </label>
+                          <input
+                            type="text"
+                            value={datosPersonalizacion.producto_shopify_referencia}
+                            onChange={(e) => handlePersonalizacionChange('producto_shopify_referencia', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            placeholder="Ej: Ramo Pasión, URL de Shopify, código del producto..."
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            💡 Nombre o link del producto de referencia en tu tienda online
+                          </p>
+                        </div>
+                        
+                        {/* 3. Notas de Personalización */}
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            3️⃣ Notas Adicionales de Personalización
+                          </label>
+                          <textarea
+                            value={datosPersonalizacion.notas_personalizacion}
+                            onChange={(e) => handlePersonalizacionChange('notas_personalizacion', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            rows="3"
+                            placeholder="Ej: Cliente quiere rosas grandes, sin follaje verde, estilo romántico..."
+                          />
+                        </div>
+                        
+                        <div className="mt-3 p-2 bg-white rounded border border-purple-200">
+                          <p className="text-xs text-gray-600">
+                            💡 <strong>Siguiente paso:</strong> Define los insumos específicos (flores y contenedor) en la sección de abajo
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Detalles Adicionales
