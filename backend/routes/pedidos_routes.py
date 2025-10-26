@@ -286,6 +286,61 @@ def eliminar_pedido(pedido_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/<int:pedido_id>', methods=['PUT'])
+def actualizar_pedido(pedido_id):
+    """Actualizar todos los campos de un pedido"""
+    try:
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        data = request.json
+        
+        # Actualizar campos del pedido
+        if 'arreglo_pedido' in data:
+            pedido.arreglo_pedido = data['arreglo_pedido']
+        if 'detalles_adicionales' in data:
+            pedido.detalles_adicionales = data['detalles_adicionales']
+        if 'destinatario' in data:
+            pedido.destinatario = data['destinatario']
+        if 'mensaje' in data:
+            pedido.mensaje = data['mensaje']
+        if 'firma' in data:
+            pedido.firma = data['firma']
+        if 'direccion_entrega' in data:
+            pedido.direccion_entrega = data['direccion_entrega']
+        if 'comuna' in data:
+            pedido.comuna = data['comuna']
+        if 'motivo' in data:
+            pedido.motivo = data['motivo']
+        if 'precio_ramo' in data:
+            pedido.precio_ramo = float(data['precio_ramo'])
+        if 'precio_envio' in data:
+            pedido.precio_envio = float(data['precio_envio'])
+        
+        # Actualizar información del cliente
+        if 'cliente_telefono' in data:
+            pedido.cliente_telefono = data['cliente_telefono']
+        if 'cliente_email' in data:
+            pedido.cliente_email = data['cliente_email']
+        
+        # Recalcular precio total si cambió ramo o envío
+        if 'precio_ramo' in data or 'precio_envio' in data:
+            pedido.precio_total = (pedido.precio_ramo or 0) + (pedido.precio_envio or 0)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Pedido actualizado correctamente',
+            'data': pedido.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/tablero', methods=['GET'])
 def obtener_tablero():
     """Obtener pedidos organizados por estado (formato Kanban estilo Trello Las-Lira)"""

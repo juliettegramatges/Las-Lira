@@ -1167,21 +1167,43 @@ function PedidosPage() {
                           <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
                             <Phone className="h-3 w-3 mr-1" /> Teléfono
                           </p>
-                          <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200">
-                            {pedidoDetalle.cliente_telefono}
-                          </p>
+                          {modoEdicion ? (
+                            <input
+                              type="tel"
+                              value={pedidoEditado.cliente_telefono || ''}
+                              onChange={(e) => handleCampoEdicion('cliente_telefono', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="+56 9 1234 5678"
+                            />
+                          ) : (
+                            <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200">
+                              {pedidoDetalle.cliente_telefono}
+                            </p>
+                          )}
                         </div>
                         
-                        {pedidoDetalle.cliente_email && (
-                          <div>
-                            <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
-                              <Mail className="h-3 w-3 mr-1" /> Email
-                            </p>
+                        <div>
+                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
+                            <Mail className="h-3 w-3 mr-1" /> Email
+                          </p>
+                          {modoEdicion ? (
+                            <input
+                              type="email"
+                              value={pedidoEditado.cliente_email || ''}
+                              onChange={(e) => handleCampoEdicion('cliente_email', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="cliente@ejemplo.com"
+                            />
+                          ) : pedidoDetalle.cliente_email ? (
                             <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200 truncate">
                               {pedidoDetalle.cliente_email}
                             </p>
-                          </div>
-                        )}
+                          ) : (
+                            <p className="text-sm text-gray-400 italic bg-white p-2 rounded border border-blue-200">
+                              Sin email
+                            </p>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
