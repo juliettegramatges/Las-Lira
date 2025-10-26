@@ -1999,7 +1999,7 @@ function PedidosPage() {
                 </div>
                 
                 {/* Insumos del pedido */}
-                {formData.producto_id && (receta.length > 0 || insumosModificados.length > 0) && (
+                {formData.producto_id && (
                   <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-gray-700 uppercase flex items-center gap-2">
@@ -2025,10 +2025,25 @@ function PedidosPage() {
                     </div>
                     
                     {loadingReceta ? (
-                      <div className="text-center py-4 text-gray-500">Cargando insumos...</div>
-                    ) : insumosModificados.length === 0 && receta.length === 0 ? (
                       <div className="text-center py-4 text-gray-500">
-                        No hay insumos definidos. Haz clic en "+ Flor" o "+ Contenedor" para agregar.
+                        <div className="animate-pulse">⏳ Cargando insumos del producto...</div>
+                      </div>
+                    ) : insumosModificados.length === 0 ? (
+                      <div className="text-center py-6 bg-white rounded-lg border-2 border-dashed border-yellow-300">
+                        <div className="mb-3">
+                          <Package className="h-12 w-12 mx-auto text-yellow-400" />
+                        </div>
+                        <p className="text-gray-700 font-medium mb-1">
+                          {receta.length === 0 
+                            ? 'Este producto no tiene insumos predefinidos' 
+                            : 'Insumos listos para agregar'}
+                        </p>
+                        <p className="text-sm text-gray-500 mb-3">
+                          Usa los botones <span className="font-semibold text-green-600">+ Flor</span> o <span className="font-semibold text-blue-600">+ Contenedor</span> arriba para agregar insumos al pedido
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          💡 Los insumos te ayudan a gestionar el stock automáticamente
+                        </p>
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
