@@ -527,7 +527,7 @@ function TallerPage() {
                               <td className="px-4 py-3 text-center">
                                 <button
                                   onClick={() => handleEliminarInsumo(insumo.id)}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-all duration-200"
                                   title="Eliminar insumo"
                                 >
                                   <Trash2 className="h-4 w-4" />

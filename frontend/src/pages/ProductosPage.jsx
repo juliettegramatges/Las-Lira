@@ -1241,10 +1241,10 @@ function ProductosPage() {
                               {coloresEditables.length > 1 && (
                                 <button
                                   onClick={() => handleEliminarColor(color.id)}
-                                  className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors z-10"
+                                  className="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-all duration-200 z-10"
                                   title="Eliminar color"
                                 >
-                                  <X className="h-4 w-4" />
+                                  <Trash2 className="h-4 w-4" />
                                 </button>
                               )}
                               
@@ -1324,8 +1324,8 @@ function ProductosPage() {
                                       {floresColor.length > 1 && (
                                         <button
                                           onClick={() => handleEliminarFlor(color.id, florIndex)}
-                                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
-                                          title="Eliminar"
+                                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-all duration-200"
+                                          title="Eliminar flor"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </button>

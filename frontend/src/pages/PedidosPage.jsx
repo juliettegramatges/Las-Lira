@@ -2256,9 +2256,10 @@ function PedidosPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleEliminarInsumo(index)}
-                                      className="text-red-600 hover:text-red-800"
+                                      className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-all duration-200"
+                                      title="Eliminar insumo"
                                     >
-                                      <X className="h-4 w-4" />
+                                      <Trash2 className="h-4 w-4" />
                                     </button>
                                   </td>
                                 </tr>

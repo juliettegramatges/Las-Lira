@@ -428,11 +428,15 @@ function ClientesPage() {
                           e.stopPropagation()
                           handleEliminarCliente(cliente)
                         }}
-                        className="text-red-600 hover:text-red-900"
-                        title="Eliminar"
+                        className={`p-1.5 rounded-lg transition-all duration-200 ${
+                          cliente.total_pedidos > 0 
+                            ? 'text-gray-400 cursor-not-allowed' 
+                            : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                        }`}
+                        title={cliente.total_pedidos > 0 ? 'No se puede eliminar (tiene pedidos)' : 'Eliminar cliente'}
                         disabled={cliente.total_pedidos > 0}
                       >
-                        <Trash2 className={`h-4 w-4 ${cliente.total_pedidos > 0 ? 'opacity-30' : ''}`} />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
