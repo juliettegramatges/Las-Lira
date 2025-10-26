@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail } from 'lucide-react'
+import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import SelectorInsumosColores from '../components/Pedidos/SelectorInsumosColores'
@@ -183,6 +183,49 @@ function PedidosPage() {
     } catch (error) {
       console.error('Error al guardar pedido:', error)
       alert('❌ Error al guardar los cambios')
+    }
+  }
+  
+  const handleCancelarPedido = async () => {
+    if (!confirm('⚠️ ¿Estás seguro de cancelar este pedido? Se cambiará su estado a "Cancelado".')) {
+      return
+    }
+    
+    try {
+      const response = await axios.patch(`${API_URL}/pedidos/${pedidoDetalle.id}/cancelar`)
+      
+      if (response.data.success) {
+        alert('✅ Pedido cancelado correctamente')
+        setPedidoDetalle(null)
+        cargarPedidos()
+      }
+    } catch (error) {
+      console.error('Error al cancelar pedido:', error)
+      alert('❌ Error al cancelar el pedido')
+    }
+  }
+  
+  const handleEliminarPedido = async () => {
+    if (!confirm('🗑️ ¿CONFIRMAS ELIMINAR PERMANENTEMENTE este pedido?\n\nEsta acción NO se puede deshacer.\nEl pedido será borrado de la base de datos.')) {
+      return
+    }
+    
+    // Segunda confirmación para mayor seguridad
+    if (!confirm('⚠️ ÚLTIMA CONFIRMACIÓN\n\n¿Realmente deseas ELIMINAR PERMANENTEMENTE este pedido?\n\nEscribe "ELIMINAR" para confirmar o cancela.')) {
+      return
+    }
+    
+    try {
+      const response = await axios.delete(`${API_URL}/pedidos/${pedidoDetalle.id}`)
+      
+      if (response.data.success) {
+        alert('✅ Pedido eliminado permanentemente')
+        setPedidoDetalle(null)
+        cargarPedidos()
+      }
+    } catch (error) {
+      console.error('Error al eliminar pedido:', error)
+      alert('❌ Error al eliminar el pedido')
     }
   }
   
@@ -1560,12 +1603,35 @@ function PedidosPage() {
             
             {/* Footer del Modal */}
             <div className="sticky bottom-0 bg-gray-100 px-6 py-4 flex justify-between items-center rounded-b-lg border-t border-gray-200">
-              <button
-                onClick={() => setPedidoDetalle(null)}
-                className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
-              >
-                Cerrar
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPedidoDetalle(null)}
+                  className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                >
+                  Cerrar
+                </button>
+                
+                {/* Botones de Cancelar y Eliminar */}
+                {pedidoDetalle?.estado !== 'Cancelado' && (
+                  <button
+                    onClick={handleCancelarPedido}
+                    className="px-6 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center gap-2"
+                    title="Cambiar estado a Cancelado"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancelar Pedido
+                  </button>
+                )}
+                
+                <button
+                  onClick={handleEliminarPedido}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                  title="Eliminar permanentemente de la base de datos"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar
+                </button>
+              </div>
               
               <div className="flex gap-3">
                 {modoEdicion ? (
@@ -1574,7 +1640,7 @@ function PedidosPage() {
                       onClick={handleCancelarEdicion}
                       className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
                     >
-                      Cancelar
+                      Cancelar Edición
                     </button>
                     <button
                       onClick={handleGuardarEdicion}

@@ -264,21 +264,47 @@ def actualizar_estado(pedido_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<pedido_id>', methods=['DELETE'])
-def eliminar_pedido(pedido_id):
-    """Eliminar (o cancelar) un pedido"""
+@bp.route('/<pedido_id>/cancelar', methods=['PATCH'])
+def cancelar_pedido(pedido_id):
+    """Cancelar un pedido (cambia estado a Cancelado)"""
     try:
         pedido = Pedido.query.get(pedido_id)
         if not pedido:
             return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
         
-        # En lugar de eliminar, cambiar estado a Cancelado
+        # Cambiar estado a Cancelado
         pedido.estado = 'Cancelado'
         db.session.commit()
         
         return jsonify({
             'success': True,
             'message': f'Pedido {pedido_id} cancelado'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<pedido_id>', methods=['DELETE'])
+def eliminar_pedido(pedido_id):
+    """Eliminar permanentemente un pedido de la base de datos"""
+    try:
+        pedido = Pedido.query.get(pedido_id)
+        if not pedido:
+            return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
+        
+        # Eliminar relaciones primero (insumos del pedido)
+        from models.pedido import PedidoInsumo
+        PedidoInsumo.query.filter_by(pedido_id=pedido.id).delete()
+        
+        # Eliminar el pedido
+        db.session.delete(pedido)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Pedido {pedido_id} eliminado permanentemente'
         })
         
     except Exception as e:
