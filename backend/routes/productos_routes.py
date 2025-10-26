@@ -103,6 +103,7 @@ def obtener_receta_producto(producto_id):
             detalle = {
                 'id': receta.id,
                 'tipo': receta.insumo_tipo,
+                'tipo_insumo': receta.insumo_tipo,  # Compatibilidad con frontend
                 'insumo_id': receta.insumo_id,
                 'cantidad': receta.cantidad,
                 'unidad': receta.unidad,
@@ -115,7 +116,10 @@ def obtener_receta_producto(producto_id):
                 flor = Flor.query.get(receta.insumo_id)
                 if flor:
                     # Usar el nombre si existe, sino construirlo desde tipo y color
-                    detalle['nombre'] = flor.nombre or f"{flor.tipo or ''} {flor.color or ''}".strip() or 'Flor sin nombre'
+                    nombre_flor = flor.nombre or f"{flor.tipo or ''} {flor.color or ''}".strip() or 'Flor sin nombre'
+                    detalle['nombre'] = nombre_flor
+                    detalle['insumo_nombre'] = nombre_flor  # Compatibilidad con frontend
+                    detalle['color'] = flor.color or ''
                     detalle['costo_unitario'] = float(flor.costo_unitario) if flor.costo_unitario else 0
                     detalle['stock_disponible'] = flor.cantidad_stock or 0
                     detalle['unidad_stock'] = flor.unidad or 'Tallos'
@@ -125,6 +129,8 @@ def obtener_receta_producto(producto_id):
                     detalle['disponible'] = (flor.cantidad_stock or 0) >= receta.cantidad
                 else:
                     detalle['nombre'] = 'Flor no encontrada'
+                    detalle['insumo_nombre'] = 'Flor no encontrada'
+                    detalle['color'] = ''
                     detalle['disponible'] = False
                     detalle['costo_unitario'] = 0
                     detalle['costo_total'] = 0
@@ -134,7 +140,9 @@ def obtener_receta_producto(producto_id):
                 contenedor = Contenedor.query.get(receta.insumo_id)
                 if contenedor:
                     # Usar el nombre si existe, sino el tipo
-                    detalle['nombre'] = contenedor.nombre or contenedor.tipo or 'Contenedor sin nombre'
+                    nombre_contenedor = contenedor.nombre or contenedor.tipo or 'Contenedor sin nombre'
+                    detalle['nombre'] = nombre_contenedor
+                    detalle['insumo_nombre'] = nombre_contenedor  # Compatibilidad con frontend
                     detalle['costo_unitario'] = float(contenedor.costo) if contenedor.costo else 0
                     detalle['stock_disponible'] = contenedor.cantidad_stock or 0
                     detalle['costo_total'] = float(contenedor.costo if contenedor.costo else 0) * receta.cantidad
@@ -143,6 +151,7 @@ def obtener_receta_producto(producto_id):
                     detalle['disponible'] = (contenedor.cantidad_stock or 0) >= receta.cantidad
                 else:
                     detalle['nombre'] = 'Contenedor no encontrado'
+                    detalle['insumo_nombre'] = 'Contenedor no encontrado'
                     detalle['costo_unitario'] = 0
                     detalle['costo_total'] = 0
                     detalle['stock_disponible'] = 0

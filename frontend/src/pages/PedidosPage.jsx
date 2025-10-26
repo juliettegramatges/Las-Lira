@@ -354,23 +354,34 @@ function PedidosPage() {
       try {
         setLoadingReceta(true)
         const response = await axios.get(`${API_URL}/productos/${productoId}/receta`)
-        if (response.data.success) {
+        
+        // El backend devuelve: { success: true, data: { receta: [...] } }
+        const recetaData = response.data?.data?.receta || response.data?.receta || []
+        
+        if (response.data.success && Array.isArray(recetaData) && recetaData.length > 0) {
           // Convertir receta a formato editable para insumos
-          const insumosIniciales = response.data.receta.map(item => ({
-            insumo_tipo: item.tipo_insumo === 'Flor' ? 'Flor' : 'Contenedor',
+          const insumosIniciales = recetaData.map(item => ({
+            insumo_tipo: item.tipo === 'Flor' || item.tipo_insumo === 'Flor' ? 'Flor' : 'Contenedor',
             insumo_id: item.insumo_id,
-            insumo_nombre: item.insumo_nombre,
-            insumo_color: item.color,
-            insumo_foto: item.foto_url,
-            cantidad: item.cantidad,
-            costo_unitario: item.costo_unitario,
-            stock_disponible: item.stock_disponible
+            insumo_nombre: item.nombre || item.insumo_nombre || 'Sin nombre',
+            insumo_color: item.color || '',
+            insumo_foto: item.foto_url || null,
+            cantidad: item.cantidad || 1,
+            costo_unitario: item.costo_unitario || 0,
+            stock_disponible: item.stock_disponible || 0
           }))
           setReceta(insumosIniciales)
           setInsumosModificados(JSON.parse(JSON.stringify(insumosIniciales))) // Copia profunda
+        } else {
+          // Producto sin receta o respuesta vacía
+          setReceta([])
+          setInsumosModificados([])
         }
       } catch (err) {
         console.error('Error al cargar recetario:', err)
+        // En caso de error, limpiar los insumos
+        setReceta([])
+        setInsumosModificados([])
       } finally {
         setLoadingReceta(false)
       }
