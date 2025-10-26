@@ -22,7 +22,7 @@ const colorBadge = {
   'Eventos': 'bg-pink-100 text-pink-800',
 }
 
-function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar }) {
+function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedido }) {
   const [dragOver, setDragOver] = useState(false)
   
   const handleDragOver = (e) => {
@@ -75,6 +75,7 @@ function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar }) {
               key={pedido.id}
               pedido={pedido}
               onRecargar={onRecargar}
+              onAbrirPedido={onAbrirPedido}
             />
           ))
         )}

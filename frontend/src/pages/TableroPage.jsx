@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { pedidosAPI } from '../services/api'
 import ColumnaKanban from '../components/Tablero/ColumnaKanban'
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 
 function TableroPage() {
+  const navigate = useNavigate()
   const [tablero, setTablero] = useState({
     'Entregas de Hoy': [],
     'Entregas para Mañana': [],
@@ -80,6 +82,11 @@ function TableroPage() {
     }
   }
   
+  const handleAbrirPedido = (pedido) => {
+    // Navegar a la página de pedidos y pasar el pedido para abrir el modal
+    navigate('/pedidos', { state: { pedidoAAbrir: pedido } })
+  }
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -146,6 +153,7 @@ function TableroPage() {
             pedidos={tablero[estado] || []}
             onMoverPedido={moverPedido}
             onRecargar={cargarTablero}
+            onAbrirPedido={handleAbrirPedido}
           />
         ))}
       </div>

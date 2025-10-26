@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
@@ -76,6 +77,8 @@ const MOTIVOS_PEDIDO = [
 ]
 
 function PedidosPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
@@ -719,6 +722,15 @@ function PedidosPage() {
   useEffect(() => {
     cargarDatosFormulario()
   }, [])
+  
+  // Detectar si se navega desde el tablero con un pedido a abrir
+  useEffect(() => {
+    if (location.state?.pedidoAAbrir) {
+      handleAbrirPedido(location.state.pedidoAAbrir)
+      // Limpiar el state para que no se abra de nuevo si recarga
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.state])
   
   const estadoColor = {
     'Pedido': 'bg-blue-100 text-blue-800',
