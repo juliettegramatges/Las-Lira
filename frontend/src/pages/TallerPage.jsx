@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Wrench, Package, CheckCircle, AlertCircle, Edit, Image as ImageIcon } from 'lucide-react'
+import { Wrench, Package, CheckCircle, AlertCircle, Edit, Image as ImageIcon, Plus, Trash2, X } from 'lucide-react'
 import { pedidoInsumosAPI, inventarioAPI, productosAPI, API_URL } from '../services/api'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -12,6 +12,16 @@ function TallerPage() {
   const [insumos, setInsumos] = useState([])
   const [loadingInsumos, setLoadingInsumos] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
+  
+  // Estados para agregar insumos
+  const [mostrarSelectorInsumo, setMostrarSelectorInsumo] = useState(false)
+  const [flores, setFlores] = useState([])
+  const [contenedores, setContenedores] = useState([])
+  const [nuevoInsumo, setNuevoInsumo] = useState({
+    tipo: 'Flor',
+    id: '',
+    cantidad: 1
+  })
 
   useEffect(() => {
     cargarPedidosTaller()
@@ -30,6 +40,19 @@ function TallerPage() {
     }
   }
 
+  const cargarInsumosDisponibles = async () => {
+    try {
+      const [floresRes, contenedoresRes] = await Promise.all([
+        inventarioAPI.listarFlores(),
+        inventarioAPI.listarContenedores()
+      ])
+      setFlores(floresRes.data)
+      setContenedores(contenedoresRes.data)
+    } catch (err) {
+      console.error('Error al cargar insumos disponibles:', err)
+    }
+  }
+
   const handleVerInsumos = async (pedido) => {
     try {
       setLoadingInsumos(true)
@@ -37,6 +60,9 @@ function TallerPage() {
       
       const response = await pedidoInsumosAPI.obtenerInsumos(pedido.id)
       setInsumos(response.data.insumos || [])
+      
+      // Cargar flores y contenedores disponibles para poder agregar
+      await cargarInsumosDisponibles()
     } catch (err) {
       console.error('Error al cargar insumos:', err)
       alert('Error al cargar los insumos del pedido')
@@ -59,6 +85,57 @@ function TallerPage() {
     )
   }
 
+  const handleAgregarInsumo = () => {
+    if (!nuevoInsumo.id || !nuevoInsumo.cantidad) {
+      alert('Por favor selecciona un insumo y especifica la cantidad')
+      return
+    }
+
+    const listaInsumos = nuevoInsumo.tipo === 'Flor' ? flores : contenedores
+    const insumoSeleccionado = listaInsumos.find(i => i.id === parseInt(nuevoInsumo.id))
+    
+    if (!insumoSeleccionado) {
+      alert('Insumo no encontrado')
+      return
+    }
+
+    // Verificar si ya existe
+    const yaExiste = insumos.some(i => 
+      i.insumo_tipo === nuevoInsumo.tipo && 
+      (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === parseInt(nuevoInsumo.id)
+    )
+    
+    if (yaExiste) {
+      alert('Este insumo ya está agregado. Puedes modificar su cantidad en la lista.')
+      return
+    }
+
+    // Crear nuevo insumo para la lista
+    const nuevoInsumoItem = {
+      id: `temp-${Date.now()}`, // ID temporal para el frontend
+      insumo_tipo: nuevoInsumo.tipo,
+      insumo_nombre: insumoSeleccionado.nombre || insumoSeleccionado.tipo,
+      insumo_color: insumoSeleccionado.color || null,
+      insumo_foto: insumoSeleccionado.imagen || null,
+      cantidad: parseInt(nuevoInsumo.cantidad),
+      costo_unitario: insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0,
+      costo_total: (insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0) * parseInt(nuevoInsumo.cantidad),
+      stock_disponible: insumoSeleccionado.cantidad_disponible || 0,
+      flor_id: nuevoInsumo.tipo === 'Flor' ? parseInt(nuevoInsumo.id) : null,
+      contenedor_id: nuevoInsumo.tipo === 'Contenedor' ? parseInt(nuevoInsumo.id) : null,
+      es_nuevo: true // Marcar como nuevo para el backend
+    }
+
+    setInsumos([...insumos, nuevoInsumoItem])
+    setMostrarSelectorInsumo(false)
+    setNuevoInsumo({ tipo: 'Flor', id: '', cantidad: 1 })
+  }
+
+  const handleEliminarInsumo = (insumoId) => {
+    if (!confirm('¿Estás seguro de eliminar este insumo?')) return
+    setInsumos(insumos.filter(i => i.id !== insumoId))
+  }
+
   const handleConfirmarInsumos = async () => {
     if (!pedidoSeleccionado) return
     
@@ -77,16 +154,20 @@ function TallerPage() {
     try {
       setConfirmando(true)
       
-      // Preparar cantidades modificadas
-      const cantidades = {}
-      insumos.forEach(insumo => {
-        cantidades[insumo.id] = insumo.cantidad
-      })
+      // PASO 1: Guardar los insumos actualizados (incluyendo nuevos y eliminados)
+      const insumosParaGuardar = insumos.map(insumo => ({
+        insumo_tipo: insumo.insumo_tipo,
+        insumo_id: insumo.flor_id || insumo.contenedor_id,
+        cantidad: insumo.cantidad,
+        costo_unitario: insumo.costo_unitario
+      }))
       
-      // Confirmar y descontar con las cantidades actualizadas
+      await pedidoInsumosAPI.guardar(pedidoSeleccionado.id, { insumos: insumosParaGuardar })
+      
+      // PASO 2: Confirmar y descontar stock
       const response = await pedidoInsumosAPI.confirmarYDescontar(
         pedidoSeleccionado.id,
-        { cantidades }
+        {}
       )
       
       alert(`✅ ${response.data.message}\n\n${response.data.insumos_procesados} insumos procesados`)
@@ -251,6 +332,17 @@ function TallerPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
+                  {/* Botón para agregar insumo */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setMostrarSelectorInsumo(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Agregar Insumo
+                    </button>
+                  </div>
+
                   {/* Tabla de insumos */}
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -273,6 +365,9 @@ function TallerPage() {
                           </th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                             Total
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                            Acciones
                           </th>
                         </tr>
                       </thead>
@@ -335,6 +430,15 @@ function TallerPage() {
                               <td className="px-4 py-3 text-right font-medium text-gray-900">
                                 ${insumo.costo_total.toLocaleString()}
                               </td>
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  onClick={() => handleEliminarInsumo(insumo.id)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Eliminar insumo"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
                             </tr>
                           )
                         })}
@@ -347,6 +451,7 @@ function TallerPage() {
                           <td className="px-4 py-3 text-right font-bold text-primary-600 text-lg">
                             ${insumos.reduce((sum, i) => sum + i.costo_total, 0).toLocaleString()}
                           </td>
+                          <td></td>
                         </tr>
                       </tfoot>
                     </table>
@@ -388,6 +493,101 @@ function TallerPage() {
                   {confirmando ? 'Confirmando...' : 'Confirmar y Descontar Stock'}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para agregar insumo */}
+      {mostrarSelectorInsumo && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+          onClick={() => setMostrarSelectorInsumo(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-primary-600 text-white px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h3 className="text-lg font-bold">Agregar Insumo</h3>
+              <button
+                onClick={() => setMostrarSelectorInsumo(false)}
+                className="p-1 hover:bg-primary-700 rounded transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Tipo de insumo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Insumo
+                </label>
+                <select
+                  value={nuevoInsumo.tipo}
+                  onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, tipo: e.target.value, id: '' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Flor">Flor / Follaje</option>
+                  <option value="Contenedor">Contenedor</option>
+                </select>
+              </div>
+
+              {/* Selector de insumo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {nuevoInsumo.tipo === 'Flor' ? 'Flor / Follaje' : 'Contenedor'}
+                </label>
+                <select
+                  value={nuevoInsumo.id}
+                  onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Seleccionar...</option>
+                  {(nuevoInsumo.tipo === 'Flor' ? flores : contenedores).map((insumo) => (
+                    <option key={insumo.id} value={insumo.id}>
+                      {insumo.nombre || insumo.tipo}
+                      {insumo.color && ` - ${insumo.color}`}
+                      {' '}
+                      (Stock: {insumo.cantidad_disponible || 0})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Cantidad */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={nuevoInsumo.cantidad}
+                  onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, cantidad: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-lg">
+              <button
+                onClick={() => setMostrarSelectorInsumo(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAgregarInsumo}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Agregar
+              </button>
             </div>
           </div>
         </div>
