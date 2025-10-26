@@ -110,29 +110,31 @@ function TallerPage() {
     }
 
     const listaInsumos = nuevoInsumo.tipo === 'Flor' ? flores : contenedores
-    console.log('🔍 Buscando insumo:', {
-      tipo: nuevoInsumo.tipo,
-      id_buscado: nuevoInsumo.id,
-      id_buscado_tipo: typeof nuevoInsumo.id,
-      id_buscado_parsed: parseInt(nuevoInsumo.id),
-      total_en_lista: listaInsumos?.length,
-      primer_item_lista: listaInsumos?.[0],
-      ids_en_lista: listaInsumos?.slice(0, 5).map(i => ({ id: i.id, tipo: typeof i.id, nombre: i.nombre }))
-    })
     
-    const insumoSeleccionado = listaInsumos.find(i => i.id === parseInt(nuevoInsumo.id))
-    console.log('🎯 Resultado búsqueda:', insumoSeleccionado)
+    // Los IDs pueden ser strings (como 'F0023') o números
+    // Intentamos comparar directamente primero, luego con conversión
+    let insumoSeleccionado = listaInsumos.find(i => i.id === nuevoInsumo.id)
+    
+    // Si no encontramos con comparación directa, intentamos con conversión a número
+    if (!insumoSeleccionado && !isNaN(parseInt(nuevoInsumo.id))) {
+      insumoSeleccionado = listaInsumos.find(i => i.id === parseInt(nuevoInsumo.id))
+    }
+    
+    // Si aún no encontramos, intentamos comparar ambos como strings
+    if (!insumoSeleccionado) {
+      insumoSeleccionado = listaInsumos.find(i => String(i.id) === String(nuevoInsumo.id))
+    }
     
     if (!insumoSeleccionado) {
-      console.error('❌ No encontrado. IDs disponibles:', listaInsumos.map(i => i.id))
+      console.error('❌ No encontrado. ID buscado:', nuevoInsumo.id, 'IDs disponibles:', listaInsumos.map(i => i.id))
       alert('Insumo no encontrado')
       return
     }
 
-    // Verificar si ya existe
+    // Verificar si ya existe (comparar con el ID del insumo seleccionado)
     const yaExiste = insumos.some(i => 
       i.insumo_tipo === nuevoInsumo.tipo && 
-      (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === parseInt(nuevoInsumo.id)
+      (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === insumoSeleccionado.id
     )
     
     if (yaExiste) {
@@ -151,8 +153,8 @@ function TallerPage() {
       costo_unitario: insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0,
       costo_total: (insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0) * parseInt(nuevoInsumo.cantidad),
       stock_disponible: insumoSeleccionado.cantidad_disponible || 0,
-      flor_id: nuevoInsumo.tipo === 'Flor' ? parseInt(nuevoInsumo.id) : null,
-      contenedor_id: nuevoInsumo.tipo === 'Contenedor' ? parseInt(nuevoInsumo.id) : null,
+      flor_id: nuevoInsumo.tipo === 'Flor' ? insumoSeleccionado.id : null,
+      contenedor_id: nuevoInsumo.tipo === 'Contenedor' ? insumoSeleccionado.id : null,
       es_nuevo: true // Marcar como nuevo para el backend
     }
 
