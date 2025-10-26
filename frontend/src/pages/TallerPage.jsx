@@ -88,6 +88,15 @@ function TallerPage() {
     )
   }
 
+  const handleAbrirModalAgregar = async () => {
+    // Cargar insumos disponibles si no están cargados
+    if (!flores || flores.length === 0 || !contenedores || contenedores.length === 0) {
+      console.log('🔄 Cargando insumos disponibles...')
+      await cargarInsumosDisponibles()
+    }
+    setMostrarSelectorInsumo(true)
+  }
+
   const handleAgregarInsumo = () => {
     if (!nuevoInsumo.id || !nuevoInsumo.cantidad) {
       alert('Por favor selecciona un insumo y especifica la cantidad')
@@ -330,7 +339,7 @@ function TallerPage() {
                   {/* Botón para agregar insumo - SIEMPRE VISIBLE */}
                   <div className="flex justify-end">
                     <button
-                      onClick={() => setMostrarSelectorInsumo(true)}
+                      onClick={handleAbrirModalAgregar}
                       className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
