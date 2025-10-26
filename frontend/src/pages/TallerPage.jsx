@@ -551,7 +551,7 @@ function TallerPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">Seleccionar...</option>
-                  {(nuevoInsumo.tipo === 'Flor' ? flores : contenedores).map((insumo) => (
+                  {((nuevoInsumo.tipo === 'Flor' ? flores : contenedores) || []).map((insumo) => (
                     <option key={insumo.id} value={insumo.id}>
                       {insumo.nombre || insumo.tipo}
                       {insumo.color && ` - ${insumo.color}`}
