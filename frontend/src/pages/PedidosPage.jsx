@@ -2278,8 +2278,11 @@ function PedidosPage() {
                           </tfoot>
                         </table>
                       </div>
-                    ) : receta.length > 0 ? (
-                      <div className="py-4 bg-white rounded-lg border-2 border-dashed border-green-300">
+                    )}
+                    
+                    {/* Vista previa visual de la receta (SIEMPRE que exista) */}
+                    {receta.length > 0 && (
+                      <div className="py-4 bg-white rounded-lg border-2 border-dashed border-green-300 mt-4">
                         <div className="text-center mb-4">
                           <div className="mb-2">
                             <CheckCircle className="h-10 w-10 mx-auto text-green-500" />
@@ -2350,7 +2353,7 @@ function PedidosPage() {
                           💡 Puedes agregar más insumos usando los botones arriba
                         </p>
                       </div>
-                    ) : null}
+                    )}
                     
                     <p className="text-xs text-gray-600 mt-2">
                       💡 Estos insumos se guardarán con el pedido y se usarán en el Taller para confirmar y descontar stock.

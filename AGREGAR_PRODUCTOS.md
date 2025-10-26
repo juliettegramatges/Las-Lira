@@ -103,3 +103,4 @@ Si ninguno de estos métodos funciona, dime:
 2. ¿Qué versión de Python tienes? (`python3 --version`)
 3. ¿El backend está corriendo correctamente?
 
+

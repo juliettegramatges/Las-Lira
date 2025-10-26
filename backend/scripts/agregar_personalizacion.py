@@ -42,3 +42,4 @@ with app.app_context():
     total = Producto.query.count()
     print(f"\n📦 Total de productos en la base de datos: {total}")
 
+
