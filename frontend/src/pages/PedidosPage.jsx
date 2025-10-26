@@ -1062,14 +1062,27 @@ function PedidosPage() {
                         )}
                       </div>
                       
-                      {pedidoDetalle.motivo && (
-                        <div>
-                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Motivo</p>
+                      <div>
+                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Motivo</p>
+                        {modoEdicion ? (
+                          <select
+                            value={pedidoEditado.motivo || ''}
+                            onChange={(e) => handleCampoEdicion('motivo', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                          >
+                            <option value="">-- Sin motivo --</option>
+                            {MOTIVOS_PEDIDO.map(motivo => (
+                              <option key={motivo} value={motivo}>{motivo}</option>
+                            ))}
+                          </select>
+                        ) : pedidoDetalle.motivo ? (
                           <span className="inline-flex px-3 py-1.5 bg-pink-100 text-pink-800 rounded-full text-sm font-medium border border-pink-200">
                             💐 {pedidoDetalle.motivo}
                           </span>
-                        </div>
-                      )}
+                        ) : (
+                          <span className="text-sm text-gray-400 italic">Sin motivo especificado</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
