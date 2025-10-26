@@ -180,9 +180,40 @@ function TallerPage() {
     if (!pedidoSeleccionado) return
     
     // Validar stock antes de confirmar
-    const faltaStock = insumos.some(i => i.cantidad > i.stock_disponible)
+    // IMPORTANTE: El stock_disponible en cada insumo YA incluye lo reservado para este pedido
+    // (se calculó en handleAgregarInsumo con stockDisponibleReal)
+    // Pero para insumos existentes (no nuevos), necesitamos recalcular
+    const insumosConStockActualizado = insumos.map(insumo => {
+      // Para insumos que ya existían, recalcular el stock disponible real
+      const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
+      const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
+      
+      if (insumoInventario) {
+        // Calcular cuánto de este insumo está reservado en ESTE pedido
+        const reservadoEnEstePedido = insumos
+          .filter(i => i.insumo_tipo === insumo.insumo_tipo)
+          .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
+          .reduce((sum, i) => sum + (i.cantidad || 0), 0)
+        
+        // Stock real = disponible en inventario + lo que ya tenemos reservado
+        const stockDisponibleReal = (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
+        
+        return {
+          ...insumo,
+          stock_disponible: stockDisponibleReal
+        }
+      }
+      return insumo
+    })
+    
+    const faltaStock = insumosConStockActualizado.some(i => i.cantidad > i.stock_disponible)
     if (faltaStock) {
-      if (!confirm('⚠️ ADVERTENCIA: Algunos insumos superan el stock disponible.\n\n¿Deseas continuar de todos modos?')) {
+      const detalles = insumosConStockActualizado
+        .filter(i => i.cantidad > i.stock_disponible)
+        .map(i => `${i.insumo_nombre}: necesita ${i.cantidad}, disponible ${i.stock_disponible}`)
+        .join('\n')
+      
+      if (!confirm(`⚠️ ADVERTENCIA: Algunos insumos superan el stock disponible:\n\n${detalles}\n\n¿Deseas continuar de todos modos?`)) {
         return
       }
     }
@@ -415,7 +446,23 @@ function TallerPage() {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {insumos.map((insumo) => {
-                          const stockSuficiente = insumo.stock_disponible >= insumo.cantidad
+                          // Calcular el stock real disponible (incluyendo lo reservado para este pedido)
+                          const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
+                          const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
+                          
+                          // Calcular cuánto de este insumo está reservado en ESTE pedido (suma de todas las cantidades)
+                          const reservadoEnEstePedido = insumos
+                            .filter(i => i.insumo_tipo === insumo.insumo_tipo)
+                            .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
+                            .reduce((sum, i) => sum + (i.cantidad || 0), 0)
+                          
+                          // Stock real = disponible en inventario + lo que ya tenemos reservado
+                          const stockDisponibleReal = insumoInventario 
+                            ? (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
+                            : (insumo.stock_disponible || 0)
+                          
+                          const stockSuficiente = stockDisponibleReal >= insumo.cantidad
+                          
                           return (
                             <tr key={insumo.id} className={!stockSuficiente ? 'bg-red-50' : ''}>
                               <td className="px-4 py-3">
@@ -463,7 +510,12 @@ function TallerPage() {
                                 />
                               </td>
                               <td className={`px-4 py-3 text-right ${!stockSuficiente ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                                {insumo.stock_disponible || 0}
+                                {stockDisponibleReal}
+                                {reservadoEnEstePedido > 0 && insumoInventario && (
+                                  <span className="text-xs text-blue-600 block">
+                                    ({insumoInventario.cantidad_disponible} + {reservadoEnEstePedido})
+                                  </span>
+                                )}
                                 {!stockSuficiente && ' ⚠️'}
                               </td>
                               <td className="px-4 py-3 text-right text-gray-600">
