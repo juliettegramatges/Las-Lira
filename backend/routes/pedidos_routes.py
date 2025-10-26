@@ -103,16 +103,8 @@ def crear_pedido():
                     break
             
             if not cliente:
-                # Cliente no existe, crear uno nuevo
-                ultimo_cliente = Cliente.query.order_by(Cliente.id.desc()).first()
-                if ultimo_cliente:
-                    numero = int(ultimo_cliente.id[3:]) + 1
-                    nuevo_cliente_id = f"CLI{numero:03d}"
-                else:
-                    nuevo_cliente_id = "CLI001"
-                
+                # Cliente no existe, crear uno nuevo (el ID se genera automáticamente)
                 cliente = Cliente(
-                    id=nuevo_cliente_id,
                     nombre=data['cliente_nombre'],
                     telefono=telefono_normalizado,  # Guardar teléfono normalizado
                     email=data.get('cliente_email'),
@@ -120,14 +112,6 @@ def crear_pedido():
                 )
                 db.session.add(cliente)
                 db.session.flush()  # Para obtener el ID
-        
-        # Generar ID del pedido
-        ultimo_pedido = Pedido.query.order_by(Pedido.id.desc()).first()
-        if ultimo_pedido:
-            numero = int(ultimo_pedido.id[3:]) + 1
-            nuevo_id = f"PED{numero:03d}"
-        else:
-            nuevo_id = "PED001"
         
         # Calcular plazo de pago
         # Si viene manual en el request, usar ese; sino calcularlo por tipo de cliente
@@ -151,9 +135,8 @@ def crear_pedido():
             # Fecha máxima = fecha del pedido + días de plazo
             fecha_maxima_pago = datetime.utcnow() + timedelta(days=plazo_pago)
         
-        # Crear pedido
+        # Crear pedido (el ID se genera automáticamente)
         pedido = Pedido(
-            id=nuevo_id,
             canal=data['canal'],
             shopify_order_number=data.get('shopify_order_number'),
             cliente_id=cliente.id if cliente else None,
@@ -191,7 +174,7 @@ def crear_pedido():
         return jsonify({
             'success': True,
             'data': pedido.to_dict(),
-            'message': f'Pedido {nuevo_id} creado exitosamente'
+            'message': f'Pedido #{pedido.id} creado exitosamente'
         }), 201
         
     except Exception as e:
