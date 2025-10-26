@@ -9,17 +9,68 @@ const API_URL = 'http://localhost:5001/api'
 
 // Motivos comunes de pedidos
 const MOTIVOS_PEDIDO = [
+  // Celebraciones personales
   'Cumpleaños',
   'Aniversario',
+  'Graduación',
+  'Primera Comunión',
+  'Bautizo',
+  'Confirmación',
+  
+  // Amor y romance
+  'San Valentín',
+  'Amor / Cariño',
+  'Pedida de Mano',
+  'Boda / Matrimonio',
+  'Aniversario de Matrimonio',
+  
+  // Días especiales
+  'Día de la Madre',
+  'Día del Padre',
+  'Día de la Mujer',
+  'Día del Profesor',
+  'Día de los Abuelos',
+  
+  // Nacimientos y bebés
+  'Nacimiento',
+  'Baby Shower',
+  'Recién Nacido',
+  
+  // Felicitaciones
+  'Felicitaciones',
+  'Éxito / Logro',
+  'Nuevo Trabajo',
+  'Nuevo Hogar',
+  'Jubilación',
+  
+  // Recuperación y ánimo
+  'Mejórate Pronto',
+  'Recuperación',
+  'Apoyo',
+  
+  // Agradecimiento
+  'Agradecimiento',
+  'Disculpas',
+  
+  // Ceremonial
   'Difunto',
   'Condolencias',
-  'Amor / Romántico',
-  'Celebración',
-  'Agradecimiento',
-  'Bodas',
-  'Baby Shower',
-  'Graduación',
-  'Recuperación',
+  'Funeral',
+  'Velorio',
+  'Misa',
+  
+  // Fechas especiales
+  'Navidad',
+  'Año Nuevo',
+  'Fiestas Patrias',
+  'Pascua',
+  'Día de la Independencia',
+  
+  // Otros
+  'Decoración',
+  'Evento Corporativo',
+  'Regalo Corporativo',
+  'Solo porque sí',
   'Sin motivo específico',
   'Otro'
 ]
