@@ -273,7 +273,13 @@ function ClientesPage() {
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        {/* Total Clientes */}
+        <button
+          onClick={() => setTipoFiltro('')}
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+            tipoFiltro === '' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Clientes</p>
@@ -281,33 +287,76 @@ function ClientesPage() {
             </div>
             <User className="h-8 w-8 text-blue-600" />
           </div>
-        </div>
+          <div className="absolute -top-2 -right-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+            Ver todos
+          </div>
+        </button>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        {/* Clientes VIP */}
+        <button
+          onClick={() => setTipoFiltro('VIP')}
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+            tipoFiltro === 'VIP' ? 'border-purple-500 ring-2 ring-purple-200' : 'border-gray-200'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Clientes VIP</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1">
+                Clientes VIP
+                <span className="text-xs">⭐</span>
+              </p>
               <p className="text-2xl font-bold text-purple-600">
                 {statsGlobales.vip.toLocaleString()}
               </p>
             </div>
             <User className="h-8 w-8 text-purple-600" />
           </div>
-        </div>
+          {/* Tooltip explicativo */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-purple-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-1">🌟 Clientes VIP</p>
+            <p className="mb-1">• Plazo de pago: <span className="font-bold">45 días</span></p>
+            <p className="mb-1">• Alto valor de compra</p>
+            <p>• Máxima prioridad y beneficios</p>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-purple-600"></div>
+          </div>
+        </button>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        {/* Clientes Fieles */}
+        <button
+          onClick={() => setTipoFiltro('Fiel')}
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+            tipoFiltro === 'Fiel' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Clientes Fieles</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1">
+                Clientes Fieles
+                <span className="text-xs">💎</span>
+              </p>
               <p className="text-2xl font-bold text-blue-600">
                 {statsGlobales.fiel.toLocaleString()}
               </p>
             </div>
             <User className="h-8 w-8 text-blue-600" />
           </div>
-        </div>
+          {/* Tooltip explicativo */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-blue-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-1">💎 Clientes Fieles</p>
+            <p className="mb-1">• Plazo de pago: <span className="font-bold">15 días</span></p>
+            <p className="mb-1">• Compras recurrentes</p>
+            <p>• Buen historial de pagos</p>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-blue-600"></div>
+          </div>
+        </button>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        {/* Clientes Nuevos */}
+        <button
+          onClick={() => setTipoFiltro('Nuevo')}
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+            tipoFiltro === 'Nuevo' ? 'border-yellow-500 ring-2 ring-yellow-200' : 'border-gray-200'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Nuevos</p>
@@ -317,7 +366,15 @@ function ClientesPage() {
             </div>
             <User className="h-8 w-8 text-yellow-600" />
           </div>
-        </div>
+          {/* Tooltip explicativo */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-yellow-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-1">🌱 Clientes Nuevos</p>
+            <p className="mb-1">• Plazo de pago: <span className="font-bold">Pago inmediato</span></p>
+            <p className="mb-1">• Primera compra</p>
+            <p>• Sin historial previo</p>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-yellow-600"></div>
+          </div>
+        </button>
       </div>
 
       {/* Tabla de clientes */}
