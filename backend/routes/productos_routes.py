@@ -47,7 +47,7 @@ def listar_productos():
             stats_query = stats_query.filter_by(activo=activo)
         
         total_global = stats_query.count()
-        con_foto = stats_query.filter(Producto.foto_url.isnot(None)).count()
+        con_foto = stats_query.filter(Producto.imagen_url.isnot(None)).count()
         disponibles_shopify = stats_query.filter_by(disponible_shopify=True).count()
         
         # Aplicar paginación
@@ -68,6 +68,9 @@ def listar_productos():
             }
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # Imprimir el error completo en consola
+        print(f"❌ ERROR EN PRODUCTOS: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
