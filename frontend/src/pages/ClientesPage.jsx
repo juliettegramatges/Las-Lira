@@ -281,8 +281,8 @@ function ClientesPage() {
       </div>
 
       {/* Estadísticas rápidas - Scrolleable horizontalmente */}
-      <div className="mb-6 pb-2 mt-40">
-        <div className="overflow-x-auto overflow-y-visible custom-scrollbar pb-2">
+      <div className="relative mb-6 pb-2 pt-32">
+        <div className="overflow-x-auto custom-scrollbar pb-2" style={{overflowY: 'visible'}}>
           <div className="flex gap-4 min-w-max px-1">
         {/* Total Clientes */}
         <button
