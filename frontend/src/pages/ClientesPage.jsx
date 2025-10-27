@@ -794,36 +794,56 @@ function ClientesPage() {
                         key={pedido.id}
                         className="relative p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-indigo-300 hover:shadow-md transition-all group"
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <span className="text-sm font-bold text-gray-800">Pedido #{pedido.id}</span>
-                            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {formatFecha(pedido.fecha_pedido)}
-                            </p>
+                        <div className="flex gap-4">
+                          {/* Foto en miniatura */}
+                          <div className="flex-shrink-0">
+                            <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center border border-indigo-200">
+                              {pedido.foto_enviado_url || pedido.producto_imagen ? (
+                                <img 
+                                  src={pedido.foto_enviado_url || pedido.producto_imagen} 
+                                  alt={pedido.producto_nombre || 'Producto'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-3xl">🌸</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-lg font-bold text-gray-900">
-                              ${(pedido.precio_total || 0).toLocaleString('es-CL')}
-                            </span>
-                            <span className={`block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                              pedido.estado_pago === 'Pagado' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {pedido.estado_pago === 'Pagado' ? '✓ Pagado' : '⏳ Pendiente'}
-                            </span>
+                          
+                          {/* Contenido del pedido */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="text-sm font-bold text-gray-800">Pedido #{pedido.id}</span>
+                                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {formatFecha(pedido.fecha_pedido)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-lg font-bold text-gray-900">
+                                  ${(pedido.precio_total || 0).toLocaleString('es-CL')}
+                                </span>
+                                <span className={`block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  pedido.estado_pago === 'Pagado' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {pedido.estado_pago === 'Pagado' ? '✓ Pagado' : '⏳ Pendiente'}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-700 flex items-center gap-2">
+                              <Package className="h-4 w-4 text-gray-400" />
+                              {pedido.arreglo_pedido || 'Sin descripción'}
+                            </p>
+                            {pedido.fecha_entrega && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Entrega: {formatFecha(pedido.fecha_entrega)}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        <p className="text-sm text-gray-700 flex items-center gap-2">
-                          <Package className="h-4 w-4 text-gray-400" />
-                          {pedido.arreglo_pedido || 'Sin descripción'}
-                        </p>
-                        {pedido.fecha_entrega && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Entrega: {formatFecha(pedido.fecha_entrega)}
-                          </p>
-                        )}
                         
                         {/* Tooltip que aparece en hover - fixed para salir completamente del contenedor */}
                         <div className="fixed right-8 top-1/2 -translate-y-1/2 w-80 bg-white border-2 border-indigo-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999]">

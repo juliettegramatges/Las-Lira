@@ -1648,28 +1648,48 @@ function PedidosPage() {
                                   : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-pink-300 hover:shadow-md'
                               }`}
                             >
-                              <div className="flex justify-between items-start mb-1">
-                                <span className="text-xs font-bold text-gray-800">
-                                  {ped.id === pedidoDetalle.id && '➤ '}Pedido #{ped.id}
-                                </span>
-                                <span className="text-xs font-semibold text-primary-600">
-                                  ${(ped.precio_total || 0).toLocaleString('es-CL')}
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-600 truncate mb-1">
-                                {ped.arreglo_pedido || 'Sin descripción'}
-                              </p>
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-500">
-                                  📅 {formatFecha(ped.fecha_pedido)}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  ped.estado_pago === 'Pagado' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {ped.estado_pago === 'Pagado' ? '✓' : '⏳'}
-                                </span>
+                              <div className="flex gap-3">
+                                {/* Foto en miniatura */}
+                                <div className="flex-shrink-0">
+                                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200">
+                                    {ped.foto_enviado_url || ped.producto_imagen ? (
+                                      <img 
+                                        src={ped.foto_enviado_url || ped.producto_imagen} 
+                                        alt={ped.producto_nombre || 'Producto'}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-2xl">🌸</span>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Contenido del pedido */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <span className="text-xs font-bold text-gray-800">
+                                      {ped.id === pedidoDetalle.id && '➤ '}Pedido #{ped.id}
+                                    </span>
+                                    <span className="text-xs font-semibold text-primary-600">
+                                      ${(ped.precio_total || 0).toLocaleString('es-CL')}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-600 truncate mb-1">
+                                    {ped.arreglo_pedido || 'Sin descripción'}
+                                  </p>
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-gray-500">
+                                      📅 {formatFecha(ped.fecha_pedido)}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                      ped.estado_pago === 'Pagado' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {ped.estado_pago === 'Pagado' ? '✓' : '⏳'}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                               
                               {/* Tooltip que aparece en hover - fixed para salir completamente del contenedor */}
