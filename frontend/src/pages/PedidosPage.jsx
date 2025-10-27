@@ -1642,10 +1642,10 @@ function PedidosPage() {
                           historialCliente.slice(0, 10).map((ped) => (
                             <div 
                               key={ped.id} 
-                              className={`p-3 rounded-lg border-2 transition-all ${
+                              className={`relative p-3 rounded-lg border-2 transition-all group ${
                                 ped.id === pedidoDetalle.id 
                                   ? 'bg-indigo-100 border-indigo-400 shadow-md' 
-                                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                  : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-pink-300 hover:shadow-md'
                               }`}
                             >
                               <div className="flex justify-between items-start mb-1">
@@ -1671,6 +1671,37 @@ function PedidosPage() {
                                   {ped.estado_pago === 'Pagado' ? '✓' : '⏳'}
                                 </span>
                               </div>
+                              
+                              {/* Tooltip que aparece en hover */}
+                              {ped.id !== pedidoDetalle.id && (
+                                <div className="absolute left-full ml-3 top-0 w-72 bg-white border-2 border-pink-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                  <div className="space-y-2">
+                                    <div className="border-b border-pink-200 pb-2">
+                                      <p className="text-xs font-semibold text-pink-600 uppercase">Vista Rápida</p>
+                                    </div>
+                                    {ped.producto_nombre && (
+                                      <div>
+                                        <p className="text-xs text-gray-500 font-medium">Producto:</p>
+                                        <p className="text-sm font-bold text-gray-900">{ped.producto_nombre}</p>
+                                      </div>
+                                    )}
+                                    {ped.direccion_entrega && (
+                                      <div>
+                                        <p className="text-xs text-gray-500 font-medium">Dirección:</p>
+                                        <p className="text-xs text-gray-700">{ped.direccion_entrega}</p>
+                                      </div>
+                                    )}
+                                    {ped.motivo && (
+                                      <div>
+                                        <p className="text-xs text-gray-500 font-medium">Motivo:</p>
+                                        <span className="inline-block px-2 py-1 bg-pink-100 text-pink-800 rounded text-xs font-medium">
+                                          💐 {ped.motivo}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))
                         ) : (

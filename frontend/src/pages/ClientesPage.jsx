@@ -792,7 +792,7 @@ function ClientesPage() {
                     {historialPedidos.map((pedido) => (
                       <div 
                         key={pedido.id}
-                        className="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
+                        className="relative p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-indigo-300 hover:shadow-md transition-all group"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -824,6 +824,43 @@ function ClientesPage() {
                             Entrega: {formatFecha(pedido.fecha_entrega)}
                           </p>
                         )}
+                        
+                        {/* Tooltip que aparece en hover */}
+                        <div className="absolute left-full ml-3 top-0 w-80 bg-white border-2 border-indigo-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                          <div className="space-y-2">
+                            <div className="border-b border-indigo-200 pb-2">
+                              <p className="text-xs font-semibold text-indigo-600 uppercase">Detalles del Pedido</p>
+                            </div>
+                            {pedido.producto_nombre && (
+                              <div>
+                                <p className="text-xs text-gray-500 font-medium">Producto:</p>
+                                <p className="text-sm font-bold text-gray-900">{pedido.producto_nombre}</p>
+                              </div>
+                            )}
+                            {pedido.direccion_entrega && (
+                              <div>
+                                <p className="text-xs text-gray-500 font-medium">Dirección:</p>
+                                <p className="text-xs text-gray-700">{pedido.direccion_entrega}</p>
+                              </div>
+                            )}
+                            {pedido.metodo_pago && (
+                              <div>
+                                <p className="text-xs text-gray-500 font-medium">Método de Pago:</p>
+                                <span className="inline-block px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-medium">
+                                  {pedido.metodo_pago}
+                                </span>
+                              </div>
+                            )}
+                            {pedido.motivo && (
+                              <div>
+                                <p className="text-xs text-gray-500 font-medium">Motivo:</p>
+                                <span className="inline-block px-2 py-1 bg-pink-100 text-pink-800 rounded text-xs font-medium">
+                                  💐 {pedido.motivo}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
