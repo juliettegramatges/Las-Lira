@@ -34,7 +34,10 @@ function ClientesPage() {
     total: 0,
     vip: 0,
     fiel: 0,
-    nuevo: 0
+    nuevo: 0,
+    promedio_vip: 0,
+    promedio_fiel: 0,
+    promedio_nuevo: 0
   })
   
   // Estados para modal de detalles
@@ -312,11 +315,15 @@ function ClientesPage() {
             <User className="h-8 w-8 text-purple-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-purple-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
-            <p className="font-bold mb-1">🌟 Clientes VIP</p>
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-purple-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-2">🌟 Clientes VIP</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">45 días</span></p>
             <p className="mb-1">• Alto valor de compra</p>
-            <p>• Máxima prioridad y beneficios</p>
+            <p className="mb-2">• Máxima prioridad y beneficios</p>
+            <div className="border-t border-purple-400 pt-2 mt-2">
+              <p className="font-bold">💰 Promedio de gasto:</p>
+              <p className="text-lg font-bold">${statsGlobales.promedio_vip.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-purple-600"></div>
           </div>
         </button>
@@ -341,11 +348,15 @@ function ClientesPage() {
             <User className="h-8 w-8 text-blue-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-blue-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
-            <p className="font-bold mb-1">💎 Clientes Fieles</p>
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-blue-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-2">💎 Clientes Fieles</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">15 días</span></p>
             <p className="mb-1">• Compras recurrentes</p>
-            <p>• Buen historial de pagos</p>
+            <p className="mb-2">• Buen historial de pagos</p>
+            <div className="border-t border-blue-400 pt-2 mt-2">
+              <p className="font-bold">💰 Promedio de gasto:</p>
+              <p className="text-lg font-bold">${statsGlobales.promedio_fiel.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-blue-600"></div>
           </div>
         </button>
@@ -367,11 +378,15 @@ function ClientesPage() {
             <User className="h-8 w-8 text-yellow-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-yellow-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
-            <p className="font-bold mb-1">🌱 Clientes Nuevos</p>
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-yellow-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-2">🌱 Clientes Nuevos</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">Pago inmediato</span></p>
             <p className="mb-1">• Primera compra</p>
-            <p>• Sin historial previo</p>
+            <p className="mb-2">• Sin historial previo</p>
+            <div className="border-t border-yellow-400 pt-2 mt-2">
+              <p className="font-bold">💰 Promedio de gasto:</p>
+              <p className="text-lg font-bold">${statsGlobales.promedio_nuevo.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-yellow-600"></div>
           </div>
         </button>

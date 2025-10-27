@@ -40,11 +40,22 @@ def listar_clientes():
         
         # Calcular estadísticas globales de TODOS los clientes (sin filtros)
         total_global = Cliente.query.count()
+        
+        # Calcular promedios de gasto por tipo de cliente
+        from sqlalchemy import func
+        
+        def calcular_promedio_tipo(tipo):
+            resultado = db.session.query(func.avg(Cliente.total_gastado)).filter_by(tipo_cliente=tipo).scalar()
+            return float(resultado) if resultado else 0
+        
         stats = {
             'total': total_global,
             'vip': Cliente.query.filter_by(tipo_cliente='VIP').count(),
             'fiel': Cliente.query.filter_by(tipo_cliente='Fiel').count(),
             'nuevo': Cliente.query.filter_by(tipo_cliente='Nuevo').count(),
+            'promedio_vip': calcular_promedio_tipo('VIP'),
+            'promedio_fiel': calcular_promedio_tipo('Fiel'),
+            'promedio_nuevo': calcular_promedio_tipo('Nuevo'),
         }
         
         return jsonify({
