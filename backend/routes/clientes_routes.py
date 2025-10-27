@@ -41,11 +41,15 @@ def listar_clientes():
         # Calcular estadísticas globales de TODOS los clientes (sin filtros)
         total_global = Cliente.query.count()
         
-        # Calcular promedios de gasto por tipo de cliente
+        # Calcular promedios de gasto y pedidos por tipo de cliente
         from sqlalchemy import func
         
-        def calcular_promedio_tipo(tipo):
+        def calcular_promedio_gasto(tipo):
             resultado = db.session.query(func.avg(Cliente.total_gastado)).filter_by(tipo_cliente=tipo).scalar()
+            return float(resultado) if resultado else 0
+        
+        def calcular_promedio_pedidos(tipo):
+            resultado = db.session.query(func.avg(Cliente.total_pedidos)).filter_by(tipo_cliente=tipo).scalar()
             return float(resultado) if resultado else 0
         
         stats = {
@@ -53,9 +57,12 @@ def listar_clientes():
             'vip': Cliente.query.filter_by(tipo_cliente='VIP').count(),
             'fiel': Cliente.query.filter_by(tipo_cliente='Fiel').count(),
             'nuevo': Cliente.query.filter_by(tipo_cliente='Nuevo').count(),
-            'promedio_vip': calcular_promedio_tipo('VIP'),
-            'promedio_fiel': calcular_promedio_tipo('Fiel'),
-            'promedio_nuevo': calcular_promedio_tipo('Nuevo'),
+            'promedio_vip': calcular_promedio_gasto('VIP'),
+            'promedio_fiel': calcular_promedio_gasto('Fiel'),
+            'promedio_nuevo': calcular_promedio_gasto('Nuevo'),
+            'promedio_pedidos_vip': calcular_promedio_pedidos('VIP'),
+            'promedio_pedidos_fiel': calcular_promedio_pedidos('Fiel'),
+            'promedio_pedidos_nuevo': calcular_promedio_pedidos('Nuevo'),
         }
         
         return jsonify({

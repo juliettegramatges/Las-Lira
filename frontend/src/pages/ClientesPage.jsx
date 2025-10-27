@@ -37,7 +37,10 @@ function ClientesPage() {
     nuevo: 0,
     promedio_vip: 0,
     promedio_fiel: 0,
-    promedio_nuevo: 0
+    promedio_nuevo: 0,
+    promedio_pedidos_vip: 0,
+    promedio_pedidos_fiel: 0,
+    promedio_pedidos_nuevo: 0
   })
   
   // Estados para modal de detalles
@@ -320,9 +323,15 @@ function ClientesPage() {
             <p className="mb-1">• Plazo de pago: <span className="font-bold">45 días</span></p>
             <p className="mb-1">• Alto valor de compra</p>
             <p className="mb-2">• Máxima prioridad y beneficios</p>
-            <div className="border-t border-purple-400 pt-2 mt-2">
-              <p className="font-bold">💰 Promedio de gasto:</p>
-              <p className="text-lg font-bold">${statsGlobales.promedio_vip.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            <div className="border-t border-purple-400 pt-2 mt-2 space-y-1">
+              <div className="flex justify-between items-center">
+                <p className="font-bold">💰 Gasto promedio:</p>
+                <p className="text-base font-bold">${statsGlobales.promedio_vip.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="font-bold">📦 Pedidos promedio:</p>
+                <p className="text-base font-bold">{statsGlobales.promedio_pedidos_vip.toFixed(1)} pedidos</p>
+              </div>
             </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-purple-600"></div>
           </div>
@@ -353,9 +362,15 @@ function ClientesPage() {
             <p className="mb-1">• Plazo de pago: <span className="font-bold">15 días</span></p>
             <p className="mb-1">• Compras recurrentes</p>
             <p className="mb-2">• Buen historial de pagos</p>
-            <div className="border-t border-blue-400 pt-2 mt-2">
-              <p className="font-bold">💰 Promedio de gasto:</p>
-              <p className="text-lg font-bold">${statsGlobales.promedio_fiel.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            <div className="border-t border-blue-400 pt-2 mt-2 space-y-1">
+              <div className="flex justify-between items-center">
+                <p className="font-bold">💰 Gasto promedio:</p>
+                <p className="text-base font-bold">${statsGlobales.promedio_fiel.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="font-bold">📦 Pedidos promedio:</p>
+                <p className="text-base font-bold">{statsGlobales.promedio_pedidos_fiel.toFixed(1)} pedidos</p>
+              </div>
             </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-blue-600"></div>
           </div>
@@ -383,9 +398,15 @@ function ClientesPage() {
             <p className="mb-1">• Plazo de pago: <span className="font-bold">Pago inmediato</span></p>
             <p className="mb-1">• Primera compra</p>
             <p className="mb-2">• Sin historial previo</p>
-            <div className="border-t border-yellow-400 pt-2 mt-2">
-              <p className="font-bold">💰 Promedio de gasto:</p>
-              <p className="text-lg font-bold">${statsGlobales.promedio_nuevo.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            <div className="border-t border-yellow-400 pt-2 mt-2 space-y-1">
+              <div className="flex justify-between items-center">
+                <p className="font-bold">💰 Gasto promedio:</p>
+                <p className="text-base font-bold">${statsGlobales.promedio_nuevo.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="font-bold">📦 Pedidos promedio:</p>
+                <p className="text-base font-bold">{statsGlobales.promedio_pedidos_nuevo.toFixed(1)} pedidos</p>
+              </div>
             </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-yellow-600"></div>
           </div>
