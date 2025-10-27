@@ -2188,7 +2188,7 @@ function PedidosPage() {
                           💡 Los insumos te ayudan a gestionar el stock automáticamente
                         </p>
                       </div>
-                    ) : insumosModificados.length > 0 ? (
+                    ) : insumosModificados.length > 0 && (
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-300">
                           <thead className="bg-yellow-100">
