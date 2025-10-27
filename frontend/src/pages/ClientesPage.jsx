@@ -718,20 +718,6 @@ function ClientesPage() {
                 </select>
               </div>
 
-              {/* Dirección */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección Principal
-                </label>
-                <input
-                  type="text"
-                  value={formData.direccion_principal}
-                  onChange={(e) => setFormData({...formData, direccion_principal: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Av. Apoquindo 1234, Las Condes"
-                />
-              </div>
-
               {/* Notas */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -836,15 +822,6 @@ function ClientesPage() {
                           <p className="text-base font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200 flex items-center gap-2 break-all">
                             <Mail className="h-4 w-4 text-indigo-500" />
                             {clienteDetalle.email}
-                          </p>
-                        </div>
-                      )}
-                      {clienteDetalle.direccion_principal && (
-                        <div>
-                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Dirección Principal</p>
-                          <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200 flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-indigo-500 mt-0.5" />
-                            <span>{clienteDetalle.direccion_principal}</span>
                           </p>
                         </div>
                       )}
