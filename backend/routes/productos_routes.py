@@ -34,7 +34,7 @@ def listar_productos():
                 db.or_(
                     Producto.nombre.ilike(f'%{busqueda}%'),
                     Producto.descripcion.ilike(f'%{busqueda}%'),
-                    Producto.categoria.ilike(f'%{busqueda}%')
+                    Producto.tipo_arreglo.ilike(f'%{busqueda}%')
                 )
             )
         
