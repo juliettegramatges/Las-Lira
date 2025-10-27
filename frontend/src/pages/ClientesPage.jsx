@@ -633,18 +633,18 @@ function ClientesPage() {
           onClick={() => setMostrarDetalles(false)}
         >
           <div 
-            className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-6 py-5 flex items-center justify-between z-10 shadow-lg rounded-t-lg">
+            <div className="sticky top-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-6 flex items-center justify-between z-10 shadow-lg rounded-t-2xl">
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold">
+                <div className="h-16 w-16 bg-white/30 rounded-full flex items-center justify-center text-3xl font-bold shadow-lg">
                   {clienteDetalle.nombre.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">{clienteDetalle.nombre}</h2>
-                  <p className="text-sm text-indigo-100 mt-1">ID: {clienteDetalle.id}</p>
+                  <h2 className="text-3xl font-bold">{clienteDetalle.nombre}</h2>
+                  <p className="text-sm text-indigo-100 mt-1 font-medium">ID: {clienteDetalle.id}</p>
                 </div>
                 {clienteDetalle.tipo_cliente && (
                   <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-md ${
@@ -659,7 +659,7 @@ function ClientesPage() {
               </div>
               <button 
                 onClick={() => setMostrarDetalles(false)}
-                className="text-white hover:text-indigo-100 transition-colors p-2 hover:bg-white/10 rounded-lg"
+                className="text-white hover:bg-white/20 transition-all duration-200 p-2 rounded-lg"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -674,9 +674,9 @@ function ClientesPage() {
                 <div className="space-y-6">
                   
                   {/* Información de Contacto */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-lg border-2 border-blue-200 shadow-sm">
-                    <h3 className="text-sm font-bold text-blue-800 uppercase mb-4 flex items-center">
-                      <Phone className="h-5 w-5 mr-2" />
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <h3 className="text-sm font-bold text-blue-900 uppercase mb-4 flex items-center">
+                      <Phone className="h-5 w-5 mr-2 text-blue-600" />
                       Información de Contacto
                     </h3>
                     <div className="space-y-3">
