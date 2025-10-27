@@ -674,44 +674,44 @@ function ClientesPage() {
                 <div className="space-y-6">
                   
                   {/* Información de Contacto */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <h3 className="text-sm font-bold text-blue-900 uppercase mb-4 flex items-center">
-                      <Phone className="h-5 w-5 mr-2 text-blue-600" />
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                      <Phone className="h-5 w-5 mr-2 text-indigo-500" />
                       Información de Contacto
                     </h3>
                     <div className="space-y-3">
                       {clienteDetalle.telefono && (
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Teléfono</p>
-                          <p className="text-base font-medium text-blue-900 bg-white p-2 rounded border border-blue-200 flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-blue-600" />
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Teléfono</p>
+                          <p className="text-base font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200 flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-indigo-500" />
                             {clienteDetalle.telefono}
                           </p>
                         </div>
                       )}
                       {clienteDetalle.email && (
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Email</p>
-                          <p className="text-base font-medium text-blue-900 bg-white p-2 rounded border border-blue-200 flex items-center gap-2 break-all">
-                            <Mail className="h-4 w-4 text-blue-600" />
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Email</p>
+                          <p className="text-base font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200 flex items-center gap-2 break-all">
+                            <Mail className="h-4 w-4 text-indigo-500" />
                             {clienteDetalle.email}
                           </p>
                         </div>
                       )}
                       {clienteDetalle.direccion_principal && (
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Dirección Principal</p>
-                          <p className="text-sm font-medium text-blue-900 bg-white p-3 rounded border border-blue-200 flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Dirección Principal</p>
+                          <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200 flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-indigo-500 mt-0.5" />
                             <span>{clienteDetalle.direccion_principal}</span>
                           </p>
                         </div>
                       )}
                       {clienteDetalle.fecha_registro && (
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Cliente desde</p>
-                          <p className="text-sm text-blue-800 bg-blue-100 p-2 rounded border border-blue-200 flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Cliente desde</p>
+                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded border border-gray-200 flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-indigo-500" />
                             {formatFecha(clienteDetalle.fecha_registro)}
                           </p>
                         </div>
@@ -721,11 +721,11 @@ function ClientesPage() {
                   
                   {/* Notas */}
                   {clienteDetalle.notas && (
-                    <div className="bg-yellow-50 p-5 rounded-lg border-2 border-yellow-200 shadow-sm">
-                      <h3 className="text-sm font-bold text-yellow-800 uppercase mb-3">
+                    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-3 flex items-center">
                         📝 Notas
                       </h3>
-                      <p className="text-sm text-yellow-900 bg-white p-3 rounded border border-yellow-200">
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded border border-gray-200">
                         {clienteDetalle.notas}
                       </p>
                     </div>
@@ -736,32 +736,32 @@ function ClientesPage() {
                 <div className="space-y-6">
                   
                   {/* Estadísticas */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-5 rounded-lg border-2 border-purple-200 shadow-sm">
-                    <h3 className="text-sm font-bold text-purple-800 uppercase mb-4">
-                      📊 Estadísticas de Compra
+                  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                      <span className="text-indigo-500 mr-2">📊</span> Estadísticas de Compra
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-indigo-50 rounded">
-                        <span className="text-sm text-indigo-700 font-medium">Total de Pedidos:</span>
-                        <span className="text-2xl font-bold text-indigo-900">{clienteDetalle.total_pedidos || 0}</span>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200">
+                        <span className="text-sm text-gray-700 font-medium">Total de Pedidos:</span>
+                        <span className="text-2xl font-bold text-gray-900">{clienteDetalle.total_pedidos || 0}</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded">
-                        <span className="text-sm text-purple-700 font-medium">Total Gastado:</span>
-                        <span className="text-2xl font-bold text-purple-900">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200">
+                        <span className="text-sm text-gray-700 font-medium">Total Gastado:</span>
+                        <span className="text-2xl font-bold text-gray-900">
                           ${(clienteDetalle.total_gastado || 0).toLocaleString('es-CL')}
                         </span>
                       </div>
                       {clienteDetalle.total_pedidos > 0 && (
-                        <div className="flex justify-between items-center p-3 bg-pink-50 rounded">
-                          <span className="text-sm text-pink-700 font-medium">Ticket Promedio:</span>
-                          <span className="text-xl font-bold text-pink-900">
+                        <div className="flex justify-between items-center p-3 bg-indigo-50 rounded border border-indigo-200">
+                          <span className="text-sm text-indigo-700 font-medium">Ticket Promedio:</span>
+                          <span className="text-xl font-bold text-indigo-900">
                             ${Math.round((clienteDetalle.total_gastado || 0) / (clienteDetalle.total_pedidos || 1)).toLocaleString('es-CL')}
                           </span>
                         </div>
                       )}
                       {clienteDetalle.ultima_compra && (
-                        <div className="text-xs text-purple-600 pt-2 border-t border-purple-200 flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
+                        <div className="text-xs text-gray-600 pt-2 border-t border-gray-200 flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-indigo-500" />
                           <span>Última compra: {formatFecha(clienteDetalle.ultima_compra)}</span>
                         </div>
                       )}
@@ -771,28 +771,28 @@ function ClientesPage() {
               </div>
               
               {/* Historial de Pedidos */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-lg border-2 border-green-200 shadow-sm">
-                <h3 className="text-sm font-bold text-green-800 uppercase mb-4 flex items-center justify-between">
+              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center justify-between">
                   <span className="flex items-center">
-                    <ShoppingBag className="h-5 w-5 mr-2" />
+                    <ShoppingBag className="h-5 w-5 mr-2 text-indigo-500" />
                     Historial de Pedidos
                   </span>
-                  <span className="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                  <span className="text-xs bg-gray-100 text-gray-800 px-3 py-1 rounded-full">
                     {historialPedidos.length} pedidos
                   </span>
                 </h3>
                 
                 {loadingHistorial ? (
                   <div className="text-center py-8">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-500 border-t-transparent"></div>
-                    <p className="text-sm text-green-600 mt-2">Cargando historial...</p>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
+                    <p className="text-sm text-gray-600 mt-2">Cargando historial...</p>
                   </div>
                 ) : historialPedidos.length > 0 ? (
                   <div className="max-h-96 overflow-y-auto space-y-2 custom-scrollbar">
                     {historialPedidos.map((pedido) => (
                       <div 
                         key={pedido.id}
-                        className="p-4 rounded-lg border-2 border-green-200 bg-white hover:bg-green-50 transition-all"
+                        className="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -803,7 +803,7 @@ function ClientesPage() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <span className="text-lg font-bold text-green-600">
+                            <span className="text-lg font-bold text-gray-900">
                               ${(pedido.precio_total || 0).toLocaleString('es-CL')}
                             </span>
                             <span className={`block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
