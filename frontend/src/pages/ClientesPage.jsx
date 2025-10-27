@@ -281,8 +281,9 @@ function ClientesPage() {
       </div>
 
       {/* Estadísticas rápidas - Scrolleable horizontalmente */}
-      <div className="mb-6 overflow-x-auto pb-2 custom-scrollbar">
-        <div className="flex gap-4 min-w-max px-1">
+      <div className="mb-6 pb-2">
+        <div className="overflow-x-auto custom-scrollbar pb-32">
+          <div className="flex gap-4 min-w-max px-1">
         {/* Total Clientes */}
         <button
           onClick={() => setTipoFiltro('')}
@@ -454,6 +455,7 @@ function ClientesPage() {
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-600"></div>
           </div>
         </button>
+          </div>
         </div>
       </div>
 
