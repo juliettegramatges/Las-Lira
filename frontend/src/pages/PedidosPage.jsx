@@ -1160,9 +1160,9 @@ function PedidosPage() {
                   )}
                   
                   {/* Arreglo Pedido */}
-                  <div className="bg-white border-2 border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <h3 className="text-sm font-bold text-gray-800 uppercase mb-4 flex items-center">
-                      <Package className="h-5 w-5 mr-2 text-gray-500" />
+                  <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                      <Package className="h-5 w-5 mr-2 text-pink-500" />
                       Detalles del Arreglo
                     </h3>
                     <div className="space-y-3">
@@ -1173,7 +1173,7 @@ function PedidosPage() {
                             type="text"
                             value={pedidoEditado.arreglo_pedido || ''}
                             onChange={(e) => handleCampoEdicion('arreglo_pedido', e.target.value)}
-                            className="w-full text-base font-medium text-gray-900 bg-white p-3 rounded border-2 border-primary-300 focus:border-primary-500 focus:outline-none"
+                            className="w-full text-base font-medium text-gray-900 bg-white p-3 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                           />
                         ) : (
                           <p className="text-base font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200">
@@ -1189,10 +1189,10 @@ function PedidosPage() {
                             value={pedidoEditado.detalles_adicionales || ''}
                             onChange={(e) => handleCampoEdicion('detalles_adicionales', e.target.value)}
                             rows="3"
-                            className="w-full text-sm text-gray-700 bg-white p-3 rounded border-2 border-yellow-300 focus:border-yellow-500 focus:outline-none"
+                            className="w-full text-sm text-gray-700 bg-white p-3 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                           />
                         ) : pedidoDetalle.detalles_adicionales && (
-                          <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200">
+                          <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded border border-gray-200">
                             {pedidoDetalle.detalles_adicionales}
                           </p>
                         )}
