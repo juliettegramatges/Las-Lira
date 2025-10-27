@@ -1224,9 +1224,9 @@ function PedidosPage() {
                   
                   {/* Mensaje y Destinatario */}
                   {(pedidoDetalle.destinatario || pedidoDetalle.mensaje || pedidoDetalle.firma) && (
-                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-5 rounded-lg border-2 border-pink-200 shadow-sm">
-                      <h3 className="text-sm font-bold text-pink-800 uppercase mb-4 flex items-center">
-                        <MessageSquare className="h-5 w-5 mr-2" />
+                    <div className="bg-gradient-to-br from-rose-50 to-pink-50 p-6 rounded-xl border-2 border-rose-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <h3 className="text-sm font-bold text-rose-900 uppercase mb-4 flex items-center">
+                        <MessageSquare className="h-5 w-5 mr-2 text-rose-600" />
                         Mensaje y Destinatario
                       </h3>
                       <div className="space-y-3">
@@ -1287,9 +1287,9 @@ function PedidosPage() {
                 <div className="space-y-6">
                   
                   {/* Cliente */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-lg border-2 border-blue-200 shadow-sm">
-                    <h3 className="text-sm font-bold text-blue-800 uppercase mb-4 flex items-center">
-                      <User className="h-5 w-5 mr-2" />
+                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <h3 className="text-sm font-bold text-indigo-900 uppercase mb-4 flex items-center">
+                      <User className="h-5 w-5 mr-2 text-indigo-600" />
                       Información del Cliente
                     </h3>
                     <div className="space-y-3">
@@ -1375,9 +1375,9 @@ function PedidosPage() {
                   </div>
                   
                   {/* Entrega */}
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-lg border-2 border-green-200 shadow-sm">
-                    <h3 className="text-sm font-bold text-green-800 uppercase mb-4 flex items-center">
-                      <MapPin className="h-5 w-5 mr-2" />
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <h3 className="text-sm font-bold text-emerald-900 uppercase mb-4 flex items-center">
+                      <MapPin className="h-5 w-5 mr-2 text-emerald-600" />
                       Información de Entrega
                     </h3>
                     <div className="space-y-3">
@@ -1444,9 +1444,9 @@ function PedidosPage() {
                   </div>
                   
                   {/* Precios y Pago */}
-                  <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-5 rounded-lg border-2 border-amber-300 shadow-sm">
+                  <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-xl border-2 border-amber-200 shadow-sm hover:shadow-md transition-shadow duration-200">
                     <h3 className="text-sm font-bold text-amber-900 uppercase mb-4 flex items-center">
-                      <DollarSign className="h-5 w-5 mr-2" />
+                      <DollarSign className="h-5 w-5 mr-2 text-amber-600" />
                       Información de Pago
                     </h3>
                     <div className="space-y-3">
