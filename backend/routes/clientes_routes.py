@@ -57,12 +57,15 @@ def listar_clientes():
             'vip': Cliente.query.filter_by(tipo_cliente='VIP').count(),
             'fiel': Cliente.query.filter_by(tipo_cliente='Fiel').count(),
             'nuevo': Cliente.query.filter_by(tipo_cliente='Nuevo').count(),
+            'ocasional': Cliente.query.filter_by(tipo_cliente='Ocasional').count(),
             'promedio_vip': calcular_promedio_gasto('VIP'),
             'promedio_fiel': calcular_promedio_gasto('Fiel'),
             'promedio_nuevo': calcular_promedio_gasto('Nuevo'),
+            'promedio_ocasional': calcular_promedio_gasto('Ocasional'),
             'promedio_pedidos_vip': calcular_promedio_pedidos('VIP'),
             'promedio_pedidos_fiel': calcular_promedio_pedidos('Fiel'),
             'promedio_pedidos_nuevo': calcular_promedio_pedidos('Nuevo'),
+            'promedio_pedidos_ocasional': calcular_promedio_pedidos('Ocasional'),
         }
         
         return jsonify({

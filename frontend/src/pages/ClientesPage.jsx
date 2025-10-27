@@ -35,12 +35,15 @@ function ClientesPage() {
     vip: 0,
     fiel: 0,
     nuevo: 0,
+    ocasional: 0,
     promedio_vip: 0,
     promedio_fiel: 0,
     promedio_nuevo: 0,
+    promedio_ocasional: 0,
     promedio_pedidos_vip: 0,
     promedio_pedidos_fiel: 0,
-    promedio_pedidos_nuevo: 0
+    promedio_pedidos_nuevo: 0,
+    promedio_pedidos_ocasional: 0
   })
   
   // Estados para modal de detalles
@@ -277,12 +280,13 @@ function ClientesPage() {
         </div>
       </div>
 
-      {/* Estadísticas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Estadísticas rápidas - Scrolleable horizontalmente */}
+      <div className="mb-6 overflow-x-auto pb-2 custom-scrollbar">
+        <div className="flex gap-4 min-w-max px-1">
         {/* Total Clientes */}
         <button
           onClick={() => setTipoFiltro('')}
-          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left min-w-[220px] ${
             tipoFiltro === '' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
           }`}
         >
@@ -301,7 +305,7 @@ function ClientesPage() {
         {/* Clientes VIP */}
         <button
           onClick={() => setTipoFiltro('VIP')}
-          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left min-w-[220px] ${
             tipoFiltro === 'VIP' ? 'border-purple-500 ring-2 ring-purple-200' : 'border-gray-200'
           }`}
         >
@@ -340,7 +344,7 @@ function ClientesPage() {
         {/* Clientes Fieles */}
         <button
           onClick={() => setTipoFiltro('Fiel')}
-          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left min-w-[220px] ${
             tipoFiltro === 'Fiel' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
           }`}
         >
@@ -379,7 +383,7 @@ function ClientesPage() {
         {/* Clientes Nuevos */}
         <button
           onClick={() => setTipoFiltro('Nuevo')}
-          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left ${
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left min-w-[220px] ${
             tipoFiltro === 'Nuevo' ? 'border-yellow-500 ring-2 ring-yellow-200' : 'border-gray-200'
           }`}
         >
@@ -411,6 +415,46 @@ function ClientesPage() {
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-yellow-600"></div>
           </div>
         </button>
+        
+        {/* Clientes Ocasionales */}
+        <button
+          onClick={() => setTipoFiltro('Ocasional')}
+          className={`relative group bg-white p-4 rounded-lg shadow-sm border-2 transition-all hover:shadow-lg hover:scale-105 text-left min-w-[220px] ${
+            tipoFiltro === 'Ocasional' ? 'border-gray-500 ring-2 ring-gray-200' : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 flex items-center gap-1">
+                Ocasionales
+                <span className="text-xs">🔄</span>
+              </p>
+              <p className="text-2xl font-bold text-gray-600">
+                {statsGlobales.ocasional.toLocaleString()}
+              </p>
+            </div>
+            <User className="h-8 w-8 text-gray-600" />
+          </div>
+          {/* Tooltip explicativo */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-gray-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
+            <p className="font-bold mb-2">🔄 Clientes Ocasionales</p>
+            <p className="mb-1">• Plazo de pago: <span className="font-bold">7 días</span></p>
+            <p className="mb-1">• Compras esporádicas</p>
+            <p className="mb-2">• Sin patrón regular</p>
+            <div className="border-t border-gray-400 pt-2 mt-2 space-y-1">
+              <div className="flex justify-between items-center">
+                <p className="font-bold">💰 Gasto promedio:</p>
+                <p className="text-base font-bold">${statsGlobales.promedio_ocasional.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="font-bold">📦 Pedidos promedio:</p>
+                <p className="text-base font-bold">{statsGlobales.promedio_pedidos_ocasional.toFixed(1)} pedidos</p>
+              </div>
+            </div>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-600"></div>
+          </div>
+        </button>
+        </div>
       </div>
 
       {/* Tabla de clientes */}
