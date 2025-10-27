@@ -53,6 +53,9 @@ class Pedido(db.Model):
     numero_documento = db.Column(db.String(50))  # Ej: "10301" o "FACT-2025-001"
     # Foto del arreglo enviado (trazabilidad)
     foto_enviado_url = db.Column(db.String(500))  # Foto tomada antes de enviar
+    # Información de Evento
+    es_evento = db.Column(db.Boolean, default=False)  # Si es un pedido de evento
+    tipo_evento = db.Column(db.String(50))  # Matrimonio, Funeral, Cumpleaños, etc.
     fecha_actualizacion = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relaciones
@@ -103,6 +106,8 @@ class Pedido(db.Model):
             'documento_tributario': self.documento_tributario,
             'numero_documento': self.numero_documento,
             'foto_enviado_url': self.foto_enviado_url,
+            'es_evento': self.es_evento,
+            'tipo_evento': self.tipo_evento,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
         }
     

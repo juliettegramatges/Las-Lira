@@ -1219,6 +1219,65 @@ function PedidosPage() {
                           <span className="text-sm text-gray-400 italic">Sin motivo especificado</span>
                         )}
                       </div>
+                      
+                      {/* Información de Evento */}
+                      <div className="col-span-2 border-t border-gray-200 pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">¿Es un evento?</p>
+                            {modoEdicion ? (
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={pedidoEditado.es_evento || false}
+                                  onChange={(e) => {
+                                    handleCampoEdicion('es_evento', e.target.checked)
+                                    if (!e.target.checked) {
+                                      handleCampoEdicion('tipo_evento', '')
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-pink-600 bg-gray-100 border-gray-300 rounded focus:ring-pink-500"
+                                />
+                                <span className="text-sm text-gray-700">Sí, es un evento</span>
+                              </label>
+                            ) : pedidoDetalle.es_evento ? (
+                              <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium border border-purple-200">
+                                🎉 Evento
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400 italic">No es evento</span>
+                            )}
+                          </div>
+                          
+                          {((modoEdicion && pedidoEditado.es_evento) || (!modoEdicion && pedidoDetalle.es_evento)) && (
+                            <div>
+                              <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Tipo de Evento</p>
+                              {modoEdicion ? (
+                                <select
+                                  value={pedidoEditado.tipo_evento || ''}
+                                  onChange={(e) => handleCampoEdicion('tipo_evento', e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                                >
+                                  <option value="">-- Seleccionar --</option>
+                                  <option value="Matrimonio">💒 Matrimonio</option>
+                                  <option value="Funeral">🕊️ Funeral</option>
+                                  <option value="Cumpleaños">🎂 Cumpleaños</option>
+                                  <option value="Bautizo">👶 Bautizo</option>
+                                  <option value="Primera Comunión">🙏 Primera Comunión</option>
+                                  <option value="Aniversario">💍 Aniversario</option>
+                                  <option value="Corporativo">🏢 Corporativo</option>
+                                  <option value="Inauguración">🎊 Inauguración</option>
+                                  <option value="Otro">🎪 Otro</option>
+                                </select>
+                              ) : pedidoDetalle.tipo_evento ? (
+                                <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium border border-purple-200">
+                                  {pedidoDetalle.tipo_evento}
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
