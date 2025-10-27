@@ -1695,11 +1695,11 @@ function PedidosPage() {
             )}
             
             {/* Footer del Modal */}
-            <div className="sticky bottom-0 bg-gray-100 px-6 py-4 flex justify-between items-center rounded-b-lg border-t border-gray-200">
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-between items-center rounded-b-2xl border-t border-gray-200">
               <div className="flex gap-3">
                 <button
                   onClick={() => setPedidoDetalle(null)}
-                  className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                  className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-medium"
                 >
                   Cerrar
                 </button>
@@ -1708,7 +1708,7 @@ function PedidosPage() {
                 {pedidoDetalle?.estado !== 'Cancelado' && (
                   <button
                     onClick={handleCancelarPedido}
-                    className="px-6 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center gap-2"
+                    className="px-6 py-2.5 border-2 border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50 transition-all font-medium flex items-center gap-2"
                     title="Cambiar estado a Cancelado"
                   >
                     <XCircle className="h-4 w-4" />
@@ -1718,7 +1718,7 @@ function PedidosPage() {
                 
                 <button
                   onClick={handleEliminarPedido}
-                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                  className="px-6 py-2.5 border-2 border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-all font-medium flex items-center gap-2"
                   title="Eliminar permanentemente de la base de datos"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -1731,13 +1731,13 @@ function PedidosPage() {
                   <>
                     <button
                       onClick={handleCancelarEdicion}
-                      className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                      className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-medium"
                     >
                       Cancelar Edición
                     </button>
                     <button
                       onClick={handleGuardarEdicion}
-                      className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                      className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
                     >
                       <CheckCircle className="h-4 w-4" />
                       Guardar Cambios
@@ -1746,7 +1746,7 @@ function PedidosPage() {
                 ) : (
                   <button
                     onClick={handleActivarEdicion}
-                    className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center gap-2"
+                    className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all shadow-md hover:shadow-lg font-medium flex items-center gap-2"
                   >
                     <Edit className="h-4 w-4" />
                     Editar Pedido

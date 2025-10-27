@@ -836,10 +836,10 @@ function ClientesPage() {
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 bg-gray-100 px-6 py-4 flex justify-center items-center rounded-b-lg border-t border-gray-200">
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-center items-center rounded-b-2xl border-t border-gray-200">
               <button
                 onClick={() => setMostrarDetalles(false)}
-                className="px-8 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                className="px-8 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-medium"
               >
                 Cerrar
               </button>
