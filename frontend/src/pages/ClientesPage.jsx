@@ -281,7 +281,7 @@ function ClientesPage() {
       </div>
 
       {/* Estadísticas rápidas - Scrolleable horizontalmente */}
-      <div className="mb-6 pb-2 mt-32">
+      <div className="mb-6 pb-2">
         <div className="overflow-x-auto custom-scrollbar pb-2">
           <div className="flex gap-4 min-w-max px-1">
         {/* Total Clientes */}
@@ -323,7 +323,7 @@ function ClientesPage() {
             <User className="h-8 w-8 text-purple-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(100vh-180px)] w-72 bg-purple-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
+          <div className="fixed left-1/2 -translate-x-1/2 top-32 w-72 bg-purple-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
             <p className="font-bold mb-2">🌟 Clientes VIP</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">45 días</span></p>
             <p className="mb-1">• Alto valor de compra</p>
@@ -362,7 +362,7 @@ function ClientesPage() {
             <User className="h-8 w-8 text-blue-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(100vh-180px)] w-72 bg-blue-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
+          <div className="fixed left-1/2 -translate-x-1/2 top-32 w-72 bg-blue-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
             <p className="font-bold mb-2">💎 Clientes Fieles</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">15 días</span></p>
             <p className="mb-1">• Compras recurrentes</p>
@@ -398,7 +398,7 @@ function ClientesPage() {
             <User className="h-8 w-8 text-yellow-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(100vh-180px)] w-72 bg-yellow-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
+          <div className="fixed left-1/2 -translate-x-1/2 top-32 w-72 bg-yellow-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
             <p className="font-bold mb-2">🌱 Clientes Nuevos</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">Pago inmediato</span></p>
             <p className="mb-1">• Primera compra</p>
@@ -437,7 +437,7 @@ function ClientesPage() {
             <User className="h-8 w-8 text-gray-600" />
           </div>
           {/* Tooltip explicativo */}
-          <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(100vh-180px)] w-72 bg-gray-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
+          <div className="fixed left-1/2 -translate-x-1/2 top-32 w-72 bg-gray-600 text-white text-xs p-3 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] shadow-xl pointer-events-none">
             <p className="font-bold mb-2">🔄 Clientes Ocasionales</p>
             <p className="mb-1">• Plazo de pago: <span className="font-bold">7 días</span></p>
             <p className="mb-1">• Compras esporádicas</p>
