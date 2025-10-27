@@ -1092,15 +1092,15 @@ function PedidosPage() {
           onClick={() => setPedidoDetalle(null)}
         >
           <div 
-            className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-5 flex items-center justify-between z-10 shadow-lg rounded-t-lg">
+            <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-6 flex items-center justify-between z-10 shadow-lg rounded-t-2xl">
               <div className="flex items-center gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold">Pedido #{pedidoDetalle.id}</h2>
-                  <p className="text-sm text-primary-100 mt-1">
+                  <h2 className="text-3xl font-bold">Pedido #{pedidoDetalle.id}</h2>
+                  <p className="text-sm text-pink-100 mt-1 font-medium">
                     {pedidoDetalle.numero_pedido ? `Nº ${pedidoDetalle.numero_pedido}` : 'Sin número de pedido'}
                   </p>
                 </div>
@@ -1110,7 +1110,7 @@ function PedidosPage() {
               </div>
               <button 
                 onClick={() => setPedidoDetalle(null)}
-                className="text-white hover:text-primary-100 transition-colors p-2 hover:bg-white/10 rounded-lg"
+                className="text-white hover:bg-white/20 transition-all duration-200 p-2 rounded-lg"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -1126,9 +1126,9 @@ function PedidosPage() {
                   
                   {/* Producto del Catálogo (si existe) */}
                   {pedidoDetalle.producto_nombre && (
-                    <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-5 rounded-lg border-2 border-primary-200 shadow-sm">
-                      <h3 className="text-sm font-bold text-primary-800 uppercase mb-4 flex items-center">
-                        <ShoppingBag className="h-5 w-5 mr-2" />
+                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-6 rounded-xl border-2 border-pink-200 shadow-sm">
+                      <h3 className="text-sm font-bold text-pink-900 uppercase mb-4 flex items-center">
+                        <ShoppingBag className="h-5 w-5 mr-2 text-pink-600" />
                         Producto del Catálogo
                       </h3>
                       
@@ -1138,21 +1138,21 @@ function PedidosPage() {
                           <img 
                             src={pedidoDetalle.producto_imagen} 
                             alt={pedidoDetalle.producto_nombre}
-                            className="w-full h-48 object-cover rounded-lg shadow-md border border-primary-200"
+                            className="w-full h-48 object-cover rounded-xl shadow-md border-2 border-pink-200"
                           />
                         </div>
                       )}
                       
                       <div className="space-y-3">
                         <div>
-                          <p className="text-xs text-primary-700 font-semibold uppercase mb-1">Nombre del Producto</p>
-                          <p className="text-base font-bold text-primary-900">{pedidoDetalle.producto_nombre}</p>
+                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Nombre del Producto</p>
+                          <p className="text-base font-bold text-pink-900">{pedidoDetalle.producto_nombre}</p>
                         </div>
                         
                         {pedidoDetalle.producto_id && (
                           <div>
-                            <p className="text-xs text-primary-700 font-semibold uppercase mb-1">ID Producto</p>
-                            <p className="text-sm text-primary-800 font-mono">{pedidoDetalle.producto_id}</p>
+                            <p className="text-xs text-pink-700 font-semibold uppercase mb-1">ID Producto</p>
+                            <p className="text-sm text-pink-800 font-mono">{pedidoDetalle.producto_id}</p>
                           </div>
                         )}
                       </div>
@@ -1160,9 +1160,9 @@ function PedidosPage() {
                   )}
                   
                   {/* Arreglo Pedido */}
-                  <div className="bg-white border-2 border-gray-200 p-5 rounded-lg shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-700 uppercase mb-4 flex items-center">
-                      <Package className="h-5 w-5 mr-2 text-gray-600" />
+                  <div className="bg-white border-2 border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <h3 className="text-sm font-bold text-gray-800 uppercase mb-4 flex items-center">
+                      <Package className="h-5 w-5 mr-2 text-gray-500" />
                       Detalles del Arreglo
                     </h3>
                     <div className="space-y-3">
