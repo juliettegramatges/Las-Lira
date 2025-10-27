@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle } from 'lucide-react'
+import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle, Camera, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -96,6 +96,11 @@ function PedidosPage() {
   const [loadingCliente, setLoadingCliente] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [pedidoEditado, setPedidoEditado] = useState(null)
+  
+  // Estados para subida de foto de respaldo
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
   
   // Estados de paginación
   const [paginaActual, setPaginaActual] = useState(1)
@@ -207,10 +212,23 @@ function PedidosPage() {
     setClienteDetalle(null)
     setHistorialCliente([])
     
+    // Limpiar estados de foto
+    setArchivoSeleccionado(null)
+    setPreviewUrl(null)
+    setSubiendoFoto(false)
+    
     // Cargar información del cliente si tiene ID
     if (pedido.cliente_id) {
       cargarInfoCliente(pedido.cliente_id)
     }
+  }
+  
+  const handleCerrarModal = () => {
+    setPedidoDetalle(null)
+    setArchivoSeleccionado(null)
+    setPreviewUrl(null)
+    setSubiendoFoto(false)
+    setModoEdicion(false)
   }
   
   const handleActivarEdicion = () => {
@@ -259,7 +277,7 @@ function PedidosPage() {
       
       if (response.data.success) {
         alert('✅ Pedido cancelado correctamente')
-        setPedidoDetalle(null)
+        handleCerrarModal()
         cargarPedidos()
       }
     } catch (error) {
@@ -283,13 +301,61 @@ function PedidosPage() {
       
       if (response.data.success) {
         alert('✅ Pedido eliminado permanentemente')
-        setPedidoDetalle(null)
+        handleCerrarModal()
         cargarPedidos()
       }
     } catch (error) {
       console.error('Error al eliminar pedido:', error)
       alert('❌ Error al eliminar el pedido')
     }
+  }
+  
+  // Handlers para foto de respaldo
+  const handleSeleccionarArchivo = (e) => {
+    const archivo = e.target.files[0]
+    if (archivo) {
+      setArchivoSeleccionado(archivo)
+      setPreviewUrl(URL.createObjectURL(archivo))
+    }
+  }
+  
+  const handleSubirFoto = async () => {
+    if (!archivoSeleccionado || !pedidoDetalle) return
+    
+    try {
+      setSubiendoFoto(true)
+      const formData = new FormData()
+      formData.append('imagen', archivoSeleccionado)
+      
+      const response = await axios.post(`${API_URL}/pedidos/${pedidoDetalle.id}/foto-respaldo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      alert('✅ Foto de respaldo actualizada correctamente')
+      
+      // Actualizar el pedido con la nueva foto
+      setPedidoDetalle({
+        ...pedidoDetalle,
+        foto_enviado_url: response.data.foto_url
+      })
+      
+      // Limpiar la selección
+      setArchivoSeleccionado(null)
+      setPreviewUrl(null)
+      
+      // Recargar los pedidos para actualizar la tabla
+      cargarPedidos()
+    } catch (error) {
+      console.error('Error al subir foto:', error)
+      alert('❌ Error al subir la foto')
+    } finally {
+      setSubiendoFoto(false)
+    }
+  }
+  
+  const handleLimpiarSeleccion = () => {
+    setArchivoSeleccionado(null)
+    setPreviewUrl(null)
   }
   
   const cargarDatosFormulario = async () => {
@@ -931,6 +997,9 @@ function PedidosPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Foto
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   ID / Cliente
                 </th>
@@ -963,13 +1032,13 @@ function PedidosPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan="9" className="px-6 py-8 text-center text-sm text-gray-500">
                     Cargando pedidos...
                   </td>
                 </tr>
               ) : pedidosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
+                  <td colSpan="9" className="px-6 py-8 text-center">
                     {busqueda ? (
                       <>
                         <p className="text-gray-500 mb-2">🔍 No se encontraron pedidos</p>
@@ -994,6 +1063,20 @@ function PedidosPage() {
                     onClick={() => handleAbrirPedido(pedido)}
                     className="hover:bg-primary-50 cursor-pointer transition-colors border-b border-gray-200"
                   >
+                    {/* Foto en miniatura */}
+                    <td className="px-3 py-4">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
+                        {pedido.foto_enviado_url || pedido.producto_imagen ? (
+                          <img 
+                            src={pedido.foto_enviado_url || pedido.producto_imagen} 
+                            alt={pedido.arreglo_pedido || 'Producto'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl">🌸</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{pedido.id}</div>
                       <div className="text-sm text-gray-500">{pedido.cliente_nombre}</div>
@@ -1089,7 +1172,7 @@ function PedidosPage() {
       {pedidoDetalle && (
         <div 
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setPedidoDetalle(null)}
+          onClick={handleCerrarModal}
         >
           <div 
             className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
@@ -1109,7 +1192,7 @@ function PedidosPage() {
                 </span>
               </div>
               <button 
-                onClick={() => setPedidoDetalle(null)}
+                onClick={handleCerrarModal}
                 className="text-white hover:bg-white/20 transition-all duration-200 p-2 rounded-lg"
               >
                 <X className="h-6 w-6" />
@@ -1132,16 +1215,74 @@ function PedidosPage() {
                         Producto del Catálogo
                       </h3>
                       
-                      {/* Imagen del producto si existe */}
-                      {pedidoDetalle.producto_imagen && (
-                        <div className="mb-4">
-                          <img 
-                            src={pedidoDetalle.producto_imagen} 
-                            alt={pedidoDetalle.producto_nombre}
-                            className="w-full h-48 object-cover rounded-xl shadow-md border border-gray-200"
-                          />
+                      {/* Imagen del producto/respaldo */}
+                      <div className="mb-4 space-y-3">
+                        {/* Imagen actual */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs text-gray-500 font-semibold uppercase">
+                              {pedidoDetalle.foto_enviado_url ? '📸 Foto de Respaldo' : '🌸 Foto del Producto'}
+                            </p>
+                            <label className="cursor-pointer">
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-medium transition-colors">
+                                <Camera className="h-3.5 w-3.5" />
+                                Cambiar Foto
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleSeleccionarArchivo}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                          
+                          {(pedidoDetalle.foto_enviado_url || pedidoDetalle.producto_imagen) && (
+                            <img 
+                              src={pedidoDetalle.foto_enviado_url || pedidoDetalle.producto_imagen} 
+                              alt={pedidoDetalle.producto_nombre}
+                              className="w-full h-48 object-cover rounded-xl shadow-md border border-gray-200"
+                            />
+                          )}
                         </div>
-                      )}
+                        
+                        {/* Preview y controles de nueva foto */}
+                        {previewUrl && (
+                          <div className="border-2 border-pink-300 rounded-xl p-3 bg-pink-50">
+                            <p className="text-xs font-semibold text-pink-800 mb-2">✨ Nueva foto seleccionada:</p>
+                            <img 
+                              src={previewUrl} 
+                              alt="Preview" 
+                              className="w-full h-48 object-cover rounded-lg shadow-md border border-pink-200 mb-3"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleSubirFoto}
+                                disabled={subiendoFoto}
+                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {subiendoFoto ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                    Subiendo...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4" />
+                                    Subir Foto
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={handleLimpiarSeleccion}
+                                className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="space-y-3">
                         <div>
@@ -1156,6 +1297,135 @@ function PedidosPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+                  
+                  {/* Foto de Respaldo (cuando NO hay producto del catálogo) */}
+                  {!pedidoDetalle.producto_nombre && (pedidoDetalle.foto_enviado_url || previewUrl || archivoSeleccionado) && (
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                        <Camera className="h-5 w-5 mr-2 text-pink-500" />
+                        Foto del Pedido
+                      </h3>
+                      
+                      <div className="mb-4 space-y-3">
+                        {/* Imagen actual */}
+                        {pedidoDetalle.foto_enviado_url && !previewUrl && (
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-gray-500 font-semibold uppercase">📸 Foto de Respaldo</p>
+                              <label className="cursor-pointer">
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-medium transition-colors">
+                                  <Camera className="h-3.5 w-3.5" />
+                                  Cambiar Foto
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleSeleccionarArchivo}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                            <img 
+                              src={pedidoDetalle.foto_enviado_url} 
+                              alt="Foto del pedido"
+                              className="w-full h-48 object-cover rounded-xl shadow-md border border-gray-200"
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Preview y controles de nueva foto */}
+                        {previewUrl && (
+                          <div className="border-2 border-pink-300 rounded-xl p-3 bg-pink-50">
+                            <p className="text-xs font-semibold text-pink-800 mb-2">✨ Nueva foto seleccionada:</p>
+                            <img 
+                              src={previewUrl} 
+                              alt="Preview" 
+                              className="w-full h-48 object-cover rounded-lg shadow-md border border-pink-200 mb-3"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleSubirFoto}
+                                disabled={subiendoFoto}
+                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {subiendoFoto ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                    Subiendo...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4" />
+                                    Subir Foto
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={handleLimpiarSeleccion}
+                                className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Botón para agregar foto cuando no existe ninguna */}
+                  {!pedidoDetalle.producto_nombre && !pedidoDetalle.foto_enviado_url && !previewUrl && (
+                    <div className="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 shadow-sm hover:border-pink-400 transition-all duration-200">
+                      <label className="cursor-pointer block text-center">
+                        <Camera className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                        <p className="text-sm font-medium text-gray-700 mb-1">Agregar Foto del Pedido</p>
+                        <p className="text-xs text-gray-500">Sube una foto del arreglo terminado</p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSeleccionarArchivo}
+                          className="hidden"
+                        />
+                      </label>
+                      
+                      {/* Preview si se selecciona desde aquí */}
+                      {previewUrl && (
+                        <div className="mt-4 border-2 border-pink-300 rounded-xl p-3 bg-pink-50">
+                          <p className="text-xs font-semibold text-pink-800 mb-2">✨ Foto seleccionada:</p>
+                          <img 
+                            src={previewUrl} 
+                            alt="Preview" 
+                            className="w-full h-48 object-cover rounded-lg shadow-md border border-pink-200 mb-3"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleSubirFoto}
+                              disabled={subiendoFoto}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {subiendoFoto ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                  Subiendo...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4" />
+                                  Subir Foto
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={handleLimpiarSeleccion}
+                              className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -1808,7 +2078,7 @@ function PedidosPage() {
             <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-between items-center rounded-b-2xl border-t border-gray-200">
               <div className="flex gap-3">
                 <button
-                  onClick={() => setPedidoDetalle(null)}
+                  onClick={handleCerrarModal}
                   className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-medium"
                 >
                   Cerrar

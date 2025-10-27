@@ -26,6 +26,10 @@ class Producto(db.Model):
     activo = db.Column(db.Boolean, default=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Campos para análisis de personalizaciones
+    es_personalizacion = db.Column(db.Boolean, default=False)  # TRUE si es personalizable
+    categoria_personalizacion = db.Column(db.String(100))  # 'Ramo', 'Centro de Mesa', 'Bouquet', etc.
+    
     # Relaciones
     recetas = db.relationship('RecetaProducto', backref='producto', lazy=True, cascade='all, delete-orphan')
     
@@ -47,6 +51,8 @@ class Producto(db.Model):
             'disponible_shopify': self.disponible_shopify,
             'activo': self.activo,
             'fecha_creacion': self.fecha_creacion.isoformat() if self.fecha_creacion else None,
+            'es_personalizacion': self.es_personalizacion,
+            'categoria_personalizacion': self.categoria_personalizacion,
             'recetas': [r.to_dict() for r in self.recetas] if self.recetas else []
         }
     

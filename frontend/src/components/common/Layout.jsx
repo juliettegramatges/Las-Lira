@@ -12,7 +12,8 @@ import {
   Calendar,
   ChevronLeft,
   Menu,
-  X
+  X,
+  BarChart3
 } from 'lucide-react'
 
 function Layout() {
@@ -30,6 +31,7 @@ function Layout() {
     { name: 'Rutas', path: '/rutas', icon: MapPin, color: 'text-red-600' },
     { name: 'Inventario', path: '/inventario', icon: Package, color: 'text-amber-600' },
     { name: 'Productos', path: '/productos', icon: Flower2, color: 'text-pink-600' },
+    { name: 'Reportes', path: '/reportes', icon: BarChart3, color: 'text-violet-600' },
   ]
   
   const isActive = (path) => location.pathname === path

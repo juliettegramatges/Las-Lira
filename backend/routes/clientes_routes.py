@@ -15,12 +15,33 @@ def listar_clientes():
     try:
         tipo = request.args.get('tipo')
         buscar = request.args.get('buscar', '').strip()
+        etiquetas_str = request.args.get('etiquetas', '').strip()
         
         # Parámetros de paginación
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 100))
         
         query = Cliente.query
+        
+        # Filtrar por etiquetas si se especifica
+        if etiquetas_str:
+            etiqueta_ids = [int(e) for e in etiquetas_str.split(',') if e.isdigit()]
+            if etiqueta_ids:
+                # Filtrar clientes que tengan AL MENOS UNA de las etiquetas seleccionadas
+                # Convertir a string para usar directamente en SQL (seguro porque ya validamos que son int)
+                etiquetas_sql = ','.join(map(str, etiqueta_ids))
+                sql_query = f'''
+                    SELECT DISTINCT cliente_id 
+                    FROM cliente_etiquetas 
+                    WHERE etiqueta_id IN ({etiquetas_sql})
+                '''
+                subquery = db.session.execute(db.text(sql_query))
+                cliente_ids = [row[0] for row in subquery]
+                if cliente_ids:
+                    query = query.filter(Cliente.id.in_(cliente_ids))
+                else:
+                    # Si no hay clientes con esas etiquetas, devolver vacío
+                    query = query.filter(Cliente.id.in_([]))
         
         if tipo:
             query = query.filter_by(tipo_cliente=tipo)
@@ -286,6 +307,45 @@ def buscar_por_nombre():
             'success': True,
             'clientes': [c.to_dict() for c in clientes],
             'total': len(clientes)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/etiquetas', methods=['GET'])
+def obtener_etiquetas():
+    """Obtener todas las etiquetas disponibles agrupadas por categoría"""
+    try:
+        result = db.session.execute(db.text('''
+            SELECT id, nombre, categoria, descripcion, color, icono, orden
+            FROM etiquetas_cliente
+            WHERE activa = 1
+            ORDER BY orden
+        '''))
+        
+        etiquetas_por_categoria = {}
+        
+        for row in result:
+            etiqueta = {
+                'id': row[0],
+                'nombre': row[1],
+                'categoria': row[2],
+                'descripcion': row[3],
+                'color': row[4],
+                'icono': row[5],
+                'orden': row[6]
+            }
+            
+            categoria = etiqueta['categoria']
+            if categoria not in etiquetas_por_categoria:
+                etiquetas_por_categoria[categoria] = []
+            
+            etiquetas_por_categoria[categoria].append(etiqueta)
+        
+        return jsonify({
+            'success': True,
+            'data': etiquetas_por_categoria
         })
         
     except Exception as e:

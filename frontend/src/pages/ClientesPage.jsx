@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { User, Search, Plus, Edit2, Trash2, X, Phone, Mail, MapPin, DollarSign, ShoppingBag, Download, Calendar, Package } from 'lucide-react'
+import { User, Search, Plus, Edit2, Trash2, X, Phone, Mail, MapPin, DollarSign, ShoppingBag, Download, Calendar, Package, Tag } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../services/api'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import EtiquetaCliente from '../components/EtiquetaCliente'
 
 const formatFecha = (fecha) => {
   if (!fecha) return '-'
@@ -22,6 +23,11 @@ function ClientesPage() {
   const [mostrarModal, setMostrarModal] = useState(false)
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
   const [modoEdicion, setModoEdicion] = useState(false)
+  
+  // Estados para etiquetas
+  const [etiquetasDisponibles, setEtiquetasDisponibles] = useState({})
+  const [etiquetasFiltro, setEtiquetasFiltro] = useState([])
+  const [categoriaEtiquetaVisible, setCategoriaEtiquetaVisible] = useState(null)
   
   // Estados para paginación
   const [paginaActual, setPaginaActual] = useState(1)
@@ -62,15 +68,36 @@ function ClientesPage() {
   })
 
   useEffect(() => {
+    cargarEtiquetasDisponibles()
+  }, [])
+  
+  useEffect(() => {
     cargarClientes()
-  }, [paginaActual, tipoFiltro])
+  }, [paginaActual, tipoFiltro, etiquetasFiltro])
 
+  const cargarEtiquetasDisponibles = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/clientes/etiquetas`)
+      if (response.data.success) {
+        setEtiquetasDisponibles(response.data.data || [])
+      }
+    } catch (error) {
+      console.error('Error al cargar etiquetas:', error)
+    }
+  }
+  
   const cargarClientes = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
       if (tipoFiltro) params.append('tipo', tipoFiltro)
       if (busqueda) params.append('buscar', busqueda)
+      
+      // Filtrar por etiquetas si están seleccionadas
+      if (etiquetasFiltro.length > 0) {
+        params.append('etiquetas', etiquetasFiltro.join(','))
+      }
+      
       params.append('page', paginaActual)
       params.append('limit', limitePorPagina)
       
@@ -248,7 +275,7 @@ function ClientesPage() {
 
       {/* Filtros y búsqueda */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Barra de búsqueda */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -277,14 +304,123 @@ function ClientesPage() {
               <option value="Ocasional">Ocasional</option>
             </select>
           </div>
+
+          {/* Filtro por etiquetas */}
+          <div className="relative">
+            <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+            <button
+              type="button"
+              onClick={() => setCategoriaEtiquetaVisible(categoriaEtiquetaVisible ? null : 'all')}
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-left bg-white hover:bg-gray-50 transition-colors"
+            >
+              {etiquetasFiltro.length > 0 
+                ? `${etiquetasFiltro.length} etiqueta(s) seleccionada(s)` 
+                : 'Filtrar por etiquetas...'}
+            </button>
+            
+            {/* Dropdown de etiquetas */}
+            {categoriaEtiquetaVisible && (
+              <>
+                {/* Overlay para cerrar al hacer clic fuera */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setCategoriaEtiquetaVisible(null)}
+                />
+                
+                {/* Menú dropdown */}
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-20 max-h-96 overflow-y-auto">
+                  {Object.entries(etiquetasDisponibles).map(([categoria, etiquetas]) => (
+                    <div key={categoria} className="border-b border-gray-100 last:border-b-0">
+                      <div className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-600 uppercase sticky top-0">
+                        {categoria}
+                      </div>
+                      <div className="py-1">
+                        {etiquetas.map((etiqueta) => (
+                          <label
+                            key={etiqueta.id}
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={etiquetasFiltro.includes(etiqueta.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEtiquetasFiltro([...etiquetasFiltro, etiqueta.id])
+                                } else {
+                                  setEtiquetasFiltro(etiquetasFiltro.filter(id => id !== etiqueta.id))
+                                }
+                                setPaginaActual(1)
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm flex items-center gap-1.5">
+                              <span>{etiqueta.icono}</span>
+                              <span>{etiqueta.nombre}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            
+            {etiquetasFiltro.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEtiquetasFiltro([])
+                  setPaginaActual(1)
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
+                title="Limpiar filtros"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
+        
+        {/* Etiquetas seleccionadas */}
+        {etiquetasFiltro.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {etiquetasFiltro.map(etiquetaId => {
+              const etiqueta = Object.values(etiquetasDisponibles)
+                .flat()
+                .find(e => e.id === etiquetaId)
+              if (!etiqueta) return null
+              return (
+                <span
+                  key={etiqueta.id}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    backgroundColor: `${etiqueta.color}15`,
+                    color: etiqueta.color,
+                    border: `1px solid ${etiqueta.color}40`
+                  }}
+                >
+                  {etiqueta.icono} {etiqueta.nombre}
+                  <button
+                    onClick={() => {
+                      setEtiquetasFiltro(etiquetasFiltro.filter(id => id !== etiqueta.id))
+                      setPaginaActual(1)
+                    }}
+                    className="hover:opacity-70"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Estadísticas rápidas - Scrolleable horizontalmente */}
-      <div className="mb-6 pb-2">
-        <div className="relative" style={{paddingTop: '160px'}}>
-          <div className="overflow-x-auto custom-scrollbar pb-2" style={{overflow: 'visible'}}>
-            <div className="flex gap-4 min-w-max px-1">
+      <div className="mb-6">
+        <div className="overflow-x-auto custom-scrollbar pb-2">
+          <div className="flex gap-4 min-w-max">
         {/* Total Clientes */}
         <button
           onClick={() => setTipoFiltro('')}
@@ -456,7 +592,6 @@ function ClientesPage() {
             <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-600"></div>
           </div>
         </button>
-            </div>
           </div>
         </div>
       </div>
@@ -491,6 +626,9 @@ function ClientesPage() {
                     Tipo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Etiquetas
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estadísticas
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -508,68 +646,84 @@ function ClientesPage() {
                     onClick={() => handleAbrirDetalles(cliente)}
                     className="hover:bg-primary-50 cursor-pointer transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-3 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold">
+                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold text-sm">
                             {cliente.nombre.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <div className="ml-4">
+                        <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">{cliente.nombre}</div>
-                          <div className="text-sm text-gray-500">{cliente.id}</div>
+                          <div className="text-xs text-gray-500">{cliente.id}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <div className="text-sm text-gray-900 flex items-center gap-1">
-                        <Phone className="h-4 w-4 text-gray-400" />
+                        <Phone className="h-3.5 w-3.5 text-gray-400" />
                         {cliente.telefono}
                       </div>
                       {cliente.email && (
-                        <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                          <Mail className="h-4 w-4 text-gray-400" />
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                          <Mail className="h-3.5 w-3.5 text-gray-400" />
                           {cliente.email}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTipoColor(cliente.tipo_cliente)}`}>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTipoColor(cliente.tipo_cliente)}`}>
                         {cliente.tipo_cliente}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
+                      <div className="flex flex-wrap gap-1 max-w-xs">
+                        {cliente.etiquetas && cliente.etiquetas.length > 0 ? (
+                          cliente.etiquetas.slice(0, 2).map((etiqueta) => (
+                            <EtiquetaCliente key={etiqueta.id} etiqueta={etiqueta} size="sm" mostrarDescripcion={false} />
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Sin etiquetas</span>
+                        )}
+                        {cliente.etiquetas && cliente.etiquetas.length > 2 && (
+                          <span className="px-1.5 py-0.5 text-xs text-gray-600 bg-gray-100 rounded-full font-medium">
+                            +{cliente.etiquetas.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-3">
                       <div className="text-sm text-gray-900 flex items-center gap-1">
-                        <ShoppingBag className="h-4 w-4 text-gray-400" />
+                        <ShoppingBag className="h-3.5 w-3.5 text-gray-400" />
                         {cliente.total_pedidos} pedidos
                       </div>
-                      <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                        <DollarSign className="h-4 w-4 text-gray-400" />
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                        <DollarSign className="h-3.5 w-3.5 text-gray-400" />
                         ${cliente.total_gastado?.toLocaleString('es-CL') || 0}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500 max-w-xs truncate">
+                    <td className="px-6 py-3">
+                      <div className="text-xs text-gray-500 max-w-xs truncate">
                         {cliente.notas || '-'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           handleEditarCliente(cliente)
                         }}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-blue-600 hover:text-blue-900 mr-2"
                         title="Editar"
                       >
-                        <Edit2 className="h-4 w-4" />
+                        <Edit2 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           handleEliminarCliente(cliente)
                         }}
-                        className={`p-1.5 rounded-lg transition-all duration-200 ${
+                        className={`p-1 rounded-lg transition-all duration-200 ${
                           cliente.total_pedidos > 0 
                             ? 'text-gray-400 cursor-not-allowed' 
                             : 'hover:bg-red-50 text-red-600 hover:text-red-700'
@@ -577,7 +731,7 @@ function ClientesPage() {
                         title={cliente.total_pedidos > 0 ? 'No se puede eliminar (tiene pedidos)' : 'Eliminar cliente'}
                         disabled={cliente.total_pedidos > 0}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -836,6 +990,38 @@ function ClientesPage() {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Etiquetas del Cliente */}
+                  {clienteDetalle.etiquetas && clienteDetalle.etiquetas.length > 0 && (
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                        <Tag className="h-5 w-5 mr-2 text-indigo-500" />
+                        Etiquetas
+                      </h3>
+                      <div className="space-y-3">
+                        {Object.entries(
+                          clienteDetalle.etiquetas.reduce((acc, etiqueta) => {
+                            if (!acc[etiqueta.categoria]) {
+                              acc[etiqueta.categoria] = []
+                            }
+                            acc[etiqueta.categoria].push(etiqueta)
+                            return acc
+                          }, {})
+                        ).map(([categoria, etiquetas]) => (
+                          <div key={categoria}>
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                              {categoria}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {etiquetas.map((etiqueta) => (
+                                <EtiquetaCliente key={etiqueta.id} etiqueta={etiqueta} />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Notas */}
                   {clienteDetalle.notas && (

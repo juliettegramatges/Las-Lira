@@ -11,6 +11,7 @@ import CobranzaPage from './pages/CobranzaPage'
 import TallerPage from './pages/TallerPage'
 import SimuladorCostosPage from './pages/SimuladorCostosPage'
 import EventosPage from './pages/EventosPage'
+import ReportesPage from './pages/ReportesPage'
 import './App.css'
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
           <Route path="inventario" element={<InsumosPage />} />
           <Route path="productos" element={<ProductosPage />} />
           <Route path="simulador-costos" element={<SimuladorCostosPage />} />
+          <Route path="reportes" element={<ReportesPage />} />
         </Route>
       </Routes>
     </Router>

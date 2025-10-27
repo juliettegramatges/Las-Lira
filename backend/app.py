@@ -45,7 +45,8 @@ from routes import (
     clientes_routes,
     pedidos_routes, inventario_routes, productos_routes, 
     upload_routes, rutas_routes, producto_colores_routes,
-    pedido_insumos_routes, evento_routes, exportar_routes
+    pedido_insumos_routes, evento_routes, exportar_routes,
+    analisis_routes, reportes_routes
 )
 
 # Registrar blueprints
@@ -59,6 +60,8 @@ app.register_blueprint(rutas_routes.bp, url_prefix='/api/rutas')
 app.register_blueprint(producto_colores_routes.bp, url_prefix='/api/productos')
 app.register_blueprint(evento_routes.bp, url_prefix='/api/eventos')
 app.register_blueprint(exportar_routes.bp, url_prefix='/api/exportar')
+app.register_blueprint(analisis_routes.bp)  # Ya tiene su propio prefix definido (/api/analisis)
+app.register_blueprint(reportes_routes.bp, url_prefix='/api/reportes')
 
 @app.route('/')
 def index():

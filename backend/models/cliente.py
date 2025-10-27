@@ -35,8 +35,34 @@ class Cliente(db.Model):
     # Relación con pedidos
     pedidos = db.relationship('Pedido', back_populates='cliente', lazy='dynamic')
     
-    def to_dict(self):
-        return {
+    def obtener_etiquetas(self):
+        """Obtiene las etiquetas del cliente"""
+        try:
+            result = db.session.execute(db.text('''
+                SELECT e.id, e.nombre, e.categoria, e.color, e.icono, e.descripcion
+                FROM etiquetas_cliente e
+                JOIN cliente_etiquetas ce ON ce.etiqueta_id = e.id
+                WHERE ce.cliente_id = :cliente_id AND e.activa = 1
+                ORDER BY e.orden
+            '''), {'cliente_id': self.id})
+            
+            etiquetas = []
+            for row in result:
+                etiquetas.append({
+                    'id': row[0],
+                    'nombre': row[1],
+                    'categoria': row[2],
+                    'color': row[3],
+                    'icono': row[4],
+                    'descripcion': row[5]
+                })
+            return etiquetas
+        except Exception as e:
+            print(f"Error obteniendo etiquetas para cliente {self.id}: {e}")
+            return []
+    
+    def to_dict(self, incluir_etiquetas=True):
+        data = {
             'id': self.id,
             'nombre': self.nombre,
             'telefono': self.telefono,
@@ -49,4 +75,9 @@ class Cliente(db.Model):
             'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None,
             'ultima_compra': self.ultima_compra.isoformat() if self.ultima_compra else None
         }
+        
+        if incluir_etiquetas:
+            data['etiquetas'] = self.obtener_etiquetas()
+        
+        return data
 

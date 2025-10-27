@@ -1,71 +1,46 @@
-#!/usr/bin/env python3
 """
-Migración para agregar tablas de eventos y columnas cantidad_en_evento
+Script simple para agregar columnas de evento
 """
-
-import sys
+import sqlite3
 import os
 
-# Cambiar al directorio del script
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Ruta a la base de datos
+db_path = os.path.join(os.path.dirname(__file__), 'instance', 'laslira.db')
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+print(f"Conectando a base de datos: {db_path}")
 
-# Crear app e inicializar DB
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///floreria.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-# Importar modelos para que db.create_all() funcione
-from models.evento import Evento, EventoInsumo, ProductoEvento
-
-def migrar_eventos():
-    """Ejecuta las migraciones necesarias para eventos"""
+try:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     
-    with app.app_context():
-        print("🔄 Iniciando migración de eventos...")
-        
-        # Agregar cantidad_en_evento a flores
-        try:
-            with db.engine.connect() as conn:
-                conn.execute(text(
-                    "ALTER TABLE flores ADD COLUMN cantidad_en_evento INTEGER DEFAULT 0 NOT NULL"
-                ))
-                conn.commit()
-            print("✅ Columna cantidad_en_evento agregada a flores")
-        except Exception as e:
-            if 'duplicate column' in str(e).lower() or 'already exists' in str(e).lower():
-                print("ℹ️  Columna cantidad_en_evento ya existe en flores")
-            else:
-                print(f"❌ Error en flores: {e}")
-        
-        # Agregar cantidad_en_evento a contenedores
-        try:
-            with db.engine.connect() as conn:
-                conn.execute(text(
-                    "ALTER TABLE contenedores ADD COLUMN cantidad_en_evento INTEGER DEFAULT 0 NOT NULL"
-                ))
-                conn.commit()
-            print("✅ Columna cantidad_en_evento agregada a contenedores")
-        except Exception as e:
-            if 'duplicate column' in str(e).lower() or 'already exists' in str(e).lower():
-                print("ℹ️  Columna cantidad_en_evento ya existe en contenedores")
-            else:
-                print(f"❌ Error en contenedores: {e}")
-        
-        # Crear todas las tablas nuevas (eventos, evento_insumos, productos_evento)
-        try:
-            db.create_all()
-            print("✅ Tablas de eventos creadas")
-        except Exception as e:
-            print(f"❌ Error creando tablas: {e}")
-        
-        print("✨ Migración completada!")
-
-if __name__ == "__main__":
-    migrar_eventos()
-
+    # Intentar agregar columna es_evento
+    try:
+        cursor.execute("ALTER TABLE pedidos ADD COLUMN es_evento INTEGER DEFAULT 0")
+        print("✓ Columna 'es_evento' agregada")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e).lower():
+            print("⚠️  Columna 'es_evento' ya existe")
+        else:
+            raise
+    
+    # Intentar agregar columna tipo_evento
+    try:
+        cursor.execute("ALTER TABLE pedidos ADD COLUMN tipo_evento VARCHAR(50)")
+        print("✓ Columna 'tipo_evento' agregada")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e).lower():
+            print("⚠️  Columna 'tipo_evento' ya existe")
+        else:
+            raise
+    
+    conn.commit()
+    print("\n✅ Migración completada exitosamente")
+    
+except Exception as e:
+    print(f"❌ Error: {e}")
+    if conn:
+        conn.rollback()
+finally:
+    if conn:
+        conn.close()
+        print("🔒 Conexión cerrada")
