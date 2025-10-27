@@ -1163,7 +1163,7 @@ function PedidosPage() {
                   <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
                     <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
                       <Package className="h-5 w-5 mr-2 text-pink-500" />
-                      Detalles del Arreglo
+                      Detalles del Arreglo ✅ ACTUALIZADO
                     </h3>
                     <div className="space-y-3">
                       <div>
