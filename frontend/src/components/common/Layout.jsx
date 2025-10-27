@@ -54,9 +54,13 @@ function Layout() {
             </div>
           )}
           {!sidebarOpen && (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mx-auto">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mx-auto hover:from-pink-600 hover:to-rose-600 transition-all duration-200"
+              title="Expandir menú"
+            >
               <Flower2 className="h-6 w-6 text-white" />
-            </div>
+            </button>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
