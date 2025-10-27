@@ -825,8 +825,8 @@ function ClientesPage() {
                           </p>
                         )}
                         
-                        {/* Tooltip que aparece en hover */}
-                        <div className="absolute left-full ml-3 top-0 w-80 bg-white border-2 border-indigo-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        {/* Tooltip que aparece en hover - fixed para salir completamente del contenedor */}
+                        <div className="fixed right-8 top-1/2 -translate-y-1/2 w-80 bg-white border-2 border-indigo-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999]">
                           <div className="space-y-2">
                             <div className="border-b border-indigo-200 pb-2">
                               <p className="text-xs font-semibold text-indigo-600 uppercase">Detalles del Pedido</p>

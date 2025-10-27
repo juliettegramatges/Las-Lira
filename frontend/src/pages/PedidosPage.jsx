@@ -1672,9 +1672,9 @@ function PedidosPage() {
                                 </span>
                               </div>
                               
-                              {/* Tooltip que aparece en hover */}
+                              {/* Tooltip que aparece en hover - fixed para salir completamente del contenedor */}
                               {ped.id !== pedidoDetalle.id && (
-                                <div className="absolute left-full ml-3 top-0 w-72 bg-white border-2 border-pink-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <div className="fixed right-8 top-1/2 -translate-y-1/2 w-80 bg-white border-2 border-pink-500 rounded-xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999]">
                                   <div className="space-y-2">
                                     <div className="border-b border-pink-200 pb-2">
                                       <p className="text-xs font-semibold text-pink-600 uppercase">Vista Rápida</p>
