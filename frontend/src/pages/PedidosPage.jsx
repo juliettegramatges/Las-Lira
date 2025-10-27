@@ -1126,9 +1126,9 @@ function PedidosPage() {
                   
                   {/* Producto del Catálogo (si existe) */}
                   {pedidoDetalle.producto_nombre && (
-                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-6 rounded-xl border-2 border-pink-200 shadow-sm">
-                      <h3 className="text-sm font-bold text-pink-900 uppercase mb-4 flex items-center">
-                        <ShoppingBag className="h-5 w-5 mr-2 text-pink-600" />
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                        <ShoppingBag className="h-5 w-5 mr-2 text-pink-500" />
                         Producto del Catálogo
                       </h3>
                       
@@ -1138,21 +1138,21 @@ function PedidosPage() {
                           <img 
                             src={pedidoDetalle.producto_imagen} 
                             alt={pedidoDetalle.producto_nombre}
-                            className="w-full h-48 object-cover rounded-xl shadow-md border-2 border-pink-200"
+                            className="w-full h-48 object-cover rounded-xl shadow-md border border-gray-200"
                           />
                         </div>
                       )}
                       
                       <div className="space-y-3">
                         <div>
-                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Nombre del Producto</p>
-                          <p className="text-base font-bold text-pink-900">{pedidoDetalle.producto_nombre}</p>
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Nombre del Producto</p>
+                          <p className="text-base font-bold text-gray-900">{pedidoDetalle.producto_nombre}</p>
                         </div>
                         
                         {pedidoDetalle.producto_id && (
                           <div>
-                            <p className="text-xs text-pink-700 font-semibold uppercase mb-1">ID Producto</p>
-                            <p className="text-sm text-pink-800 font-mono">{pedidoDetalle.producto_id}</p>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">ID Producto</p>
+                            <p className="text-sm text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded">{pedidoDetalle.producto_id}</p>
                           </div>
                         )}
                       </div>
@@ -1224,56 +1224,56 @@ function PedidosPage() {
                   
                   {/* Mensaje y Destinatario */}
                   {(pedidoDetalle.destinatario || pedidoDetalle.mensaje || pedidoDetalle.firma) && (
-                    <div className="bg-gradient-to-br from-rose-50 to-pink-50 p-6 rounded-xl border-2 border-rose-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <h3 className="text-sm font-bold text-rose-900 uppercase mb-4 flex items-center">
-                        <MessageSquare className="h-5 w-5 mr-2 text-rose-600" />
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                        <MessageSquare className="h-5 w-5 mr-2 text-pink-500" />
                         Mensaje y Destinatario
                       </h3>
                       <div className="space-y-3">
                         <div>
-                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Para</p>
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Para</p>
                           {modoEdicion ? (
                             <input
                               type="text"
                               value={pedidoEditado.destinatario || ''}
                               onChange={(e) => handleCampoEdicion('destinatario', e.target.value)}
                               placeholder="Nombre del destinatario"
-                              className="w-full text-base font-medium text-pink-900 bg-white p-2 rounded border-2 border-pink-300 focus:border-pink-500 focus:outline-none"
+                              className="w-full text-base font-medium text-gray-900 bg-white p-2 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                             />
                           ) : pedidoDetalle.destinatario && (
-                            <p className="text-base font-medium text-pink-900 bg-white p-2 rounded border border-pink-200">
+                            <p className="text-base font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
                               {pedidoDetalle.destinatario}
                             </p>
                           )}
                         </div>
                         <div>
-                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Mensaje</p>
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Mensaje</p>
                           {modoEdicion ? (
                             <textarea
                               value={pedidoEditado.mensaje || ''}
                               onChange={(e) => handleCampoEdicion('mensaje', e.target.value)}
                               placeholder="Mensaje de la tarjeta"
                               rows="3"
-                              className="w-full text-sm text-pink-900 bg-white p-3 rounded border-2 border-pink-300 focus:border-pink-500 focus:outline-none"
+                              className="w-full text-sm text-gray-900 bg-white p-3 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                             />
                           ) : pedidoDetalle.mensaje && (
-                            <p className="text-sm text-pink-900 italic bg-white p-3 rounded border border-pink-200">
+                            <p className="text-sm text-gray-700 italic bg-gray-50 p-3 rounded border border-gray-200">
                               "{pedidoDetalle.mensaje}"
                             </p>
                           )}
                         </div>
                         <div>
-                          <p className="text-xs text-pink-700 font-semibold uppercase mb-1">Firma</p>
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Firma</p>
                           {modoEdicion ? (
                             <input
                               type="text"
                               value={pedidoEditado.firma || ''}
                               onChange={(e) => handleCampoEdicion('firma', e.target.value)}
                               placeholder="Firma del mensaje"
-                              className="w-full text-sm text-pink-900 bg-white p-2 rounded border-2 border-pink-300 focus:border-pink-500 focus:outline-none"
+                              className="w-full text-sm text-gray-900 bg-white p-2 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                             />
                           ) : pedidoDetalle.firma && (
-                            <p className="text-sm text-pink-900 bg-white p-2 rounded border border-pink-200">
+                            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
                               {pedidoDetalle.firma}
                             </p>
                           )}
@@ -1287,20 +1287,20 @@ function PedidosPage() {
                 <div className="space-y-6">
                   
                   {/* Cliente */}
-                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <h3 className="text-sm font-bold text-indigo-900 uppercase mb-4 flex items-center">
-                      <User className="h-5 w-5 mr-2 text-indigo-600" />
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                      <User className="h-5 w-5 mr-2 text-pink-500" />
                       Información del Cliente
                     </h3>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Nombre Completo</p>
-                        <p className="text-base font-bold text-blue-900">{pedidoDetalle.cliente_nombre}</p>
+                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Nombre Completo</p>
+                        <p className="text-base font-bold text-gray-900">{pedidoDetalle.cliente_nombre}</p>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1 flex items-center">
                             <Phone className="h-3 w-3 mr-1" /> Teléfono
                           </p>
                           {modoEdicion ? (
@@ -1308,18 +1308,18 @@ function PedidosPage() {
                               type="tel"
                               value={pedidoEditado.cliente_telefono || ''}
                               onChange={(e) => handleCampoEdicion('cliente_telefono', e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                               placeholder="+56 9 1234 5678"
                             />
                           ) : (
-                            <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200">
+                            <p className="text-sm font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
                               {pedidoDetalle.cliente_telefono}
                             </p>
                           )}
                         </div>
                         
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1 flex items-center">
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1 flex items-center">
                             <Mail className="h-3 w-3 mr-1" /> Email
                           </p>
                           {modoEdicion ? (
@@ -1327,15 +1327,15 @@ function PedidosPage() {
                               type="email"
                               value={pedidoEditado.cliente_email || ''}
                               onChange={(e) => handleCampoEdicion('cliente_email', e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                               placeholder="cliente@ejemplo.com"
                             />
                           ) : pedidoDetalle.cliente_email ? (
-                            <p className="text-sm font-medium text-blue-900 bg-white p-2 rounded border border-blue-200 truncate">
+                            <p className="text-sm font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200 truncate">
                               {pedidoDetalle.cliente_email}
                             </p>
                           ) : (
-                            <p className="text-sm text-gray-400 italic bg-white p-2 rounded border border-blue-200">
+                            <p className="text-sm text-gray-400 italic bg-gray-50 p-2 rounded border border-gray-200">
                               Sin email
                             </p>
                           )}
@@ -1344,7 +1344,7 @@ function PedidosPage() {
                       
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Canal</p>
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Canal</p>
                           <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold ${
                             pedidoDetalle.canal === 'Shopify' ? 'bg-green-100 text-green-800 border border-green-300' : 
                             'bg-emerald-100 text-emerald-800 border border-emerald-300'
@@ -1355,8 +1355,8 @@ function PedidosPage() {
                         
                         {pedidoDetalle.cliente_tipo && (
                           <div>
-                            <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Tipo Cliente</p>
-                            <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Tipo Cliente</p>
+                            <span className="inline-flex px-3 py-1.5 bg-pink-100 text-pink-800 rounded-full text-xs font-bold border border-pink-300">
                               {pedidoDetalle.cliente_tipo}
                             </span>
                           </div>
@@ -1365,8 +1365,8 @@ function PedidosPage() {
                       
                       {pedidoDetalle.shopify_order_number && (
                         <div>
-                          <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Nº Orden Shopify</p>
-                          <p className="text-sm font-mono font-medium text-blue-900 bg-white p-2 rounded border border-blue-200">
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Nº Orden Shopify</p>
+                          <p className="text-sm font-mono font-medium text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
                             {pedidoDetalle.shopify_order_number}
                           </p>
                         </div>
@@ -1375,39 +1375,39 @@ function PedidosPage() {
                   </div>
                   
                   {/* Entrega */}
-                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <h3 className="text-sm font-bold text-emerald-900 uppercase mb-4 flex items-center">
-                      <MapPin className="h-5 w-5 mr-2 text-emerald-600" />
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                      <MapPin className="h-5 w-5 mr-2 text-pink-500" />
                       Información de Entrega
                     </h3>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-xs text-green-700 font-semibold uppercase mb-1">Dirección Completa</p>
+                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Dirección Completa</p>
                         {modoEdicion ? (
                           <textarea
                             value={pedidoEditado.direccion_entrega || ''}
                             onChange={(e) => handleCampoEdicion('direccion_entrega', e.target.value)}
                             rows="2"
-                            className="w-full text-sm font-medium text-green-900 bg-white p-3 rounded border-2 border-green-300 focus:border-green-500 focus:outline-none"
+                            className="w-full text-sm font-medium text-gray-900 bg-white p-3 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                           />
                         ) : (
-                          <p className="text-sm font-medium text-green-900 bg-white p-3 rounded border border-green-200">
+                          <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200">
                             {pedidoDetalle.direccion_entrega}
                           </p>
                         )}
                       </div>
                       
                       <div>
-                        <p className="text-xs text-green-700 font-semibold uppercase mb-1">Comuna</p>
+                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Comuna</p>
                         {modoEdicion ? (
                           <input
                             type="text"
                             value={pedidoEditado.comuna || ''}
                             onChange={(e) => handleCampoEdicion('comuna', e.target.value)}
-                            className="w-full px-3 py-1.5 bg-white text-green-800 rounded-full text-sm font-bold border-2 border-green-300 focus:border-green-500 focus:outline-none"
+                            className="w-full px-3 py-1.5 bg-white text-gray-900 rounded-full text-sm font-bold border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                           />
                         ) : pedidoDetalle.comuna && (
-                          <span className="inline-flex px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-bold border border-green-300">
+                          <span className="inline-flex px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm font-bold border border-gray-300">
                             📍 {pedidoDetalle.comuna}
                           </span>
                         )}
@@ -1415,18 +1415,18 @@ function PedidosPage() {
                       
                       <div className="grid grid-cols-2 gap-3 pt-2">
                         <div>
-                          <p className="text-xs text-green-700 font-semibold uppercase mb-1 flex items-center">
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1 flex items-center">
                             <Calendar className="h-3 w-3 mr-1" /> Fecha Pedido
                           </p>
-                          <p className="text-sm text-green-900 bg-white p-2 rounded border border-green-200">
+                          <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
                             {formatFecha(pedidoDetalle.fecha_pedido)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-green-700 font-semibold uppercase mb-1 flex items-center">
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1 flex items-center">
                             <Calendar className="h-3 w-3 mr-1" /> Fecha Entrega
                           </p>
-                          <p className="text-sm font-bold text-green-900 bg-green-100 p-2 rounded border-2 border-green-300">
+                          <p className="text-sm font-bold text-gray-900 bg-pink-50 p-2 rounded border border-pink-300">
                             {formatFecha(pedidoDetalle.fecha_entrega)}
                           </p>
                         </div>
@@ -1434,8 +1434,8 @@ function PedidosPage() {
                       
                       {pedidoDetalle.dia_entrega && (
                         <div>
-                          <p className="text-xs text-green-700 font-semibold uppercase mb-1">Día de Entrega</p>
-                          <span className="inline-flex px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-bold border border-blue-300">
+                          <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Día de Entrega</p>
+                          <span className="inline-flex px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm font-bold border border-gray-300">
                             {pedidoDetalle.dia_entrega}
                           </span>
                         </div>
@@ -1444,13 +1444,13 @@ function PedidosPage() {
                   </div>
                   
                   {/* Precios y Pago */}
-                  <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-xl border-2 border-amber-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <h3 className="text-sm font-bold text-amber-900 uppercase mb-4 flex items-center">
-                      <DollarSign className="h-5 w-5 mr-2 text-amber-600" />
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2 text-pink-500" />
                       Información de Pago
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center bg-white p-3 rounded border border-amber-200">
+                      <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
                         <span className="text-sm text-gray-700">Precio del Arreglo:</span>
                         {modoEdicion ? (
                           <div className="flex items-center gap-1">
@@ -1459,7 +1459,7 @@ function PedidosPage() {
                               type="number"
                               value={pedidoEditado.precio_ramo || 0}
                               onChange={(e) => handleCampoEdicion('precio_ramo', parseInt(e.target.value) || 0)}
-                              className="w-32 text-base font-bold text-gray-900 bg-amber-50 p-2 rounded border-2 border-amber-300 focus:border-amber-500 focus:outline-none text-right"
+                              className="w-32 text-base font-bold text-gray-900 bg-white p-2 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none text-right"
                             />
                           </div>
                         ) : (
@@ -1468,7 +1468,7 @@ function PedidosPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex justify-between items-center bg-white p-3 rounded border border-amber-200">
+                      <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
                         <span className="text-sm text-gray-700">Costo de Envío:</span>
                         {modoEdicion ? (
                           <div className="flex items-center gap-1">
@@ -1477,7 +1477,7 @@ function PedidosPage() {
                               type="number"
                               value={pedidoEditado.precio_envio || 0}
                               onChange={(e) => handleCampoEdicion('precio_envio', parseInt(e.target.value) || 0)}
-                              className="w-32 text-base font-bold text-gray-900 bg-amber-50 p-2 rounded border-2 border-amber-300 focus:border-amber-500 focus:outline-none text-right"
+                              className="w-32 text-base font-bold text-gray-900 bg-white p-2 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none text-right"
                             />
                           </div>
                         ) : (
@@ -1486,19 +1486,19 @@ function PedidosPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex justify-between items-center bg-gradient-to-r from-amber-200 to-yellow-200 p-4 rounded-lg border-2 border-amber-400 shadow-md">
-                        <span className="text-base font-bold text-amber-900">TOTAL:</span>
-                        <span className="text-2xl font-black text-amber-900">
+                      <div className="flex justify-between items-center bg-gradient-to-r from-pink-100 to-rose-100 p-4 rounded-lg border-2 border-pink-300 shadow-md">
+                        <span className="text-base font-bold text-pink-900">TOTAL:</span>
+                        <span className="text-2xl font-black text-pink-900">
                           ${((pedidoEditado.precio_ramo || 0) + (pedidoEditado.precio_envio || 0)).toLocaleString('es-CL')}
                         </span>
                       </div>
                       
                       {/* Estado de Pago */}
-                      <div className="pt-3 border-t border-amber-300">
+                      <div className="pt-3 border-t border-gray-300">
                         <div className="grid grid-cols-2 gap-3">
                           {pedidoDetalle.estado_pago && (
                             <div>
-                              <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Estado Pago</p>
+                              <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Estado Pago</p>
                               <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold border-2 ${
                                 pedidoDetalle.estado_pago === 'Pagado' 
                                   ? 'bg-green-100 text-green-800 border-green-300' 
@@ -1511,8 +1511,8 @@ function PedidosPage() {
                           
                           {pedidoDetalle.metodo_pago && pedidoDetalle.metodo_pago !== 'Pendiente' && (
                             <div>
-                              <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Método Pago</p>
-                              <span className="inline-flex px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border-2 border-purple-300">
+                              <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Método Pago</p>
+                              <span className="inline-flex px-3 py-1.5 bg-pink-100 text-pink-800 rounded-full text-xs font-bold border-2 border-pink-300">
                                 {pedidoDetalle.metodo_pago}
                               </span>
                             </div>
@@ -1521,7 +1521,7 @@ function PedidosPage() {
                         
                         {pedidoDetalle.documento_tributario && (
                           <div className="mt-3">
-                            <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Documento</p>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Documento</p>
                             <span className="inline-flex px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-xs font-bold border-2 border-gray-300">
                               📄 {pedidoDetalle.documento_tributario}
                             </span>
@@ -1530,8 +1530,8 @@ function PedidosPage() {
                         
                         {pedidoDetalle.numero_documento && (
                           <div className="mt-2">
-                            <p className="text-xs text-amber-800 font-semibold uppercase mb-1">Nº Documento</p>
-                            <p className="text-sm font-mono font-bold text-amber-900 bg-white p-2 rounded border border-amber-200">
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Nº Documento</p>
+                            <p className="text-sm font-mono font-bold text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
                               {pedidoDetalle.numero_documento}
                             </p>
                           </div>
