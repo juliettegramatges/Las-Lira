@@ -22,6 +22,9 @@ def listar_pedidos():
         fecha_desde = request.args.get('fecha_desde')
         fecha_hasta = request.args.get('fecha_hasta')
         
+        # Texto de búsqueda libre
+        buscar = request.args.get('buscar', '').strip()
+        
         # Parámetros de paginación
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 100))
@@ -36,6 +39,26 @@ def listar_pedidos():
             query = query.filter(Pedido.fecha_pedido >= datetime.fromisoformat(fecha_desde))
         if fecha_hasta:
             query = query.filter(Pedido.fecha_pedido <= datetime.fromisoformat(fecha_hasta))
+        
+        # Filtro de búsqueda (id exacto o campos de texto con ilike)
+        if buscar:
+            from sqlalchemy import or_
+            termino = f"%{buscar}%"
+            # Si es número, permitir búsqueda por ID exacto
+            condiciones = []
+            if buscar.isdigit():
+                condiciones.append(Pedido.id == int(buscar))
+            condiciones.extend([
+                Pedido.shopify_order_number.ilike(termino),
+                Pedido.cliente_nombre.ilike(termino),
+                Pedido.cliente_telefono.ilike(termino),
+                Pedido.arreglo_pedido.ilike(termino),
+                Pedido.direccion_entrega.ilike(termino),
+                Pedido.comuna.ilike(termino),
+                Pedido.destinatario.ilike(termino),
+                Pedido.motivo.ilike(termino),
+            ])
+            query = query.filter(or_(*condiciones))
         
         # Contar total antes de paginar
         total = query.count()
@@ -277,6 +300,29 @@ def eliminar_pedido(pedido_id):
         if not pedido:
             return jsonify({'success': False, 'error': 'Pedido no encontrado'}), 404
         
+        # Ajustar estadísticas del cliente antes de eliminar
+        if pedido.cliente_id:
+            cliente = Cliente.query.get(pedido.cliente_id)
+            if cliente:
+                try:
+                    # Restar totales de forma segura
+                    total_pedido = getattr(pedido, 'precio_total', None)
+                    if total_pedido is None:
+                        total_pedido = (pedido.precio_ramo or 0) + (pedido.precio_envio or 0)
+                    cliente.total_pedidos = max(0, (cliente.total_pedidos or 0) - 1)
+                    cliente.total_gastado = max(0, (cliente.total_gastado or 0) - total_pedido)
+                    
+                    # Recalcular última compra con el último pedido restante
+                    ultimo = (
+                        Pedido.query
+                        .filter(Pedido.cliente_id == pedido.cliente_id, Pedido.id != pedido.id)
+                        .order_by(Pedido.fecha_pedido.desc())
+                        .first()
+                    )
+                    cliente.ultima_compra = ultimo.fecha_pedido if ultimo else None
+                except Exception:
+                    pass
+
         # Eliminar relaciones primero (insumos del pedido)
         from models.pedido import PedidoInsumo
         PedidoInsumo.query.filter_by(pedido_id=pedido.id).delete()

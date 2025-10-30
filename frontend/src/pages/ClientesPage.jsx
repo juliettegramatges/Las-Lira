@@ -75,6 +75,15 @@ function ClientesPage() {
     cargarClientes()
   }, [paginaActual, tipoFiltro, etiquetasFiltro])
 
+  // Volver a cargar cuando cambia la búsqueda (con debounce) y resetear a página 1
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setPaginaActual(1)
+      cargarClientes()
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [busqueda])
+
   const cargarEtiquetasDisponibles = async () => {
     try {
       const response = await axios.get(`${API_URL}/clientes/etiquetas`)

@@ -290,23 +290,61 @@ def buscar_por_telefono():
 def buscar_por_nombre():
     """Buscar clientes por nombre (búsqueda inteligente)"""
     try:
-        nombre = request.args.get('nombre', '').strip()
-        
-        if not nombre or len(nombre) < 2:
-            return jsonify({
-                'success': True,
-                'clientes': []
-            })
-        
-        # Buscar clientes que contengan el texto en su nombre (case insensitive)
-        clientes = Cliente.query.filter(
-            Cliente.nombre.ilike(f'%{nombre}%')
-        ).order_by(Cliente.total_pedidos.desc()).limit(10).all()
-        
+        import unicodedata
+        from sqlalchemy import or_
+
+        termino = request.args.get('nombre', '').strip()
+
+        if not termino or len(termino) < 2:
+            return jsonify({'success': True, 'clientes': []})
+
+        def normalizar(texto: str) -> str:
+            if not texto:
+                return ''
+            # Eliminar acentos y normalizar espacios
+            texto = ''.join(
+                ch for ch in unicodedata.normalize('NFKD', texto)
+                if not unicodedata.combining(ch)
+            )
+            return ' '.join(texto.lower().split())
+
+        termino_norm = normalizar(termino)
+
+        # Traer un conjunto razonable y filtrar en Python para soporte sin acentos en SQLite
+        candidatos = Cliente.query.order_by(Cliente.total_pedidos.desc()).limit(1000).all()
+
+        resultados = []
+        for c in candidatos:
+            nombre_c = normalizar(c.nombre)
+            email_c = normalizar(getattr(c, 'email', '') or '')
+            tel_c = normalizar(getattr(c, 'telefono', '') or '')
+
+            if (
+                termino_norm in nombre_c or
+                termino_norm in email_c or
+                termino_norm in tel_c
+            ):
+                resultados.append(c)
+
+        # Si no hay resultados, relajar: buscar por cada palabra
+        if not resultados:
+            partes = termino_norm.split()
+            for c in candidatos:
+                texto = ' '.join([
+                    normalizar(c.nombre),
+                    normalizar(getattr(c, 'email', '') or ''),
+                    normalizar(getattr(c, 'telefono', '') or ''),
+                ])
+                if all(p in texto for p in partes):
+                    resultados.append(c)
+
+        # Limitar y ordenar por total de pedidos desc
+        resultados = sorted(resultados, key=lambda x: getattr(x, 'total_pedidos', 0), reverse=True)[:15]
+
         return jsonify({
             'success': True,
-            'clientes': [c.to_dict() for c in clientes],
-            'total': len(clientes)
+            'clientes': [c.to_dict() for c in resultados],
+            'total': len(resultados)
         })
         
     except Exception as e:

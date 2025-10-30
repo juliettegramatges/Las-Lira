@@ -1,3 +1,4 @@
+
 """
 Aplicación principal Flask para Las-Lira
 Sistema de gestión de florería
@@ -48,6 +49,8 @@ from routes import (
     pedido_insumos_routes, evento_routes, exportar_routes,
     analisis_routes, reportes_routes
 )
+from routes.productos_shopify_routes import bp as productos_shopify_bp
+from routes.productos_test_routes import bp as productos_test_bp
 
 # Registrar blueprints
 app.register_blueprint(clientes_routes.bp, url_prefix='/api/clientes')
@@ -57,11 +60,13 @@ app.register_blueprint(inventario_routes.bp, url_prefix='/api/inventario')
 app.register_blueprint(productos_routes.bp, url_prefix='/api/productos')
 app.register_blueprint(upload_routes.bp, url_prefix='/api/upload')
 app.register_blueprint(rutas_routes.bp, url_prefix='/api/rutas')
-app.register_blueprint(producto_colores_routes.bp, url_prefix='/api/productos')
+app.register_blueprint(producto_colores_routes.bp, url_prefix='/api/productos-colores')
 app.register_blueprint(evento_routes.bp, url_prefix='/api/eventos')
 app.register_blueprint(exportar_routes.bp, url_prefix='/api/exportar')
 app.register_blueprint(analisis_routes.bp)  # Ya tiene su propio prefix definido (/api/analisis)
 app.register_blueprint(reportes_routes.bp, url_prefix='/api/reportes')
+app.register_blueprint(productos_shopify_bp, url_prefix='/api/shopify')
+app.register_blueprint(productos_test_bp, url_prefix='/api')
 
 @app.route('/')
 def index():

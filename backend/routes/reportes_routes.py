@@ -13,6 +13,49 @@ import json
 
 bp = Blueprint('reportes', __name__)
 
+
+def _title_case_keep_acronyms(text: str) -> str:
+    if not text:
+        return text
+    parts = [w.upper() if w.isupper() and len(w) <= 4 else w.capitalize() for w in text.split(' ')]
+    return ' '.join(parts)
+
+
+def normalizar_nombre_arreglo(nombre: str) -> str:
+    """Normaliza nombres de arreglo eliminando prefijo genérico 'Arreglo Floral' y limpiando espacios."""
+    if not nombre:
+        return None
+    import re as _re
+    texto = nombre.strip()
+
+    # Si comienza con "Arreglo " pero NO con "Arreglo Floral", conservar el nombre completo (producto del catálogo)
+    if _re.match(r"(?i)^\s*arreglo\s+(?!floral\b).+", texto):
+        # Mantener tal cual, solo Title Case y espacios
+        texto = _re.sub(r"\s+", " ", texto).strip()
+        return _title_case_keep_acronyms(texto)
+    patron = _re.compile(r"(?i)^\s*arreglo\s*floral\s*(?:[-:–—·]*\s*)?(?P<tipo>.+?)\s*$")
+    m = patron.match(texto)
+    if m:
+        candidato = m.group('tipo').strip()
+    else:
+        m2 = _re.search(r"(?i)arreglo\s*floral\s*(?:[-:–—·]*\s*)?(?P<tipo>.+)$", texto)
+        candidato = m2.group('tipo').strip() if m2 else texto
+    # limpiar prefijos como 'tipo de'
+    candidato = _re.sub(r"(?i)^(tipo\s*(de)?\s*|de\s+)", "", candidato).strip()
+    candidato = _re.sub(r"\s+", " ", candidato)
+    # Excluir si quedó genérico o vacío
+    if not candidato or candidato.lower() in ("arreglo floral", "arreglo", "floral"):
+        return None
+    # Excluir si es un motivo estándar
+    try:
+        from config.motivos import obtener_motivos
+        motivos = set(m.lower() for m in obtener_motivos())
+        if candidato.lower() in motivos:
+            return None
+    except Exception:
+        pass
+    return _title_case_keep_acronyms(candidato)
+
 @bp.route('/kpis', methods=['GET'])
 def obtener_kpis():
     """Obtener KPIs principales del dashboard"""
@@ -124,12 +167,9 @@ def top_productos():
         anio = request.args.get('anio', type=int)  # Cambiado de 'año' a 'anio'
         mes = request.args.get('mes', type=int)
         
-        # Construir query base
-        query = db.session.query(
-            Pedido.arreglo_pedido,
-            func.count(Pedido.id).label('cantidad'),
-            func.sum(Pedido.precio_ramo).label('ventas')
-        ).filter(
+        # Construir query base (excluye cancelados)
+        query = Pedido.query.filter(
+            Pedido.estado != 'Cancelado',
             Pedido.arreglo_pedido.isnot(None),
             Pedido.arreglo_pedido != ''
         )
@@ -148,15 +188,54 @@ def top_productos():
                 Pedido.fecha_pedido < ultimo_dia
             )
         
-        resultado = query.group_by(Pedido.arreglo_pedido).order_by(
-            func.count(Pedido.id).desc()
-        ).limit(limit).all()
-        
-        datos = [{
-            'producto': row.arreglo_pedido,
-            'cantidad': row.cantidad,
-            'ventas': float(row.ventas) if row.ventas else 0
-        } for row in resultado]
+        pedidos = query.all()
+
+        # Agregar en Python con normalización y exclusión de motivos
+        from collections import defaultdict
+        try:
+            from config.motivos import obtener_motivos as _obtener_motivos
+            _MOTIVOS = set(m.lower() for m in _obtener_motivos())
+        except Exception:
+            _MOTIVOS = set()
+        # Agregar sinónimos/variantes frecuentes que no están en la lista
+        _MOTIVOS.update({
+            'matrimonio', 'cumpleaños', 'cumpleanos', 'nacimiento'
+        })
+        agg_cant = defaultdict(int)
+        agg_ventas = defaultdict(float)
+        for p in pedidos:
+            # Preferir tipo_personalizacion si está definido y no es motivo
+            key = None
+            if getattr(p, 'tipo_personalizacion', None):
+                # Normalizar tipo_personalizacion igual que arreglo
+                tp = p.tipo_personalizacion.strip()
+                if tp:
+                    # Aplicar normalización y exclusión de motivos
+                    tp_norm = normalizar_nombre_arreglo(tp)
+                    if not tp_norm:
+                        tp_norm = None
+                    if tp_norm:
+                        key = tp_norm
+            if not key:
+                key = normalizar_nombre_arreglo(p.arreglo_pedido)
+            if not key:
+                continue
+            # Excluir motivos por nombre
+            if key.lower() in _MOTIVOS:
+                continue
+            agg_cant[key] += 1
+            agg_ventas[key] += float((p.precio_ramo or 0))
+
+        # Ordenar por cantidad desc y tomar límite
+        ordenados = sorted(agg_cant.items(), key=lambda x: x[1], reverse=True)[:limit]
+        datos = [
+            {
+                'producto': nombre,
+                'cantidad': agg_cant[nombre],
+                'ventas': round(agg_ventas[nombre], 2),
+            }
+            for nombre, _ in ordenados
+        ]
         
         return jsonify({
             'success': True, 
@@ -190,21 +269,35 @@ def distribucion_tipos():
 
 @bp.route('/top-clientes', methods=['GET'])
 def top_clientes():
-    """Top 10 clientes por gasto total"""
+    """Top clientes calculado en vivo desde pedidos (excluye Cancelado)."""
     try:
         limit = int(request.args.get('limit', 10))
         
-        clientes = Cliente.query.filter(
-            Cliente.total_gastado > 0
-        ).order_by(Cliente.total_gastado.desc()).limit(limit).all()
+        # Agregación en vivo desde pedidos
+        total_gasto_expr = (Pedido.precio_ramo + func.coalesce(Pedido.precio_envio, 0))
+        agregados = db.session.query(
+            Pedido.cliente_id.label('cliente_id'),
+            func.count(Pedido.id).label('total_pedidos'),
+            func.sum(total_gasto_expr).label('total_gastado')
+        ).filter(
+            Pedido.cliente_id.isnot(None),
+            Pedido.estado != 'Cancelado'
+        ).group_by(Pedido.cliente_id).order_by(func.sum(total_gasto_expr).desc()).limit(limit).all()
         
-        datos = [{
-            'id': c.id,
-            'nombre': c.nombre,
-            'total_pedidos': c.total_pedidos,
-            'total_gastado': float(c.total_gastado),
-            'tipo_cliente': c.tipo_cliente
-        } for c in clientes]
+        # Enriquecer con información del cliente
+        datos = []
+        for row in agregados:
+            cliente = Cliente.query.get(row.cliente_id)
+            if not cliente:
+                # Cliente borrado; omitir
+                continue
+            datos.append({
+                'id': cliente.id,
+                'nombre': cliente.nombre,
+                'total_pedidos': int(row.total_pedidos or 0),
+                'total_gastado': float(row.total_gastado or 0),
+                'tipo_cliente': cliente.tipo_cliente
+            })
         
         return jsonify({'success': True, 'data': datos})
     except Exception as e:
@@ -443,14 +536,32 @@ def arreglos_por_motivo():
         motivos_counter = Counter()
         motivos_arreglos = defaultdict(Counter)
         
-        # Procesar cada pedido
+        # Procesar cada pedido (preferir tipo_personalizacion normalizada; si no, normalizar arreglo_pedido)
         for p in pedidos:
-            if p.motivo and p.arreglo_pedido:
+            if p.motivo:
                 motivo = p.motivo.strip().title()
-                arreglo = p.arreglo_pedido.strip()
-                
+            else:
+                continue
+
+            arreglo_norm = None
+            if getattr(p, 'tipo_personalizacion', None):
+                tp = p.tipo_personalizacion.strip()
+                if tp:
+                    arreglo_norm = normalizar_nombre_arreglo(tp)
+            if not arreglo_norm and p.arreglo_pedido:
+                arreglo_norm = normalizar_nombre_arreglo(p.arreglo_pedido)
+
+            if arreglo_norm:
+                # Si por error quedó igual a un motivo, descartar
+                try:
+                    from config.motivos import obtener_motivos as _obtener_motivos
+                    if arreglo_norm.lower() in (m.lower() for m in _obtener_motivos()):
+                        arreglo_norm = None
+                except Exception:
+                    pass
+            if arreglo_norm:
                 motivos_counter[motivo] += 1
-                motivos_arreglos[motivo][arreglo] += 1
+                motivos_arreglos[motivo][arreglo_norm] += 1
         
         # Preparar datos de arreglos por motivo
         motivos_con_arreglos = []
@@ -711,9 +822,15 @@ def analisis_personalizaciones():
         anio = request.args.get('anio', type=int)
         mes = request.args.get('mes', type=int)
         
-        # Construir query base para personalizaciones
+        # Construir query base para personalizaciones con nueva clasificación
+        from sqlalchemy import or_
         query = Pedido.query.filter(
-            Pedido.arreglo_pedido == 'Personalización'
+            or_(
+                Pedido.tipo_pedido.ilike('%personal%'),
+                Pedido.tipo_personalizacion.isnot(None),
+                Pedido.arreglo_pedido.ilike('%arreglo floral%')
+            ),
+            Pedido.estado != 'Cancelado'
         )
         
         # Aplicar filtros si se especifican
@@ -740,7 +857,13 @@ def analisis_personalizaciones():
         total_personalizaciones = len(personalizaciones)
         ventas_totales = sum(p.precio_ramo or 0 for p in personalizaciones)
         
-        # Procesar cada personalización
+        # Procesar cada personalización (preferir tipo_personalizacion normalizada; si no, usar arreglo normalizado)
+        try:
+            from config.motivos import obtener_motivos as _obtener_motivos
+            _MOTIVOS = set(m.lower() for m in _obtener_motivos())
+        except Exception:
+            _MOTIVOS = set()
+        _MOTIVOS.update({'matrimonio', 'cumpleaños', 'cumpleanos', 'nacimiento'})
         for p in personalizaciones:
             # Colores
             if p.colores_solicitados:
@@ -758,15 +881,21 @@ def analisis_personalizaciones():
                             if color:
                                 colores_counter[color] += 1
             
-            # Tipos de personalización
-            if p.tipo_personalizacion:
-                tipo = p.tipo_personalizacion.strip().title()
-                tipos_counter[tipo] += 1
-                
-                # Nuevo: Asociar tipo de arreglo con motivo
+            # Tipos de personalización (preferido)
+            tipo_val = None
+            if p.tipo_personalizacion and p.tipo_personalizacion.strip():
+                tipo_val = normalizar_nombre_arreglo(p.tipo_personalizacion)
+            if not tipo_val and p.arreglo_pedido:
+                tipo_val = normalizar_nombre_arreglo(p.arreglo_pedido)
+
+            if tipo_val:
+                if tipo_val.lower() in _MOTIVOS:
+                    tipo_val = None
+            if tipo_val:
+                tipos_counter[tipo_val] += 1
                 if p.motivo:
                     motivo = p.motivo.strip().title()
-                    motivos_arreglos[motivo][tipo] += 1
+                    motivos_arreglos[motivo][tipo_val] += 1
             
             # Motivos
             if p.motivo:

@@ -8,27 +8,21 @@ from extensions import db
 class Producto(db.Model):
     __tablename__ = 'productos'
     
-    id = db.Column(db.String(10), primary_key=True)
+    # Campos que realmente existen en la tabla
+    id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
-    tipo_arreglo = db.Column(db.String(50))
-    # Nuevos campos detallados
-    colores_asociados = db.Column(db.String(300))  # Ej: "Rojo, Verde oscuro, Burdeo"
-    flores_asociadas = db.Column(db.String(300))  # Ej: "Rosa roja, Clavel rojo, Eucalipto"
-    tipos_macetero = db.Column(db.String(200))  # Ej: "Florero vidrio cilíndrico"
-    vista_360_180 = db.Column(db.String(3))  # "360" o "180"
-    tamano = db.Column(db.String(20))  # Ej: "25 x 35" o "Ø 25"
-    cuidados = db.Column(db.Text)  # Instrucciones detalladas de cuidado
-    # Campos existentes
-    precio_venta = db.Column(db.Numeric(10, 2), nullable=False)
+    precio = db.Column(db.Numeric(10, 2))
+    categoria = db.Column(db.String(100))
+    tipo = db.Column(db.String(100))
     imagen_url = db.Column(db.String(500))
-    disponible_shopify = db.Column(db.Boolean, default=True)
+    sku = db.Column(db.String(100))
+    peso = db.Column(db.Numeric(10, 2))
+    tags = db.Column(db.Text)
+    metafields = db.Column(db.Text)
     activo = db.Column(db.Boolean, default=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Campos para análisis de personalizaciones
-    es_personalizacion = db.Column(db.Boolean, default=False)  # TRUE si es personalizable
-    categoria_personalizacion = db.Column(db.String(100))  # 'Ramo', 'Centro de Mesa', 'Bouquet', etc.
+    imagen_principal = db.Column(db.String(500))
     
     # Relaciones
     recetas = db.relationship('RecetaProducto', backref='producto', lazy=True, cascade='all, delete-orphan')
@@ -39,20 +33,17 @@ class Producto(db.Model):
             'id': self.id,
             'nombre': self.nombre,
             'descripcion': self.descripcion,
-            'tipo_arreglo': self.tipo_arreglo,
-            'colores_asociados': self.colores_asociados,
-            'flores_asociadas': self.flores_asociadas,
-            'tipos_macetero': self.tipos_macetero,
-            'vista_360_180': self.vista_360_180,
-            'tamano': self.tamano,
-            'cuidados': self.cuidados,
-            'precio_venta': float(self.precio_venta) if self.precio_venta else 0,
+            'precio': float(self.precio) if self.precio else 0,
+            'categoria': self.categoria,
+            'tipo': self.tipo,
             'imagen_url': self.imagen_url,
-            'disponible_shopify': self.disponible_shopify,
+            'imagen_principal': self.imagen_principal,
+            'sku': self.sku,
+            'peso': float(self.peso) if self.peso else 0,
+            'tags': self.tags.split(',') if self.tags else [],
+            'metafields': self.metafields,
             'activo': self.activo,
             'fecha_creacion': self.fecha_creacion.isoformat() if self.fecha_creacion else None,
-            'es_personalizacion': self.es_personalizacion,
-            'categoria_personalizacion': self.categoria_personalizacion,
             'recetas': [r.to_dict() for r in self.recetas] if self.recetas else []
         }
     

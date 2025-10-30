@@ -74,6 +74,41 @@ class Pedido(db.Model):
         """Calcula precio total (ramo + envío)"""
         return (self.precio_ramo or 0) + (self.precio_envio or 0)
     
+    def _obtener_imagen_producto(self):
+        """Obtiene la imagen del producto con fallbacks"""
+        if not self.producto:
+            return None
+        
+        # 1. Intentar imagen_principal (nueva estructura consolidada)
+        if self.producto.imagen_principal:
+            return self.producto.imagen_principal
+        
+        # 2. Intentar imagen_url (estructura anterior)
+        if self.producto.imagen_url:
+            return self.producto.imagen_url
+        
+        # 3. Intentar obtener de la tabla imagenes_productos
+        try:
+            import sqlite3
+            conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT url FROM imagenes_productos 
+                WHERE producto_id = ? AND es_principal = 1
+                LIMIT 1
+            ''', (self.producto_id,))
+            
+            resultado = cursor.fetchone()
+            conn.close()
+            
+            if resultado:
+                return resultado[0]
+        except Exception:
+            pass  # Si hay error, continuar con None
+        
+        return None
+    
     def to_dict(self):
         """Convierte el pedido a diccionario"""
         return {
@@ -89,7 +124,7 @@ class Pedido(db.Model):
             'cliente_tipo': self.cliente.tipo_cliente if self.cliente else None,
             'producto_id': self.producto_id,
             'producto_nombre': self.producto.nombre if self.producto else None,
-            'producto_imagen': self.producto.imagen_url if self.producto else None,
+            'producto_imagen': self._obtener_imagen_producto(),
             'arreglo_pedido': self.arreglo_pedido,
             'detalles_adicionales': self.detalles_adicionales,
             'precio_ramo': float(self.precio_ramo) if self.precio_ramo else 0,

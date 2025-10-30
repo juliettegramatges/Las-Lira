@@ -4,6 +4,15 @@ import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag,
 
 const API_URL = 'http://localhost:5001/api'
 
+// Función para limpiar HTML de las descripciones
+const limpiarHTML = (html) => {
+  if (!html) return ''
+  // Crear un elemento temporal para extraer solo el texto
+  const temp = document.createElement('div')
+  temp.innerHTML = html
+  return temp.textContent || temp.innerText || ''
+}
+
 // Colores comunes para productos
 const COLORES_PRODUCTOS = [
   'Rojo',
@@ -68,24 +77,43 @@ function ProductosPage() {
   const cargarProductos = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${API_URL}/productos`, {
-        params: {
-          page: paginaActual,
-          limit: limitePorPagina,
-          busqueda: busqueda || undefined
-        }
-      })
+      const response = await axios.get(`${API_URL}/productos/`)
+      
       if (response.data.success) {
-        setProductos(response.data.data)
-        setTotalProductos(response.data.total)
-        setTotalPaginas(response.data.total_pages)
-        if (response.data.stats) {
-          setStatsGlobales(response.data.stats)
+        const productosData = response.data.productos || []
+        
+        // Aplicar filtro de búsqueda si existe
+        let productosFiltrados = productosData
+        if (busqueda) {
+          productosFiltrados = productosData.filter(producto => 
+            producto.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+            producto.categoria?.toLowerCase().includes(busqueda.toLowerCase()) ||
+            producto.tipo?.toLowerCase().includes(busqueda.toLowerCase())
+          )
         }
+        
+        // Aplicar paginación
+        const inicio = (paginaActual - 1) * limitePorPagina
+        const fin = inicio + limitePorPagina
+        const productosPaginados = productosFiltrados.slice(inicio, fin)
+        
+        setProductos(productosPaginados)
+        setTotalProductos(productosFiltrados.length)
+        setTotalPaginas(Math.ceil(productosFiltrados.length / limitePorPagina))
+        
+        // Calcular estadísticas básicas
+        const stats = {
+          total_global: productosData.length,
+          con_foto: productosData.filter(p => p.imagen_principal || (p.imagenes && p.imagenes.length > 0)).length,
+          sin_foto: productosData.filter(p => !p.imagen_principal && (!p.imagenes || p.imagenes.length === 0)).length,
+          disponibles_shopify: productosData.filter(p => p.sku && p.sku.trim() !== '').length
+        }
+        setStatsGlobales(stats)
       }
     } catch (err) {
       console.error('Error al cargar productos:', err)
       alert('❌ No se pudo conectar con el servidor. ¿Está corriendo el backend?')
+      setProductos([])
     } finally {
       setLoading(false)
     }
@@ -654,7 +682,7 @@ function ProductosPage() {
           <div className="col-span-full text-center py-12 text-gray-500">
             Cargando productos...
           </div>
-        ) : productos.length === 0 ? (
+        ) : (productos || []).length === 0 ? (
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500 mb-4">No hay productos disponibles</p>
             <p className="text-sm text-gray-400">
@@ -662,16 +690,16 @@ function ProductosPage() {
             </p>
           </div>
         ) : (
-          productos.map((producto) => (
+          (productos || []).map((producto) => (
             <div
               key={producto.id}
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
               {/* Imagen */}
               <div className="relative h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group">
-                {producto.imagen_url ? (
+                {(producto.imagen_principal || (producto.imagenes && producto.imagenes.length > 0)) ? (
                   <img 
-                    src={`${API_URL}/upload/imagen/${producto.imagen_url}`}
+                    src={producto.imagen_principal || producto.imagenes[0]?.url}
                     alt={producto.nombre}
                     className="w-full h-full object-contain p-2"
                     onError={(e) => {
@@ -680,7 +708,7 @@ function ProductosPage() {
                     }}
                   />
                 ) : null}
-                <div className={producto.imagen_url ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
+                <div className={(producto.imagen_principal || (producto.imagenes && producto.imagenes.length > 0)) ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
                   <Flower2 className="h-16 w-16 text-primary-600" />
                 </div>
                 
@@ -745,13 +773,13 @@ function ProductosPage() {
                 </div>
                 
                 <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {producto.descripcion}
+                  {limpiarHTML(producto.descripcion) || 'Sin descripción'}
                 </p>
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Tipo:</span>
-                    <span className="font-medium text-gray-900">{producto.tipo_arreglo}</span>
+                    <span className="font-medium text-gray-900">{producto.tipo || producto.tipo_arreglo || 'N/A'}</span>
                   </div>
                   
                   {producto.colores_asociados && (
@@ -778,7 +806,7 @@ function ProductosPage() {
                 
                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                   <span className="text-xl font-bold text-primary-600">
-                    ${producto.precio_venta?.toLocaleString('es-CL') || '0'}
+                    ${(producto.precio || producto.precio_venta || 0).toLocaleString('es-CL')}
                   </span>
                   <button 
                     onClick={() => handleVerDetalles(producto)}
@@ -892,9 +920,9 @@ function ProductosPage() {
             <div className="p-6 space-y-6">
               {/* Imagen */}
               <div className="relative h-64 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden flex items-center justify-center">
-                {productoDetalle.imagen_url ? (
+                {(productoDetalle.imagen_principal || (productoDetalle.imagenes && productoDetalle.imagenes.length > 0)) ? (
                   <img 
-                    src={`${API_URL}/upload/imagen/${productoDetalle.imagen_url}`}
+                    src={productoDetalle.imagen_principal || productoDetalle.imagenes[0]?.url}
                     alt={productoDetalle.nombre}
                     className="w-full h-full object-contain"
                     onError={(e) => {
@@ -903,7 +931,7 @@ function ProductosPage() {
                     }}
                   />
                 ) : null}
-                <div className={productoDetalle.imagen_url ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
+                <div className={(productoDetalle.imagen_principal || (productoDetalle.imagenes && productoDetalle.imagenes.length > 0)) ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
                   <Flower2 className="h-24 w-24 text-primary-600" />
                 </div>
               </div>

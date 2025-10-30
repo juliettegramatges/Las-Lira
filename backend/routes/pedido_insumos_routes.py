@@ -32,6 +32,7 @@ def obtener_insumos_pedido(pedido_id):
                     insumo_dict['insumo_color'] = flor.color
                     insumo_dict['insumo_foto'] = flor.foto_url
                     insumo_dict['stock_disponible'] = flor.cantidad_disponible
+                    insumo_dict['precio_unitario'] = float(flor.costo_unitario or 0)
             elif insumo.insumo_tipo == 'Contenedor':
                 contenedor = Contenedor.query.get(insumo.insumo_id)
                 if contenedor:
@@ -39,6 +40,7 @@ def obtener_insumos_pedido(pedido_id):
                     insumo_dict['insumo_material'] = contenedor.material
                     insumo_dict['insumo_foto'] = contenedor.foto_url
                     insumo_dict['stock_disponible'] = contenedor.cantidad_disponible
+                    insumo_dict['precio_unitario'] = float(contenedor.costo or 0)
             
             insumos_detallados.append(insumo_dict)
         

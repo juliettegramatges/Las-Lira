@@ -128,6 +128,8 @@ function PedidosPage() {
   // Estados para insumos
   const [receta, setReceta] = useState([])
   const [insumosModificados, setInsumosModificados] = useState([])
+  const [insumosSeleccionados, setInsumosSeleccionados] = useState(null)
+  const [costoCalculado, setCostoCalculado] = useState(null)
   const [loadingReceta, setLoadingReceta] = useState(false)
   const [flores, setFlores] = useState([])
   const [contenedores, setContenedores] = useState([])
@@ -144,8 +146,8 @@ function PedidosPage() {
     arreglo_pedido: '',
     producto_id: '',
     detalles_adicionales: '',
-    precio_ramo: '',
-    precio_envio: '',
+    precio_ramo: 0,
+    precio_envio: 0,
     lleva_mensaje: false,
     destinatario: '',
     mensaje: '',
@@ -157,12 +159,33 @@ function PedidosPage() {
     plazo_pago_dias: 0
   })
   
+  // Costo y margen en tiempo real según insumos y precio del ramo
+  const costoInsumos = useMemo(() => {
+    try {
+      return (insumosModificados || []).reduce((sum, i) => {
+        const cantidad = parseFloat(i?.cantidad) || 0
+        const unitario = parseFloat(i?.costo_unitario) || 0
+        return sum + cantidad * unitario
+      }, 0)
+    } catch {
+      return 0
+    }
+  }, [insumosModificados])
+
+  const precioRamoActual = useMemo(() => parseFloat(formData?.precio_ramo) || 0, [formData?.precio_ramo])
+  const utilidadBruta = useMemo(() => Math.max(0, (precioRamoActual - costoInsumos)), [precioRamoActual, costoInsumos])
+  const margenPorcentaje = useMemo(() => {
+    if (precioRamoActual <= 0) return 0
+    return Math.round(((precioRamoActual - costoInsumos) / precioRamoActual) * 100)
+  }, [precioRamoActual, costoInsumos])
+  
   const cargarPedidos = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
       if (filtroEstado) params.append('estado', filtroEstado)
       if (filtroCanal) params.append('canal', filtroCanal)
+      if (busqueda && busqueda.trim()) params.append('buscar', busqueda.trim())
       params.append('page', paginaActual)
       params.append('limit', limitePorPagina)
       
@@ -303,6 +326,10 @@ function PedidosPage() {
         alert('✅ Pedido eliminado permanentemente')
         handleCerrarModal()
         cargarPedidos()
+        // Notificar al tablero para que se recargue en segundo plano
+        try {
+          window.dispatchEvent(new Event('refetch-tablero'))
+        } catch (e) {}
       }
     } catch (error) {
       console.error('Error al eliminar pedido:', error)
@@ -361,9 +388,9 @@ function PedidosPage() {
   const cargarDatosFormulario = async () => {
     try {
       // Cargar productos
-      const prodResponse = await axios.get(`${API_URL}/productos`)
+      const prodResponse = await axios.get(`${API_URL}/productos/`)
       if (prodResponse.data.success) {
-        setProductos(prodResponse.data.data)
+        setProductos(prodResponse.data.productos || [])
       }
       
       // Cargar flores
@@ -398,7 +425,19 @@ function PedidosPage() {
   }
   
   const handleProductoChange = async (productoId) => {
-    const productoSeleccionado = productos.find(p => p.id === productoId)
+    console.log('🔍 Debug handleProductoChange:', {
+      productoId,
+      productosLength: (productos || []).length,
+      productos: (productos || []).slice(0, 3) // Solo los primeros 3 para debug
+    })
+    
+    const productoSeleccionado = (productos || []).find(p => p.id == productoId)
+    
+    console.log('🔍 Debug productoSeleccionado:', {
+      productoSeleccionado,
+      precio: productoSeleccionado?.precio,
+      precio_venta: productoSeleccionado?.precio_venta
+    })
     
     // Detectar si es una personalización
     const esProductoPersonalizado = productoSeleccionado?.nombre?.toLowerCase().includes('personaliz')
@@ -408,7 +447,7 @@ function PedidosPage() {
       ...prev,
       producto_id: productoId,
       arreglo_pedido: productoSeleccionado?.nombre || prev.arreglo_pedido,
-      precio_ramo: productoSeleccionado?.precio_venta || prev.precio_ramo
+      precio_ramo: productoSeleccionado?.precio || productoSeleccionado?.precio_venta || prev.precio_ramo
     }))
     
     // Cargar recetario del producto
@@ -487,8 +526,8 @@ function PedidosPage() {
       arreglo_pedido: '',
       producto_id: '',
       detalles_adicionales: '',
-      precio_ramo: '',
-      precio_envio: '',
+      precio_ramo: 0,
+      precio_envio: 0,
       lleva_mensaje: false,
       destinatario: '',
       mensaje: '',
@@ -513,7 +552,9 @@ function PedidosPage() {
   
   // Buscar clientes por nombre
   const buscarClientesPorNombre = async (nombre) => {
-    if (!nombre || nombre.length < 2) {
+    console.log('🔍 Buscando clientes con nombre:', nombre)
+    
+    if (!nombre || nombre.length < 1) {
       setSugerenciasClientes([])
       setMostrarSugerencias(false)
       return
@@ -521,21 +562,26 @@ function PedidosPage() {
     
     try {
       setBuscandoCliente(true)
+      console.log('📡 Enviando request a:', `${API_URL}/clientes/buscar-por-nombre`)
+      
       const response = await axios.get(`${API_URL}/clientes/buscar-por-nombre`, {
         params: { nombre }
       })
       
+      console.log('📥 Respuesta del servidor:', response.data)
+      
       if (response.data.success && response.data.clientes.length > 0) {
         setSugerenciasClientes(response.data.clientes)
         setMostrarSugerencias(true)
-        console.log(`🔍 Encontrados ${response.data.clientes.length} clientes`)
+        console.log(`✅ Encontrados ${response.data.clientes.length} clientes`)
+        console.log('👥 Clientes:', response.data.clientes.map(c => c.nombre))
       } else {
         setSugerenciasClientes([])
         setMostrarSugerencias(false)
         console.log('ℹ️ No se encontraron clientes')
       }
     } catch (err) {
-      console.error('Error al buscar clientes:', err)
+      console.error('❌ Error al buscar clientes:', err)
       setSugerenciasClientes([])
     } finally {
       setBuscandoCliente(false)
@@ -604,7 +650,7 @@ function PedidosPage() {
     }
     
     // Buscar clientes mientras escribe
-    if (nombre.length >= 2) {
+    if (nombre.length >= 1) {
       // Cancelar búsqueda anterior si existe
       if (window.busquedaClienteTimeout) {
         clearTimeout(window.busquedaClienteTimeout)
@@ -778,16 +824,16 @@ function PedidosPage() {
     
     return pedidos.filter(pedido => {
       // Buscar por ID de pedido
-      if (pedido.id?.toLowerCase().includes(termino)) return true
+      if (String(pedido.id ?? '').toLowerCase().includes(termino)) return true
       
       // Buscar por número de Shopify
-      if (pedido.shopify_order_number?.toLowerCase().includes(termino)) return true
+      if (String(pedido.shopify_order_number ?? '').toLowerCase().includes(termino)) return true
       
       // Buscar por nombre de cliente
       if (pedido.cliente_nombre?.toLowerCase().includes(termino)) return true
       
       // Buscar por teléfono
-      if (pedido.cliente_telefono?.toLowerCase().includes(termino)) return true
+      if (String(pedido.cliente_telefono ?? '').toLowerCase().includes(termino)) return true
       
       // Buscar por tipo de arreglo
       if (pedido.arreglo_pedido?.toLowerCase().includes(termino)) return true
@@ -811,6 +857,15 @@ function PedidosPage() {
   useEffect(() => {
     cargarPedidos()
   }, [filtroEstado, filtroCanal, paginaActual])
+
+  // Volver a cargar al escribir en la búsqueda (con debounce) y resetear a página 1
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPaginaActual(1)
+      cargarPedidos()
+    }, 300)
+    return () => clearTimeout(t)
+  }, [busqueda])
   
   useEffect(() => {
     cargarDatosFormulario()
@@ -850,7 +905,18 @@ function PedidosPage() {
   const totalPedido = useMemo(() => {
     const precioRamo = parseFloat(formData.precio_ramo) || 0
     const precioEnvio = parseFloat(formData.precio_envio) || 0
-    return precioRamo + precioEnvio
+    const total = precioRamo + precioEnvio
+    
+    // Debug logs
+    console.log('🔍 Debug Total:', {
+      precioRamo: formData.precio_ramo,
+      precioRamoParsed: precioRamo,
+      precioEnvio: formData.precio_envio,
+      precioEnvioParsed: precioEnvio,
+      total
+    })
+    
+    return total
   }, [formData.precio_ramo, formData.precio_envio])
   
   return (
@@ -2343,26 +2409,41 @@ function PedidosPage() {
                         
                         {!cargandoHistorial && historialPedidos.length > 0 && (
                           <div className="space-y-2 max-h-96 overflow-y-auto">
-                            {historialPedidos.map((pedido) => (
-                              <div key={pedido.id} className="bg-white p-3 rounded-lg shadow-sm text-xs border border-indigo-100">
-                                <div className="flex justify-between items-start mb-1">
-                                  <span className="font-semibold text-gray-800">{pedido.id}</span>
-                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                    pedido.estado === 'Despachados' ? 'bg-purple-100 text-purple-700' :
-                                    pedido.estado === 'En Proceso' ? 'bg-yellow-100 text-yellow-700' :
-                                    pedido.estado === 'Archivado' ? 'bg-gray-100 text-gray-600' :
-                                    'bg-blue-100 text-blue-700'
-                                  }`}>
-                                    {pedido.estado}
-                                  </span>
+                            {historialPedidos.map((pedido) => {
+                              const resumen = `#${pedido.id} • ${new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}\n${pedido.arreglo_pedido || 'Sin arreglo'}\nMotivo: ${pedido.motivo || '-'} • Comuna: ${pedido.comuna || '-'}\nTotal: $${(pedido.precio_total || 0).toLocaleString('es-CL')} • Estado: ${pedido.estado}`
+                              const thumb = pedido.foto_enviado_url || pedido.producto_imagen || null
+                              return (
+                                <div key={pedido.id} className="bg-white p-3 rounded-lg shadow-sm text-xs border border-indigo-100" title={resumen}>
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 rounded-md overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
+                                      {thumb ? (
+                                        <img src={thumb} alt={pedido.arreglo_pedido || 'Producto'} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span className="text-lg">🌸</span>
+                                      )}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex justify-between items-start mb-1">
+                                        <span className="font-semibold text-gray-800">{pedido.id}</span>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                          pedido.estado === 'Despachados' ? 'bg-purple-100 text-purple-700' :
+                                          pedido.estado === 'En Proceso' ? 'bg-yellow-100 text-yellow-700' :
+                                          pedido.estado === 'Archivado' ? 'bg-gray-100 text-gray-600' :
+                                          'bg-blue-100 text-blue-700'
+                                        }`}>
+                                          {pedido.estado}
+                                        </span>
+                                      </div>
+                                      <p className="text-gray-700 font-medium truncate">{pedido.arreglo_pedido}</p>
+                                      <div className="flex justify-between items-center mt-1 text-gray-500">
+                                        <span>{new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}</span>
+                                        <span className="font-semibold text-primary-600">${(pedido.precio_total || 0).toLocaleString('es-CL')}</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                <p className="text-gray-700 font-medium">{pedido.arreglo_pedido}</p>
-                                <div className="flex justify-between items-center mt-1 text-gray-500">
-                                  <span>{new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}</span>
-                                  <span className="font-semibold text-primary-600">${pedido.precio_total?.toLocaleString('es-CL')}</span>
-                                </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                             <p className="text-xs text-center text-gray-500 italic pt-2">
                               📦 Total: {historialPedidos.length} pedido(s)
                             </p>
@@ -2473,9 +2554,9 @@ function PedidosPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       >
                         <option value="">-- Sin producto asociado --</option>
-                        {productos.map(prod => (
+                        {(productos || []).map(prod => (
                           <option key={prod.id} value={prod.id}>
-                            {prod.nombre} - ${prod.precio_venta?.toLocaleString('es-CL')}
+                            {prod.nombre} - ${(prod.precio || prod.precio_venta || 0).toLocaleString('es-CL')}
                           </option>
                         ))}
                       </select>
@@ -2485,6 +2566,39 @@ function PedidosPage() {
                         </p>
                       )}
                     </div>
+                    
+                    {/* Mostrar producto seleccionado */}
+                    {formData.producto_id && (() => {
+                      const productoSeleccionado = (productos || []).find(p => p.id == formData.producto_id)
+                      return productoSeleccionado ? (
+                        <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
+                              {productoSeleccionado.imagen_principal ? (
+                                <img 
+                                  src={productoSeleccionado.imagen_principal} 
+                                  alt={productoSeleccionado.nombre}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-2xl">🌸</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-lg font-semibold text-gray-900">{productoSeleccionado.nombre}</h4>
+                              <p className="text-sm text-gray-600">
+                                Precio: <span className="font-bold text-green-600">${(productoSeleccionado.precio || productoSeleccionado.precio_venta || 0).toLocaleString('es-CL')}</span>
+                              </p>
+                              {productoSeleccionado.descripcion && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                  {productoSeleccionado.descripcion.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null
+                    })()}
                     
                     {/* Campo para Personalización */}
                     {esPersonalizacion && (
@@ -2547,6 +2661,26 @@ function PedidosPage() {
                       </div>
                     </div>
                     
+                    {/* Resumen de costos y margen */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Costo Insumos</div>
+                        <div className="text-lg font-semibold text-gray-900">${costoInsumos.toLocaleString('es-CL')}</div>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Precio Ramo</div>
+                        <div className="text-lg font-semibold text-gray-900">${precioRamoActual.toLocaleString('es-CL')}</div>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Utilidad</div>
+                        <div className={`text-lg font-semibold ${utilidadBruta >= 0 ? 'text-green-700' : 'text-red-700'}`}>${utilidadBruta.toLocaleString('es-CL')}</div>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Margen</div>
+                        <div className={`text-lg font-semibold ${margenPorcentaje >= 50 ? 'text-green-700' : margenPorcentaje >= 30 ? 'text-yellow-700' : 'text-red-700'}`}>{margenPorcentaje}%</div>
+                      </div>
+                    </div>
+
                     {loadingReceta ? (
                       <div className="text-center py-4 text-gray-500">
                         <div className="animate-pulse">⏳ Cargando insumos del producto...</div>
@@ -2656,6 +2790,15 @@ function PedidosPage() {
                               </td>
                               <td className="px-3 py-2 text-right text-sm font-bold text-gray-900">
                                 ${insumosModificados.reduce((sum, i) => sum + (i.cantidad * i.costo_unitario), 0).toLocaleString()}
+                              </td>
+                              <td></td>
+                            </tr>
+                            <tr>
+                              <td colSpan="5" className="px-3 py-2 text-right text-sm font-semibold text-gray-700">
+                                Utilidad (Precio Ramo - Costo Insumos):
+                              </td>
+                              <td className="px-3 py-2 text-right text-sm font-bold text-gray-900">
+                                ${utilidadBruta.toLocaleString('es-CL')} ({margenPorcentaje}%)
                               </td>
                               <td></td>
                             </tr>
@@ -2922,7 +3065,7 @@ function PedidosPage() {
                           min="0"
                           step="1000"
                           value={formData.precio_ramo}
-                          onChange={(e) => setFormData({...formData, precio_ramo: e.target.value})}
+                          onChange={(e) => setFormData({...formData, precio_ramo: parseFloat(e.target.value) || 0})}
                           className="w-full pl-8 pr-4 py-2 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold"
                           placeholder="35000"
                         />
@@ -2939,7 +3082,7 @@ function PedidosPage() {
                           min="0"
                           step="1000"
                           value={formData.precio_envio}
-                          onChange={(e) => setFormData({...formData, precio_envio: e.target.value})}
+                          onChange={(e) => setFormData({...formData, precio_envio: parseFloat(e.target.value) || 0})}
                           className="w-full pl-8 pr-4 py-2 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold"
                           placeholder="7000"
                         />

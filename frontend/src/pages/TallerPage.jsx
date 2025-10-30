@@ -226,14 +226,26 @@ function TallerPage() {
       setConfirmando(true)
       
       // PASO 1: Guardar los insumos actualizados (incluyendo nuevos y eliminados)
-      const insumosParaGuardar = insumos.map(insumo => ({
-        insumo_tipo: insumo.insumo_tipo,
-        insumo_id: insumo.flor_id || insumo.contenedor_id,
-        cantidad: insumo.cantidad,
-        costo_unitario: insumo.costo_unitario
-      }))
+      // Filtrar insumos incompletos: requieren insumo_id y cantidad > 0
+      const insumosParaGuardar = insumos
+        .map(i => {
+          const idSeleccionado = i.insumo_id || i.flor_id || i.contenedor_id
+          return {
+            insumo_tipo: i.insumo_tipo,
+            insumo_id: idSeleccionado,
+            cantidad: parseInt(i.cantidad) || 0,
+            costo_unitario: i.costo_unitario || 0
+          }
+        })
+        .filter(i => i.insumo_id && i.cantidad > 0)
+
+      if (insumosParaGuardar.length === 0) {
+        alert('❌ Agrega al menos un insumo válido antes de confirmar.')
+        setConfirmando(false)
+        return
+      }
       
-      await pedidoInsumosAPI.guardar(pedidoSeleccionado.id, { insumos: insumosParaGuardar })
+      await pedidoInsumosAPI.guardarInsumos(pedidoSeleccionado.id, insumosParaGuardar)
       
       // PASO 2: Confirmar y descontar stock
       const response = await pedidoInsumosAPI.confirmarYDescontar(

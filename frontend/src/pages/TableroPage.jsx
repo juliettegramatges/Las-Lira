@@ -70,6 +70,13 @@ function TableroPage() {
   useEffect(() => {
     cargarTablero(true) // Auto-clasificar solo al cargar inicialmente
   }, [])
+
+  // Escuchar eventos globales para forzar recarga desde otras vistas (p.ej., tras eliminar un pedido)
+  useEffect(() => {
+    const handler = () => cargarTablero(false)
+    window.addEventListener('refetch-tablero', handler)
+    return () => window.removeEventListener('refetch-tablero', handler)
+  }, [])
   
   const moverPedido = async (pedidoId, nuevoEstado) => {
     try {
