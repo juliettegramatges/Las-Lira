@@ -64,3 +64,6 @@ logs/
 # Excel temporal
 ~$*.xlsx
 
+
+# Trello exports (large)
+ryFivJoh - las-lira-gestion.json
