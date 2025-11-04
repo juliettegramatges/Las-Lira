@@ -939,20 +939,20 @@ function ProductosPage() {
               {/* Información básica */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Descripción</h3>
-                <p className="text-gray-700">{productoDetalle.descripcion || 'Sin descripción'}</p>
+                <p className="text-gray-700">{limpiarHTML(productoDetalle.descripcion) || 'Sin descripción'}</p>
               </div>
               
               {/* Detalles en grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-500 mb-1">Tipo de Arreglo</p>
-                  <p className="font-semibold text-gray-900">{productoDetalle.tipo_arreglo}</p>
+                  <p className="font-semibold text-gray-900">{productoDetalle.tipo || productoDetalle.tipo_arreglo || 'N/A'}</p>
                 </div>
                 
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-500 mb-1">Precio</p>
                   <p className="font-semibold text-primary-600 text-xl">
-                    ${productoDetalle.precio_venta?.toLocaleString('es-CL') || '0'}
+                    ${(productoDetalle.precio || productoDetalle.precio_venta || 0).toLocaleString('es-CL')}
                   </p>
                 </div>
                 

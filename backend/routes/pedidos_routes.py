@@ -78,6 +78,50 @@ def listar_pedidos():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/pagados', methods=['GET'], strict_slashes=False)
+def listar_pagados():
+    """Listar pedidos pagados con búsqueda y paginación"""
+    try:
+        buscar = request.args.get('buscar', '').strip()
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+
+        query = Pedido.query.filter(
+            Pedido.estado_pago == 'Pagado',
+            Pedido.estado != 'Cancelado'
+        )
+
+        if buscar:
+            from sqlalchemy import or_
+            termino = f"%{buscar}%"
+            condiciones = [
+                Pedido.numero_pedido.ilike(termino),
+                Pedido.shopify_order_number.ilike(termino),
+                Pedido.cliente_nombre.ilike(termino),
+                Pedido.cliente_telefono.ilike(termino),
+                Pedido.documento_tributario.ilike(termino),
+                Pedido.numero_documento.ilike(termino),
+                Pedido.arreglo_pedido.ilike(termino),
+            ]
+            # Si es número, permitir búsqueda por ID exacto
+            if buscar.isdigit():
+                condiciones.append(Pedido.id == int(buscar))
+            query = query.filter(or_(*condiciones))
+
+        total = query.count()
+        pedidos = query.order_by(Pedido.fecha_pedido.desc()).limit(limit).offset((page - 1) * limit).all()
+
+        return jsonify({
+            'success': True,
+            'data': [p.to_dict() for p in pedidos],
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @bp.route('/<pedido_id>', methods=['GET'])
 def obtener_pedido(pedido_id):
     """Obtener detalles de un pedido específico"""
@@ -492,6 +536,17 @@ def actualizar_cobranza(pedido_id):
                     pedido.documento_tributario = 'Boleta emitida'
                 elif pedido.documento_tributario == 'Hacer factura':
                     pedido.documento_tributario = 'Factura emitida'
+
+        # 📝 NOTAS DE COBRANZA (campo libre)
+        if 'notas' in data:
+            # Usar campo legado 'cobranza' como notas de cobranza
+            notas = data.get('notas') or None
+            if isinstance(notas, str):
+                notas = notas.strip()
+                # Limitar tamaño razonable para columna VARCHAR
+                if len(notas) > 500:
+                    notas = notas[:500]
+            pedido.cobranza = notas
         
         pedido.fecha_actualizacion = datetime.utcnow()
         db.session.commit()

@@ -209,3 +209,96 @@ def productos_por_categoria(categoria):
             'success': False,
             'error': str(e)
         }), 500
+
+
+@bp.route('/<int:producto_id>/receta', methods=['GET'])
+def obtener_receta_producto(producto_id):
+    """Obtiene la receta (insumos) de un producto.
+    Lee desde instance/laslira.db en la tabla recetas_productos y enriquece con datos
+    de flores y contenedores (costo, stock, foto, etc.).
+    """
+    try:
+        # Preferir la base usada por la app
+        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/backend/instance/laslira.db')
+        cursor = conn.cursor()
+
+        cursor.execute(
+            '''
+            SELECT insumo_tipo, insumo_id, cantidad, unidad, es_opcional
+            FROM recetas_productos
+            WHERE producto_id = ?
+            ORDER BY insumo_tipo, insumo_id
+            ''',
+            (producto_id,)
+        )
+
+        receta = []
+        costo_total_insumos = 0.0
+        for insumo_tipo, insumo_id, cantidad, unidad, es_opcional in cursor.fetchall():
+            item = {
+                'id': insumo_id,
+                'tipo': insumo_tipo,
+                'cantidad': int(cantidad or 0),
+                'unidad': unidad,
+                'es_opcional': bool(es_opcional),
+            }
+            if insumo_tipo == 'Flor':
+                cursor.execute('SELECT id, nombre, tipo, color, costo_unitario, cantidad_disponible, foto_url FROM flores WHERE id = ?', (insumo_id,))
+                row = cursor.fetchone()
+                if row:
+                    fid, nombre, tipo, color, costo_unitario, stock, foto = row
+                    item.update({
+                        'nombre': nombre or tipo,
+                        'color': color,
+                        'costo_unitario': float(costo_unitario or 0),
+                        'stock_disponible': int(stock or 0),
+                        'foto_url': foto,
+                        'unidad_stock': 'Tallos',
+                    })
+            elif insumo_tipo == 'Contenedor':
+                cursor.execute('SELECT id, nombre, tipo, material, costo, cantidad_disponible, foto_url FROM contenedores WHERE id = ?', (insumo_id,))
+                row = cursor.fetchone()
+                if row:
+                    cid, nombre, tipo, material, costo, stock, foto = row
+                    item.update({
+                        'nombre': nombre or tipo,
+                        'material': material,
+                        'costo_unitario': float(costo or 0),
+                        'stock_disponible': int(stock or 0),
+                        'foto_url': foto,
+                        'unidad_stock': 'Unidad',
+                    })
+            # Derivados
+            item['costo_total'] = round((item.get('costo_unitario') or 0) * (item['cantidad'] or 0), 2)
+            item['disponible'] = (item.get('stock_disponible', 0) or 0) >= (item['cantidad'] or 0)
+            costo_total_insumos += item['costo_total']
+            receta.append(item)
+
+        conn.close()
+
+        # Precio de venta de referencia (best-effort)
+        try:
+            conn2 = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+            c2 = conn2.cursor()
+            c2.execute('SELECT precio FROM productos WHERE id = ?', (producto_id,))
+            rowp = c2.fetchone()
+            precio_venta = float(rowp[0]) if rowp and rowp[0] is not None else None
+            conn2.close()
+        except Exception:
+            precio_venta = None
+
+        ganancia = (precio_venta or 0) - costo_total_insumos
+        margen = (ganancia / precio_venta * 100) if precio_venta and precio_venta > 0 else 0
+
+        return jsonify({
+            'success': True,
+            'receta': receta,
+            'producto_id': producto_id,
+            'total': len(receta),
+            'costo_total_insumos': round(costo_total_insumos, 2),
+            'precio_venta': precio_venta,
+            'ganancia': round(ganancia, 2),
+            'margen_porcentaje': round(margen, 2)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

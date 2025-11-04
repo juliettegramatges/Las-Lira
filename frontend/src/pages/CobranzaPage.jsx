@@ -19,6 +19,14 @@ const CobranzaPage = () => {
   const [resumen, setResumen] = useState(null)
   const [editandoPedido, setEditandoPedido] = useState(null)
   
+  // Pagados (lista inferior)
+  const [pagados, setPagados] = useState([])
+  const [loadingPagados, setLoadingPagados] = useState(false)
+  const [busquedaPagados, setBusquedaPagados] = useState('')
+  const [paginaPagados, setPaginaPagados] = useState(1)
+  const [totalPaginasPagados, setTotalPaginasPagados] = useState(1)
+  const limitePagados = 50
+  
   // Estados para modal de detalle
   const [pedidoDetalle, setPedidoDetalle] = useState(null)
   const [clienteDetalle, setClienteDetalle] = useState(null)
@@ -58,6 +66,21 @@ const CobranzaPage = () => {
     cargarResumen()
   }, [])
 
+  useEffect(() => {
+    cargarPagados()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginaPagados])
+
+  // Debounce búsqueda pagados
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPaginaPagados(1)
+      cargarPagados()
+    }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busquedaPagados])
+
   const cargarResumen = async () => {
     try {
       setLoading(true)
@@ -69,6 +92,25 @@ const CobranzaPage = () => {
       console.error('Error al cargar resumen:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cargarPagados = async () => {
+    try {
+      setLoadingPagados(true)
+      const params = new URLSearchParams()
+      if (busquedaPagados && busquedaPagados.trim()) params.append('buscar', busquedaPagados.trim())
+      params.append('page', paginaPagados)
+      params.append('limit', limitePagados)
+      const response = await axios.get(`${API_URL}/pedidos/pagados?${params}`)
+      if (response.data.success) {
+        setPagados(response.data.data || [])
+        setTotalPaginasPagados(response.data.total_pages || 1)
+      }
+    } catch (err) {
+      console.error('Error al cargar pagados:', err)
+    } finally {
+      setLoadingPagados(false)
     }
   }
 
@@ -399,6 +441,89 @@ const CobranzaPage = () => {
         </div>
       </div>
 
+      {/* PAGADOS (lista inferior con búsqueda) */}
+      <div className="mt-8 bg-white rounded-lg shadow-md">
+        <div className="px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-green-700">✅ Pagados</h2>
+            <p className="text-xs text-gray-600">Máximo {limitePagados} por página</p>
+          </div>
+          <input
+            value={busquedaPagados}
+            onChange={(e) => setBusquedaPagados(e.target.value)}
+            placeholder="Buscar por pedido, cliente, documento, teléfono..."
+            className="w-full md:w-96 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+        <div className="overflow-x-auto">
+          {loadingPagados ? (
+            <div className="p-6 text-gray-500">Cargando...</div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Pedido</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Cliente</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Documento</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {pagados.map(p => (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 text-xs">
+                      <div className="font-medium text-gray-900">{p.numero_pedido || p.id}</div>
+                      {p.shopify_order_number && (
+                        <div className="text-gray-500">{p.shopify_order_number}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <div className="text-gray-900">{p.cliente_nombre}</div>
+                      <div className="text-gray-500">{p.cliente_telefono}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <div className="text-gray-900">{p.documento_tributario || '-'}</div>
+                      {p.numero_documento && (
+                        <div className="text-gray-500">N° {p.numero_documento}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right text-xs font-bold text-gray-900">
+                      ${((p.precio_ramo || 0) + (p.precio_envio || 0)).toLocaleString('es-CL')}
+                    </td>
+                  </tr>
+                ))}
+                {pagados.length === 0 && !loadingPagados && (
+                  <tr>
+                    <td colSpan="4" className="px-3 py-6 text-center text-gray-500 text-sm">
+                      No hay resultados
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {totalPaginasPagados > 1 && (
+          <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+            <button
+              onClick={() => setPaginaPagados(p => Math.max(1, p - 1))}
+              disabled={paginaPagados === 1}
+              className="text-xs px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span className="text-xs text-gray-600">Página {paginaPagados} de {totalPaginasPagados}</span>
+            <button
+              onClick={() => setPaginaPagados(p => Math.min(totalPaginasPagados, p + 1))}
+              disabled={paginaPagados === totalPaginasPagados}
+              className="text-xs px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Modal de Edición - 3 ETAPAS */}
       {editandoPedido && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -503,6 +628,26 @@ const CobranzaPage = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* NOTAS DE COBRANZA */}
+              <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                <label className="block text-sm font-bold text-gray-900 mb-2">
+                  📝 Notas de Cobranza
+                </label>
+                <textarea
+                  value={editandoPedido.cobranza || ''}
+                  onChange={(e) => setEditandoPedido({ ...editandoPedido, cobranza: e.target.value })}
+                  placeholder="Notas, referencias de pago, comentarios..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 mb-2"
+                />
+                <button
+                  onClick={() => actualizarCobranza(editandoPedido.id, { notas: editandoPedido.cobranza })}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-medium"
+                >
+                  💾 Guardar Notas
+                </button>
               </div>
             </div>
 
