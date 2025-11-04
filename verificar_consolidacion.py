@@ -5,15 +5,19 @@ Script para verificar el resultado de la consolidación
 
 import sqlite3
 import json
+import os
 
 def verificar_consolidacion():
     """
     Verifica el resultado de la consolidación
     """
     print("🔍 Verificando consolidación de catálogos...")
-    
+
     try:
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+        # Obtener ruta dinámica de la base de datos
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(script_dir, 'las_lira.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # 1. Estadísticas generales

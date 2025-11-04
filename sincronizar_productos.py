@@ -4,13 +4,19 @@ Script para sincronizar productos de la base de datos consolidada a la base de d
 """
 
 import sqlite3
+import os
 
 def sincronizar_productos():
     """Sincroniza productos de las_lira.db a laslira.db"""
     try:
+        # Obtener rutas dinámicamente
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        db_consolidada = os.path.join(script_dir, 'las_lira.db')
+        db_principal = os.path.join(script_dir, 'backend', 'instance', 'laslira.db')
+
         # Conectar a ambas bases de datos
-        conn_consolidada = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
-        conn_principal = sqlite3.connect('/Users/juliettegramatges/Las-Lira/backend/instance/laslira.db')
+        conn_consolidada = sqlite3.connect(db_consolidada)
+        conn_principal = sqlite3.connect(db_principal)
         
         cursor_consolidada = conn_consolidada.cursor()
         cursor_principal = conn_principal.cursor()

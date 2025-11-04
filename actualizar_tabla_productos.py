@@ -4,11 +4,15 @@ Script para actualizar la tabla productos con los nuevos campos de la estructura
 """
 
 import sqlite3
+import os
 
 def actualizar_tabla_productos():
     """Actualiza la tabla productos con los nuevos campos"""
     try:
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/backend/instance/laslira.db')
+        # Obtener ruta dinámica de la base de datos
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(script_dir, 'backend', 'instance', 'laslira.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         print("🔄 Actualizando tabla productos...")

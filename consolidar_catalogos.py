@@ -10,6 +10,7 @@ Script para consolidar catálogos de productos
 import sqlite3
 import pandas as pd
 import json
+import os
 from difflib import SequenceMatcher
 
 def similitud_texto(a, b):
@@ -21,10 +22,13 @@ def consolidar_catalogos():
     Consolida los catálogos de productos manteniendo IDs existentes
     """
     print("🔄 Consolidando catálogos de productos...")
-    
+
     try:
+        # Obtener ruta dinámica de la base de datos
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(script_dir, 'las_lira.db')
         # Conectar a la base de datos
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # 1. Obtener productos existentes de la base de datos

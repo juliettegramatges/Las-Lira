@@ -11,9 +11,10 @@ def probar_conexion():
     Prueba la conexión a la base de datos
     """
     print("🔍 Probando conexión a la base de datos...")
-    
-    # Ruta absoluta
-    db_path = '/Users/juliettegramatges/Las-Lira/las_lira.db'
+
+    # Obtener ruta dinámica de la base de datos
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(script_dir, 'las_lira.db')
     
     print(f"📁 Ruta de la base de datos: {db_path}")
     print(f"📁 ¿Existe el archivo? {os.path.exists(db_path)}")

@@ -1,14 +1,26 @@
 from flask import Blueprint, jsonify, request
 import sqlite3
 import json
+import os
 
 bp = Blueprint('productos', __name__)
+
+# Helper para obtener rutas de bases de datos
+def get_legacy_db_path():
+    """Obtiene la ruta de la base de datos legacy (las_lira.db)"""
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(os.path.dirname(backend_dir), 'las_lira.db')
+
+def get_main_db_path():
+    """Obtiene la ruta de la base de datos principal (laslira.db)"""
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(backend_dir, 'instance', 'laslira.db')
 
 @bp.route('/', methods=['GET'])
 def listar_productos():
     """Lista todos los productos con sus imágenes"""
     try:
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+        conn = sqlite3.connect(get_legacy_db_path())
         cursor = conn.cursor()
         
         # Obtener productos
@@ -79,7 +91,7 @@ def listar_productos():
 def obtener_producto(producto_id):
     """Obtiene un producto específico con sus imágenes"""
     try:
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+        conn = sqlite3.connect(get_legacy_db_path())
         cursor = conn.cursor()
         
         # Obtener producto
@@ -150,7 +162,7 @@ def obtener_producto(producto_id):
 def productos_por_categoria(categoria):
     """Obtiene productos filtrados por categoría"""
     try:
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+        conn = sqlite3.connect(get_legacy_db_path())
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -219,7 +231,7 @@ def obtener_receta_producto(producto_id):
     """
     try:
         # Preferir la base usada por la app
-        conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/backend/instance/laslira.db')
+        conn = sqlite3.connect(get_main_db_path())
         cursor = conn.cursor()
 
         cursor.execute(
@@ -278,7 +290,7 @@ def obtener_receta_producto(producto_id):
 
         # Precio de venta de referencia (best-effort)
         try:
-            conn2 = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+            conn2 = sqlite3.connect(get_legacy_db_path())
             c2 = conn2.cursor()
             c2.execute('SELECT precio FROM productos WHERE id = ?', (producto_id,))
             rowp = c2.fetchone()

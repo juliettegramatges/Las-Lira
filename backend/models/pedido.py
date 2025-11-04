@@ -2,6 +2,7 @@
 Modelo de Pedido
 """
 
+import os
 from datetime import datetime
 from extensions import db
 
@@ -90,7 +91,10 @@ class Pedido(db.Model):
         # 3. Intentar obtener de la tabla imagenes_productos
         try:
             import sqlite3
-            conn = sqlite3.connect('/Users/juliettegramatges/Las-Lira/las_lira.db')
+            # Obtener la ruta del proyecto dinámicamente
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(os.path.dirname(backend_dir), 'las_lira.db')
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
             cursor.execute('''
