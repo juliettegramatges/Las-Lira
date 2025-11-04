@@ -11,8 +11,9 @@ def obtener_estado_por_fecha(fecha_entrega):
     Reglas:
     - Si es para HOY → "Entregas de Hoy"
     - Si es para MAÑANA → "Entregas para Mañana"
-    - Si es dentro de esta SEMANA (próximos 7 días) → "Pedidos Semana"
-    - Resto → "Pedidos Semana" (estado inicial para planificación)
+    - Si es dentro de esta SEMANA (días 3-7, no hoy ni mañana) → "Pedidos Semana"
+    - Si es más allá de esta semana → "Pedidos Semana" (planificación futura)
+    - Si es PASADO → "Pedidos Semana" (por ahora, pero idealmente deberían estar en otro estado)
     """
     ahora = datetime.now()
     hoy = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -26,14 +27,21 @@ def obtener_estado_por_fecha(fecha_entrega):
         # Si viene con timezone, quitarla para comparar
         fecha_entrega_date = fecha_entrega.replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
     
+    # Comparar fechas correctamente
     if fecha_entrega_date == hoy:
         return 'Entregas de Hoy'
     elif fecha_entrega_date == manana:
         return 'Entregas para Mañana'
-    elif hoy < fecha_entrega_date <= fin_semana:
+    elif fecha_entrega_date > manana and fecha_entrega_date <= fin_semana:
+        # Días 3-7 de esta semana (no hoy ni mañana)
+        return 'Pedidos Semana'
+    elif fecha_entrega_date > fin_semana:
+        # Más allá de esta semana
         return 'Pedidos Semana'
     else:
-        return 'Pedidos Semana'  # Pedidos futuros van a planificación semanal
+        # Fecha pasada (antes de hoy) - también ir a "Pedidos Semana" por ahora
+        # TODO: Estos deberían estar en otro estado o no aparecer en el tablero
+        return 'Pedidos Semana'
 
 
 def obtener_dia_semana(fecha):

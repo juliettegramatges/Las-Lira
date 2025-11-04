@@ -205,11 +205,19 @@ def actualizar_pedido(pedido_id):
 def obtener_tablero():
     """Obtiene pedidos organizados para vista Kanban"""
     try:
+        from extensions import db
+        # Forzar refresh de la sesión para evitar datos en caché
+        db.session.expire_all()
+        
+        # Convertir incluir_despachados a booleano
+        incluir_despachados = request.args.get('incluir_despachados', 'false').lower() == 'true'
+        
         filtros = {
             'estado': request.args.get('estado'),
             'dia_entrega': request.args.get('dia_entrega'),
             'estado_pago': request.args.get('estado_pago'),
-            'tipo_pedido': request.args.get('tipo_pedido')
+            'tipo_pedido': request.args.get('tipo_pedido'),
+            'incluir_despachados': incluir_despachados
         }
 
         # Delegar al servicio

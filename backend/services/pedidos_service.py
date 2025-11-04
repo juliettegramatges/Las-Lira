@@ -9,7 +9,7 @@ from models.cliente import Cliente
 from config.plazos_pago import obtener_plazo_pago
 from utils.fecha_helpers import clasificar_pedido
 from datetime import datetime, timedelta
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 import re
 
 
@@ -395,12 +395,47 @@ class PedidosService:
         Obtiene pedidos para vista de tablero Kanban
 
         Args:
-            filtros: dict con estado, dia_entrega, estado_pago, tipo_pedido
+            filtros: dict con estado, dia_entrega, estado_pago, tipo_pedido, incluir_despachados
 
         Returns:
             list: pedidos organizados por estado
         """
         query = Pedido.query.filter(Pedido.estado != 'Cancelado')
+        
+        # Por defecto, excluir pedidos despachados para mejorar rendimiento
+        # Solo incluirlos si se solicita explícitamente con incluir_despachados=True
+        incluir_despachados = filtros and filtros.get('incluir_despachados', False) if filtros else False
+        
+        # PRIMERO: Excluir despachados si no se solicitan explícitamente
+        if not incluir_despachados:
+            query = query.filter(Pedido.estado != 'Despachados')
+        
+        # Excluir pedidos con fecha de entrega muy pasada (más de 30 días atrás)
+        # Solo mostrar pedidos futuros o recientes en el tablero activo
+        fecha_limite_pasada = datetime.now() - timedelta(days=30)
+        query = query.filter(
+            or_(
+                Pedido.fecha_entrega.is_(None),
+                Pedido.fecha_entrega >= fecha_limite_pasada
+            )
+        )
+        
+        if incluir_despachados:
+            # Cuando se incluyen despachados, solo mostrar los de las últimas 2 semanas
+            fecha_limite = datetime.now() - timedelta(weeks=2)
+            # Filtrar despachados solo de las últimas 2 semanas
+            query = query.filter(
+                or_(
+                    Pedido.estado != 'Despachados',
+                    and_(
+                        Pedido.estado == 'Despachados',
+                        or_(
+                            Pedido.fecha_entrega >= fecha_limite,
+                            Pedido.fecha_pedido >= fecha_limite
+                        )
+                    )
+                )
+            )
 
         if filtros:
             if filtros.get('estado'):
@@ -414,13 +449,32 @@ class PedidosService:
 
         pedidos = query.order_by(Pedido.fecha_entrega.asc()).all()
 
-        # Agrupar por estado
+        # Agrupar por estado (excluyendo despachados si no se solicitan)
         tablero = {}
+        pedidos_filtrados = 0
         for pedido in pedidos:
             estado = pedido.estado or 'Sin Estado'
+            # Doble verificación: nunca incluir despachados si no se solicitan explícitamente
+            if not incluir_despachados and estado == 'Despachados':
+                pedidos_filtrados += 1
+                continue
             if estado not in tablero:
                 tablero[estado] = []
             tablero[estado].append(pedido.to_dict())
+        
+        # FORZAR: Si no se solicitan despachados, eliminarlos completamente del resultado
+        # Esto es una medida de seguridad adicional
+        if not incluir_despachados:
+            if 'Despachados' in tablero:
+                del tablero['Despachados']
+            # También verificar que no haya ningún pedido con estado "Despachados" en ningún estado
+            tablero_limpio = {}
+            for estado, pedidos_lista in tablero.items():
+                if estado != 'Despachados':
+                    pedidos_filtrados = [p for p in pedidos_lista if p.get('estado') != 'Despachados']
+                    if pedidos_filtrados:
+                        tablero_limpio[estado] = pedidos_filtrados
+            tablero = tablero_limpio
 
         return tablero
 
@@ -515,15 +569,31 @@ class PedidosService:
     @staticmethod
     def actualizar_estados_por_fecha():
         """
-        Actualiza automáticamente los estados de pedidos según su fecha de entrega
+        Actualiza automáticamente los estados de pedidos según su fecha de entrega.
+        Solo reclasifica pedidos que están en estados planificables (Pedidos Semana, etc.)
+        No modifica estados de trabajo activo (En Proceso, Listo para Despacho) ni finales (Despachados, Entregado, Cancelado)
 
         Returns:
             tuple: (success, cantidad_actualizados, mensaje)
         """
         try:
+            # Estados que pueden ser reclasificados automáticamente según fecha
+            estados_reclasificables = [
+                'Pedidos Semana',
+                'Entregas de Hoy',
+                'Entregas para Mañana'
+            ]
+            
+            # Obtener pedidos que están en estados reclasificables o que no tienen estado de trabajo activo
+            # Excluir pedidos muy pasados (más de 30 días) para no clasificar pedidos antiguos
+            # IMPORTANTE: Excluir "Despachados" para que nunca se reclasifiquen automáticamente
+            fecha_limite_pasada = datetime.now() - timedelta(days=30)
             pedidos = Pedido.query.filter(
                 Pedido.estado != 'Cancelado',
-                Pedido.estado != 'Entregado'
+                Pedido.estado != 'Entregado',
+                Pedido.estado != 'Despachados',  # NUNCA reclasificar despachados
+                Pedido.fecha_entrega.isnot(None),
+                Pedido.fecha_entrega >= fecha_limite_pasada
             ).all()
 
             actualizados = 0
@@ -531,8 +601,29 @@ class PedidosService:
             for pedido in pedidos:
                 if pedido.fecha_entrega:
                     clasificacion = clasificar_pedido(pedido.fecha_entrega)
-                    if pedido.estado != clasificacion['estado'] or pedido.dia_entrega != clasificacion['dia_entrega']:
-                        pedido.estado = clasificacion['estado']
+                    nuevo_estado = clasificacion['estado']
+                    estado_actual = pedido.estado
+                    
+                    # Lógica de actualización:
+                    # 1. Si el estado actual es reclasificable (Pedidos Semana, Entregas de Hoy, Entregas para Mañana), actualizar siempre
+                    # 2. Si el nuevo estado es urgente (Entregas de Hoy o Entregas para Mañana), actualizar siempre
+                    #    (esto mueve pedidos de "En Proceso" o "Listo para Despacho" a estados urgentes si corresponde)
+                    # 3. Si el estado actual es "En Proceso" o "Listo para Despacho" y el nuevo estado es "Pedidos Semana",
+                    #    NO actualizar (no retroceder el flujo de trabajo)
+                    debe_actualizar = False
+                    
+                    if estado_actual in estados_reclasificables:
+                        # Siempre actualizar estados reclasificables
+                        debe_actualizar = True
+                    elif nuevo_estado in ['Entregas de Hoy', 'Entregas para Mañana']:
+                        # Si la fecha requiere urgencia, actualizar (incluso si está en "En Proceso" o "Listo para Despacho")
+                        debe_actualizar = True
+                    elif estado_actual in ['En Proceso', 'Listo para Despacho'] and nuevo_estado == 'Pedidos Semana':
+                        # No retroceder: si está en proceso y la fecha es futura, mantener el estado de trabajo
+                        debe_actualizar = False
+                    
+                    if debe_actualizar and (estado_actual != nuevo_estado or pedido.dia_entrega != clasificacion['dia_entrega']):
+                        pedido.estado = nuevo_estado
                         pedido.dia_entrega = clasificacion['dia_entrega']
                         actualizados += 1
 

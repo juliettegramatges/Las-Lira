@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import TarjetaPedido from './TarjetaPedido'
-import { Plus } from 'lucide-react'
+import { Plus, Download } from 'lucide-react'
 
 const colorEstado = {
   'Entregas de Hoy': 'bg-red-50 border-red-200',
@@ -22,7 +22,7 @@ const colorBadge = {
   'Eventos': 'bg-pink-100 text-pink-800',
 }
 
-function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedido }) {
+function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedido, mostrarCargarDespachados = false, onCargarDespachados }) {
   const [dragOver, setDragOver] = useState(false)
   
   const handleDragOver = (e) => {
@@ -67,7 +67,21 @@ function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedi
       <div className="p-3 space-y-3 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto">
         {pedidos.length === 0 ? (
           <div className="text-center py-8 text-gray-400 text-sm">
-            No hay pedidos
+            {mostrarCargarDespachados ? (
+              <div className="space-y-3">
+                <p className="text-gray-500 mb-2 text-xs">Pedidos despachados no cargados por defecto</p>
+                <p className="text-gray-400 mb-4 text-xs">(Se mostrarán solo de las últimas 2 semanas)</p>
+                <button
+                  onClick={onCargarDespachados}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm font-medium mx-auto"
+                >
+                  <Download className="h-4 w-4" />
+                  Cargar Despachados
+                </button>
+              </div>
+            ) : (
+              'No hay pedidos'
+            )}
           </div>
         ) : (
           pedidos.map((pedido) => (

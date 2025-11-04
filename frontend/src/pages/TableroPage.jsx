@@ -19,6 +19,7 @@ function TableroPage() {
   const [error, setError] = useState(null)
   const [mensajeActualizacion, setMensajeActualizacion] = useState(null)
   const [actualizando, setActualizando] = useState(false)
+  const [incluirDespachados, setIncluirDespachados] = useState(false)
   
   // Estados según flujo del Trello de Las-Lira (orden de prioridad)
   const estados = [
@@ -45,8 +46,8 @@ function TableroPage() {
         }
       }
       
-      // 📊 PASO 2: Cargar tablero con estados actualizados
-      const response = await pedidosAPI.obtenerTablero()
+      // 📊 PASO 2: Cargar tablero con estados actualizados (excluyendo despachados por defecto)
+      const response = await pedidosAPI.obtenerTablero(incluirDespachados)
       if (response.data.success) {
         setTablero(response.data.data)
       }
@@ -161,6 +162,11 @@ function TableroPage() {
             onMoverPedido={moverPedido}
             onRecargar={cargarTablero}
             onAbrirPedido={handleAbrirPedido}
+            mostrarCargarDespachados={estado === 'Despachados' && !incluirDespachados}
+            onCargarDespachados={() => {
+              setIncluirDespachados(true)
+              cargarTablero(false)
+            }}
           />
         ))}
       </div>
