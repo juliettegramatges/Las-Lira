@@ -4,6 +4,7 @@ Rutas para subida y gestión de imágenes
 
 from flask import Blueprint, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+from utils.file_helpers import allowed_file
 import os
 from extensions import db
 from models.inventario import Flor, Contenedor
@@ -17,10 +18,6 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 # Crear carpeta si no existe
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    """Verifica si el archivo tiene una extensión permitida"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @bp.route('/imagen', methods=['POST'])
