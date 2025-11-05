@@ -5,7 +5,10 @@ Rutas API para gestión de clientes
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.cliente import Cliente
+from utils.telefono_helpers import normalizar_telefono
 from datetime import datetime
+from sqlalchemy import or_
+import unicodedata
 
 bp = Blueprint('clientes', __name__)
 
@@ -241,12 +244,6 @@ def eliminar_cliente(cliente_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-def normalizar_telefono(telefono):
-    """Normalizar número de teléfono (quitar espacios, guiones, paréntesis)"""
-    import re
-    return re.sub(r'[\s\-\(\)]', '', telefono)
-
-
 @bp.route('/buscar-por-telefono', methods=['GET'])
 def buscar_por_telefono():
     """Buscar cliente por número de teléfono (para compatibilidad)"""
@@ -290,9 +287,6 @@ def buscar_por_telefono():
 def buscar_por_nombre():
     """Buscar clientes por nombre (búsqueda inteligente)"""
     try:
-        import unicodedata
-        from sqlalchemy import or_
-
         termino = request.args.get('nombre', '').strip()
 
         if not termino or len(termino) < 2:

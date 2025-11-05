@@ -1,20 +1,9 @@
 from flask import Blueprint, jsonify, request
+from config.database_paths import get_legacy_db_path, get_main_db_path
 import sqlite3
 import json
-import os
 
 bp = Blueprint('productos', __name__)
-
-# Helper para obtener rutas de bases de datos
-def get_legacy_db_path():
-    """Obtiene la ruta de la base de datos legacy (las_lira.db)"""
-    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(os.path.dirname(backend_dir), 'las_lira.db')
-
-def get_main_db_path():
-    """Obtiene la ruta de la base de datos principal (laslira.db)"""
-    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(backend_dir, 'instance', 'laslira.db')
 
 @bp.route('/', methods=['GET'])
 def listar_productos():

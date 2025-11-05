@@ -7,6 +7,8 @@ from extensions import db
 from models.producto_detallado import ProductoColor, ProductoColorFlor
 from models.producto import Producto
 from models.inventario import Flor
+import re
+import traceback
 
 bp = Blueprint('producto_colores', __name__)
 
@@ -28,7 +30,7 @@ def obtener_colores_sugeridos(producto_id):
                 color_limpio = color.strip()
                 
                 # Remover paréntesis finales mal formados
-                import re
+                # re imported at module level
                 color_limpio = re.sub(r'\)$', '', color_limpio).strip()
                 
                 # Si contiene "y", dividir
@@ -502,7 +504,7 @@ def guardar_receta_completa(producto_id):
     except Exception as e:
         db.session.rollback()
         print(f"Error al guardar receta: {str(e)}")
-        import traceback
+        # traceback imported at module level
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'Error al guardar: {str(e)}'}), 500
 

@@ -8,21 +8,13 @@ from models.pedido import Pedido, PedidoInsumo
 from models.cliente import Cliente
 from config.plazos_pago import obtener_plazo_pago
 from utils.fecha_helpers import clasificar_pedido
+from utils.telefono_helpers import normalizar_telefono
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_, func
-import re
 
 
 class PedidosService:
     """Servicio para operaciones de negocio de pedidos"""
-
-    @staticmethod
-    def normalizar_telefono(telefono):
-        """Normaliza un número de teléfono eliminando caracteres no numéricos"""
-        if not telefono:
-            return ""
-        # Eliminar todo excepto dígitos y +
-        return re.sub(r'[^\d+]', '', str(telefono))
 
     @staticmethod
     def listar_pedidos(filtros=None, buscar=None, page=1, limit=100):
@@ -120,7 +112,7 @@ class PedidosService:
         Returns:
             Cliente: instancia del cliente
         """
-        telefono_normalizado = PedidosService.normalizar_telefono(data['cliente_telefono'])
+        telefono_normalizado = normalizar_telefono(data['cliente_telefono'])
 
         # Si viene cliente_id, buscar por ID
         if data.get('cliente_id'):
@@ -131,7 +123,7 @@ class PedidosService:
         # Buscar por teléfono normalizado
         todos_clientes = Cliente.query.all()
         for c in todos_clientes:
-            if PedidosService.normalizar_telefono(c.telefono) == telefono_normalizado:
+            if normalizar_telefono(c.telefono) == telefono_normalizado:
                 return c
 
         # Cliente no existe, crear uno nuevo
@@ -198,7 +190,7 @@ class PedidosService:
             clasificacion = clasificar_pedido(fecha_entrega)
 
             # Normalizar teléfono
-            telefono_normalizado = PedidosService.normalizar_telefono(data['cliente_telefono'])
+            telefono_normalizado = normalizar_telefono(data['cliente_telefono'])
 
             # Crear pedido
             pedido = Pedido(

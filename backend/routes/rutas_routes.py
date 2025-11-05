@@ -5,9 +5,10 @@ Rutas para optimización de despachos y rutas
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.pedido import Pedido
-from config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS, COMUNAS_PRECIOS
+from config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS
+from utils.ubicacion_helpers import extraer_comuna
 from datetime import datetime, timedelta
-from sqlalchemy import func, extract
+from sqlalchemy import func
 
 bp = Blueprint('rutas', __name__)
 
@@ -164,34 +165,6 @@ def listar_comunas():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-
-
-def extraer_comuna(direccion):
-    """
-    Extrae el nombre de la comuna de una dirección
-    Intenta identificar la comuna en el texto de la dirección
-    """
-    direccion_lower = direccion.lower()
-    
-    # Buscar coincidencias con comunas conocidas
-    for comuna in COMUNAS_PRECIOS.keys():
-        if comuna.lower() in direccion_lower:
-            return comuna
-    
-    # Si no se encuentra, intentar extraer la última parte de la dirección
-    # que típicamente es la comuna
-    partes = direccion.split(',')
-    if len(partes) >= 2:
-        posible_comuna = partes[-1].strip()
-        
-        # Buscar coincidencia parcial
-        for comuna in COMUNAS_PRECIOS.keys():
-            if posible_comuna.lower() in comuna.lower() or comuna.lower() in posible_comuna.lower():
-                return comuna
-        
-        return posible_comuna
-    
-    return 'Sin especificar'
 
 
 @bp.route('/resumen-hoy', methods=['GET'])

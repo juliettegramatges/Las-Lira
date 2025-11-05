@@ -9,6 +9,7 @@ from models.producto import Producto
 from models.inventario import Flor, Contenedor
 from sqlalchemy import func, desc
 import json
+import traceback
 
 bp = Blueprint('analisis', __name__, url_prefix='/api/analisis')
 
@@ -187,7 +188,7 @@ def analisis_personalizaciones():
         
     except Exception as e:
         print(f"Error en análisis de personalizaciones: {e}")
-        import traceback
+        # traceback imported at module level
         traceback.print_exc()
         return jsonify({
             'success': False,
@@ -262,7 +263,7 @@ def detalle_personalizaciones():
         
     except Exception as e:
         print(f"Error en detalle de personalizaciones: {e}")
-        import traceback
+        # traceback imported at module level
         traceback.print_exc()
         return jsonify({
             'success': False,
