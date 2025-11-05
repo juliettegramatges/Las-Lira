@@ -5,6 +5,8 @@ Rutas para gestión de inventario (flores y contenedores)
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.inventario import Flor, Contenedor, Bodega, Proveedor
+from config.precios_sugeridos import obtener_precio_flor
+from config.stock_sugerido import obtener_stock_flor
 
 bp = Blueprint('inventario', __name__)
 
@@ -12,90 +14,47 @@ bp = Blueprint('inventario', __name__)
 
 @bp.route('/flores/asignar-precios-sugeridos', methods=['POST'])
 def asignar_precios_sugeridos_flores():
-    """Asigna precios unitarios sugeridos por tipo a flores con costo 0 o null.
+    """
+    Asigna precios unitarios sugeridos por tipo a flores con costo 0 o null.
     Los valores son aproximados del mercado por tallo en CLP.
     """
     try:
-        precios = {
-            'Rosa': 1200,
-            'Rosa Premium': 1800,
-            'Clavel': 500,
-            'Clavelina': 400,
-            'Lirio': 2200,
-            'Alstroemeria': 800,
-            'Girasol': 1500,
-            'Gerbera': 1000,
-            'Crisantemo': 700,
-            'Tulipán': 1800,
-            'Hortensia': 3500,
-            'Eucalipto': 600,
-            'Helecho': 500,
-            'Hypericum': 900,
-            'Astromelia': 800,
-            'Limonium': 600,
-        }
         actualizados = 0
         flores = Flor.query.all()
-        for f in flores:
-            if not f.costo_unitario or float(f.costo_unitario) == 0:
-                # buscar por coincidencia en tipo
-                valor = None
-                for clave, precio in precios.items():
-                    if f.tipo and clave.lower() in f.tipo.lower():
-                        valor = precio
-                        break
-                if valor is None:
-                    # default genérico
-                    valor = 900
-                f.costo_unitario = float(valor)
+
+        for flor in flores:
+            if not flor.costo_unitario or float(flor.costo_unitario) == 0:
+                precio_sugerido = obtener_precio_flor(flor.tipo)
+                flor.costo_unitario = float(precio_sugerido)
                 actualizados += 1
+
         db.session.commit()
         return jsonify({'success': True, 'actualizados': actualizados})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @bp.route('/flores/asignar-stock-sugerido', methods=['POST'])
 def asignar_stock_sugerido_flores():
-    """Asigna stock total sugerido por tipo a flores con stock 0.
+    """
+    Asigna stock total sugerido por tipo a flores con stock 0.
     Valores razonables por rotación aproximada.
     """
     try:
-        stock_map = {
-            'Clavel': 50,
-            'Clavelina': 60,
-            'Alstroemeria': 40,
-            'Astromelia': 40,
-            'Rosa Premium': 24,
-            'Rosa': 30,
-            'Gerbera': 24,
-            'Girasol': 18,
-            'Lirio': 18,
-            'Tulipán': 18,
-            'Crisantemo': 30,
-            'Hortensia': 12,
-            'Eucalipto': 60,
-            'Helecho': 40,
-            'Hypericum': 24,
-            'Limonium': 40,
-            'Anémona': 20,
-            'Amaryllis': 12,
-        }
         actualizados = 0
         flores = Flor.query.all()
-        for f in flores:
-            if (f.cantidad_stock or 0) == 0:
-                sugerido = None
-                for clave, val in stock_map.items():
-                    if f.tipo and clave.lower() in f.tipo.lower():
-                        sugerido = val
-                        break
-                if sugerido is None:
-                    sugerido = 20
-                f.cantidad_stock = int(sugerido)
+
+        for flor in flores:
+            if (flor.cantidad_stock or 0) == 0:
+                stock_sugerido = obtener_stock_flor(flor.tipo)
+                flor.cantidad_stock = int(stock_sugerido)
                 actualizados += 1
+
         db.session.commit()
         return jsonify({'success': True, 'actualizados': actualizados})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -106,67 +65,45 @@ def asignar_stock_sugerido_flores():
 def asignar_precios_sugeridos_contenedores():
     """Asigna costos sugeridos a contenedores sin costo, por tipo/material."""
     try:
-        precios = {
-            'Florero vidrio': 3500,
-            'Vidrio': 3000,
-            'Cerámica': 4500,
-            'Gres': 5000,
-            'Madera': 4000,
-            'Canasto': 3800,
-            'Macetero': 4200,
-            'Plástico': 1500,
-            'Metal': 3800,
-            'Barro': 5000,
-        }
+        from config.precios_sugeridos import obtener_precio_contenedor
+
         actualizados = 0
-        for c in Contenedor.query.all():
-            if not c.costo or float(c.costo) == 0:
-                candidato = None
-                base = f"{(c.tipo or '')} {(c.material or '')}".strip()
-                for clave, val in precios.items():
-                    if clave.lower() in base.lower():
-                        candidato = val
-                        break
-                if candidato is None:
-                    candidato = 3000
-                c.costo = float(candidato)
+        contenedores = Contenedor.query.all()
+
+        for contenedor in contenedores:
+            if not contenedor.costo or float(contenedor.costo) == 0:
+                tipo_completo = f"{contenedor.tipo or ''} {contenedor.material or ''}".strip()
+                precio_sugerido = obtener_precio_contenedor(tipo_completo)
+                contenedor.costo = float(precio_sugerido)
                 actualizados += 1
+
         db.session.commit()
         return jsonify({'success': True, 'actualizados': actualizados})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @bp.route('/contenedores/asignar-stock-sugerido', methods=['POST'])
 def asignar_stock_sugerido_contenedores():
     """Asigna stock sugerido a contenedores con stock 0, por tipo."""
     try:
-        stock_map = {
-            'Florero': 20,
-            'Vidrio': 24,
-            'Cerámica': 12,
-            'Madera': 10,
-            'Canasto': 16,
-            'Macetero': 18,
-            'Plástico': 30,
-            'Metal': 12,
-            'Barro': 12,
-        }
+        from config.stock_sugerido import obtener_stock_contenedor
+
         actualizados = 0
-        for c in Contenedor.query.all():
-            if (c.cantidad_stock or 0) == 0:
-                base = f"{(c.tipo or '')} {(c.material or '')}".strip()
-                sugerido = None
-                for clave, val in stock_map.items():
-                    if clave.lower() in base.lower():
-                        sugerido = val
-                        break
-                if sugerido is None:
-                    sugerido = 12
-                c.cantidad_stock = int(sugerido)
+        contenedores = Contenedor.query.all()
+
+        for contenedor in contenedores:
+            if (contenedor.cantidad_stock or 0) == 0:
+                tipo_completo = f"{contenedor.tipo or ''} {contenedor.material or ''}".strip()
+                stock_sugerido = obtener_stock_contenedor(tipo_completo)
+                contenedor.cantidad_stock = int(stock_sugerido)
                 actualizados += 1
+
         db.session.commit()
         return jsonify({'success': True, 'actualizados': actualizados})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
