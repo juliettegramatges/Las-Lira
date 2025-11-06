@@ -73,7 +73,22 @@ function ProductosPage() {
   const [guardandoReceta, setGuardandoReceta] = useState(false)
   const [coloresEditables, setColoresEditables] = useState([]) // Lista editable de colores
   const [precioVentaEditado, setPrecioVentaEditado] = useState(null) // Precio de venta modificado
-  
+
+  // Estados para CRUD de productos
+  const [modalCrearProducto, setModalCrearProducto] = useState(false)
+  const [modalEditarProducto, setModalEditarProducto] = useState(false)
+  const [productoEditando, setProductoEditando] = useState(null)
+  const [nuevoProducto, setNuevoProducto] = useState({
+    nombre: '',
+    descripcion: '',
+    precio: 0,
+    categoria: '',
+    tipo: '',
+    sku: '',
+    peso: 0,
+    tags: []
+  })
+
   const cargarProductos = async () => {
     try {
       setLoading(true)
@@ -180,7 +195,93 @@ function ProductosPage() {
     setReceta(null)
     cargarReceta(producto.id)
   }
-  
+
+  // ============================================
+  // FUNCIONES CRUD DE PRODUCTOS
+  // ============================================
+
+  const handleCrearProducto = async () => {
+    try {
+      if (!nuevoProducto.nombre.trim()) {
+        alert('El nombre del producto es obligatorio')
+        return
+      }
+
+      const response = await axios.post(`${API_URL}/productos/`, nuevoProducto)
+
+      if (response.data.success) {
+        alert(response.data.message || 'Producto creado exitosamente')
+        setModalCrearProducto(false)
+        setNuevoProducto({
+          nombre: '',
+          descripcion: '',
+          precio: 0,
+          categoria: '',
+          tipo: '',
+          sku: '',
+          peso: 0,
+          tags: []
+        })
+        cargarProductos()
+      }
+    } catch (error) {
+      console.error('Error al crear producto:', error)
+      alert(error.response?.data?.error || 'Error al crear producto')
+    }
+  }
+
+  const handleAbrirEditar = (producto) => {
+    setProductoEditando({
+      ...producto,
+      tags: producto.tags || []
+    })
+    setModalEditarProducto(true)
+  }
+
+  const handleActualizarProducto = async () => {
+    try {
+      if (!productoEditando.nombre.trim()) {
+        alert('El nombre del producto es obligatorio')
+        return
+      }
+
+      const response = await axios.put(
+        `${API_URL}/productos/${productoEditando.id}`,
+        productoEditando
+      )
+
+      if (response.data.success) {
+        alert(response.data.message || 'Producto actualizado exitosamente')
+        setModalEditarProducto(false)
+        setProductoEditando(null)
+        cargarProductos()
+      }
+    } catch (error) {
+      console.error('Error al actualizar producto:', error)
+      alert(error.response?.data?.error || 'Error al actualizar producto')
+    }
+  }
+
+  const handleEliminarProducto = async (productoId, nombreProducto) => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar el producto "${nombreProducto}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (!confirmar) return
+
+    try {
+      const response = await axios.delete(`${API_URL}/productos/${productoId}`)
+
+      if (response.data.success) {
+        alert(response.data.message || 'Producto eliminado exitosamente')
+        cargarProductos()
+      }
+    } catch (error) {
+      console.error('Error al eliminar producto:', error)
+      alert(error.response?.data?.error || 'Error al eliminar producto')
+    }
+  }
+
   // ============================================
   // FUNCIONES DEL SIMULADOR DE COSTOS
   // ============================================
@@ -609,15 +710,24 @@ function ProductosPage() {
               {totalProductos} producto{totalProductos !== 1 ? 's' : ''} en total • Página {paginaActual} de {totalPaginas}
             </p>
           </div>
-          <button 
-            onClick={() => {
-              window.open(`${API_URL}/exportar/productos`, '_blank')
-            }}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-          >
-            <Download className="h-5 w-5 mr-2" />
-            Descargar Excel
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setModalCrearProducto(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              Nuevo Producto
+            </button>
+            <button
+              onClick={() => {
+                window.open(`${API_URL}/exportar/productos`, '_blank')
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Descargar Excel
+            </button>
+          </div>
         </div>
         
         {/* Estadísticas Globales */}
@@ -804,16 +914,34 @@ function ProductosPage() {
                   )}
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-xl font-bold text-primary-600">
-                    ${(producto.precio || producto.precio_venta || 0).toLocaleString('es-CL')}
-                  </span>
-                  <button 
-                    onClick={() => handleVerDetalles(producto)}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium hover:underline"
-                  >
-                    Ver detalles →
-                  </button>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xl font-bold text-primary-600">
+                      ${(producto.precio || producto.precio_venta || 0).toLocaleString('es-CL')}
+                    </span>
+                    <button
+                      onClick={() => handleVerDetalles(producto)}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium hover:underline"
+                    >
+                      Ver detalles →
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAbrirEditar(producto)}
+                      className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center justify-center gap-2 text-sm font-medium"
+                    >
+                      <Save className="h-4 w-4" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleEliminarProducto(producto.id, producto.nombre)}
+                      className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 text-sm font-medium"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1545,6 +1673,249 @@ function ProductosPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Crear Producto */}
+      {modalCrearProducto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Package className="h-6 w-6 text-blue-600" />
+                Nuevo Producto
+              </h2>
+              <button
+                onClick={() => setModalCrearProducto(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nuevoProducto.nombre}
+                  onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
+                  placeholder="Ej: Ramo de Rosas Premium"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción
+                </label>
+                <textarea
+                  value={nuevoProducto.descripcion}
+                  onChange={(e) => setNuevoProducto({ ...nuevoProducto, descripcion: e.target.value })}
+                  placeholder="Descripción del producto..."
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio (CLP)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={nuevoProducto.precio}
+                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU
+                  </label>
+                  <input
+                    type="text"
+                    value={nuevoProducto.sku}
+                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, sku: e.target.value })}
+                    placeholder="Ej: RAMO-001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoría
+                  </label>
+                  <input
+                    type="text"
+                    value={nuevoProducto.categoria}
+                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, categoria: e.target.value })}
+                    placeholder="Ej: Ramos, Cajas, Arreglos..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo
+                  </label>
+                  <input
+                    type="text"
+                    value={nuevoProducto.tipo}
+                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, tipo: e.target.value })}
+                    placeholder="Ej: Premium, Estándar..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setModalCrearProducto(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCrearProducto}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Crear Producto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Producto */}
+      {modalEditarProducto && productoEditando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Save className="h-6 w-6 text-blue-600" />
+                Editar Producto
+              </h2>
+              <button
+                onClick={() => {
+                  setModalEditarProducto(false)
+                  setProductoEditando(null)
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={productoEditando.nombre}
+                  onChange={(e) => setProductoEditando({ ...productoEditando, nombre: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción
+                </label>
+                <textarea
+                  value={limpiarHTML(productoEditando.descripcion)}
+                  onChange={(e) => setProductoEditando({ ...productoEditando, descripcion: e.target.value })}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio (CLP)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={productoEditando.precio}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, precio: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU
+                  </label>
+                  <input
+                    type="text"
+                    value={productoEditando.sku || ''}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, sku: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoría
+                  </label>
+                  <input
+                    type="text"
+                    value={productoEditando.categoria || ''}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, categoria: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo
+                  </label>
+                  <input
+                    type="text"
+                    value={productoEditando.tipo || ''}
+                    onChange={(e) => setProductoEditando({ ...productoEditando, tipo: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setModalEditarProducto(false)
+                  setProductoEditando(null)
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleActualizarProducto}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Guardar Cambios
+              </button>
+            </div>
           </div>
         </div>
       )}

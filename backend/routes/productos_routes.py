@@ -76,6 +76,64 @@ def listar_productos():
             'error': str(e)
         }), 500
 
+@bp.route('/', methods=['POST'])
+def crear_producto():
+    """Crea un nuevo producto"""
+    try:
+        data = request.json
+
+        # Validar campos requeridos
+        if not data.get('nombre'):
+            return jsonify({'success': False, 'error': 'Campo requerido: nombre'}), 400
+
+        conn = sqlite3.connect(get_legacy_db_path())
+        cursor = conn.cursor()
+
+        # Preparar campos
+        nombre = data['nombre']
+        descripcion = data.get('descripcion', '')
+        precio = data.get('precio', 0)
+        categoria = data.get('categoria', '')
+        tipo = data.get('tipo', '')
+        imagen_url = data.get('imagen_url')
+        sku = data.get('sku', '')
+        peso = data.get('peso', 0)
+        tags = ','.join(data.get('tags', [])) if isinstance(data.get('tags'), list) else data.get('tags', '')
+        metafields = json.dumps(data.get('metafields', {}))
+
+        # Insertar producto
+        cursor.execute('''
+            INSERT INTO productos
+            (nombre, descripcion, precio, categoria, tipo, imagen_url, sku, peso, tags, metafields, activo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        ''', (nombre, descripcion, precio, categoria, tipo, imagen_url, sku, peso, tags, metafields))
+
+        producto_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'id': producto_id,
+                'nombre': nombre,
+                'descripcion': descripcion,
+                'precio': precio,
+                'categoria': categoria,
+                'tipo': tipo,
+                'imagen_principal': imagen_url,
+                'sku': sku,
+                'peso': peso,
+                'tags': tags.split(',') if tags else [],
+                'activo': True
+            },
+            'message': f'Producto "{nombre}" creado exitosamente'
+        }), 201
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/<int:producto_id>', methods=['GET'])
 def obtener_producto(producto_id):
     """Obtiene un producto específico con sus imágenes"""
@@ -140,12 +198,117 @@ def obtener_producto(producto_id):
                 'activo': bool(activo)
             }
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+
+@bp.route('/<int:producto_id>', methods=['PUT'])
+def actualizar_producto(producto_id):
+    """Actualiza un producto existente"""
+    try:
+        data = request.json
+
+        conn = sqlite3.connect(get_legacy_db_path())
+        cursor = conn.cursor()
+
+        # Verificar que el producto existe
+        cursor.execute('SELECT id, nombre FROM productos WHERE id = ?', (producto_id,))
+        producto = cursor.fetchone()
+
+        if not producto:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+
+        # Construir UPDATE dinámicamente según los campos enviados
+        campos_a_actualizar = []
+        valores = []
+
+        if 'nombre' in data:
+            campos_a_actualizar.append('nombre = ?')
+            valores.append(data['nombre'])
+        if 'descripcion' in data:
+            campos_a_actualizar.append('descripcion = ?')
+            valores.append(data['descripcion'])
+        if 'precio' in data:
+            campos_a_actualizar.append('precio = ?')
+            valores.append(data['precio'])
+        if 'categoria' in data:
+            campos_a_actualizar.append('categoria = ?')
+            valores.append(data['categoria'])
+        if 'tipo' in data:
+            campos_a_actualizar.append('tipo = ?')
+            valores.append(data['tipo'])
+        if 'imagen_url' in data:
+            campos_a_actualizar.append('imagen_url = ?')
+            valores.append(data['imagen_url'])
+        if 'sku' in data:
+            campos_a_actualizar.append('sku = ?')
+            valores.append(data['sku'])
+        if 'peso' in data:
+            campos_a_actualizar.append('peso = ?')
+            valores.append(data['peso'])
+        if 'tags' in data:
+            tags = ','.join(data['tags']) if isinstance(data['tags'], list) else data['tags']
+            campos_a_actualizar.append('tags = ?')
+            valores.append(tags)
+        if 'metafields' in data:
+            campos_a_actualizar.append('metafields = ?')
+            valores.append(json.dumps(data['metafields']))
+
+        if not campos_a_actualizar:
+            conn.close()
+            return jsonify({'success': False, 'error': 'No hay campos para actualizar'}), 400
+
+        # Agregar ID al final de valores
+        valores.append(producto_id)
+
+        # Ejecutar UPDATE
+        query = f"UPDATE productos SET {', '.join(campos_a_actualizar)} WHERE id = ?"
+        cursor.execute(query, valores)
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Producto actualizado exitosamente'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:producto_id>', methods=['DELETE'])
+def eliminar_producto(producto_id):
+    """Elimina un producto (soft delete - marca como inactivo)"""
+    try:
+        conn = sqlite3.connect(get_legacy_db_path())
+        cursor = conn.cursor()
+
+        # Verificar que el producto existe
+        cursor.execute('SELECT id, nombre FROM productos WHERE id = ? AND activo = 1', (producto_id,))
+        producto = cursor.fetchone()
+
+        if not producto:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Producto no encontrado'}), 404
+
+        # Soft delete - marcar como inactivo
+        cursor.execute('UPDATE productos SET activo = 0 WHERE id = ?', (producto_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Producto "{producto[1]}" eliminado exitosamente'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @bp.route('/categoria/<categoria>', methods=['GET'])
 def productos_por_categoria(categoria):

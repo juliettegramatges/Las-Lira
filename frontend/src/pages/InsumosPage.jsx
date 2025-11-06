@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Flower, Package, AlertCircle, Search, Plus, Save, X } from 'lucide-react'
+import { Flower, Package, AlertCircle, Search, Plus, Save, X, Trash2 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../services/api'
 
@@ -209,6 +209,46 @@ function InsumosPage() {
     }
   }
 
+  const eliminarFlor = async (florId, nombre) => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar la flor "${nombre}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (!confirmar) return
+
+    try {
+      const response = await axios.delete(`${API_URL}/inventario/flores/${florId}`)
+
+      if (response.data.success) {
+        setFlores(prev => prev.filter(f => f.id !== florId))
+        alert(response.data.message || 'Flor eliminada exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al eliminar flor:', error)
+      alert(error.response?.data?.error || 'Error al eliminar flor')
+    }
+  }
+
+  const eliminarContenedor = async (contenedorId, nombre) => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar el contenedor "${nombre}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (!confirmar) return
+
+    try {
+      const response = await axios.delete(`${API_URL}/inventario/contenedores/${contenedorId}`)
+
+      if (response.data.success) {
+        setContenedores(prev => prev.filter(c => c.id !== contenedorId))
+        alert(response.data.message || 'Contenedor eliminado exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al eliminar contenedor:', error)
+      alert(error.response?.data?.error || 'Error al eliminar contenedor')
+    }
+  }
+
   const floresFiltradas = flores.filter(f =>
     f.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
     f.color?.toLowerCase().includes(busqueda.toLowerCase())
@@ -404,6 +444,7 @@ function InsumosPage() {
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">En Uso</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">En Evento</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">Disponible</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -484,11 +525,20 @@ function InsumosPage() {
                         <span className="ml-2 text-xs text-gray-500">💾</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => eliminarFlor(flor.id, flor.nombre)}
+                        className="px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+                        title="Eliminar flor"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {floresFiltradas.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
                       No se encontraron flores
                     </td>
                   </tr>
@@ -512,6 +562,7 @@ function InsumosPage() {
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">En Uso</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">En Evento</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">Disponible</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -583,11 +634,20 @@ function InsumosPage() {
                         <span className="ml-2 text-xs text-gray-500">💾</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => eliminarContenedor(contenedor.id, contenedor.nombre)}
+                        className="px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+                        title="Eliminar contenedor"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {contenedoresFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
                       No se encontraron contenedores
                     </td>
                   </tr>

@@ -281,6 +281,30 @@ def actualizar_stock_flor(flor_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/flores/<flor_id>', methods=['DELETE'])
+def eliminar_flor(flor_id):
+    """Eliminar una flor del inventario"""
+    try:
+        flor = Flor.query.get(flor_id)
+        if not flor:
+            return jsonify({'success': False, 'error': 'Flor no encontrada'}), 404
+
+        nombre_flor = flor.nombre
+
+        # Eliminar permanentemente de la base de datos
+        db.session.delete(flor)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Flor "{nombre_flor}" eliminada exitosamente'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ===== CONTENEDORES =====
 
 @bp.route('/contenedores', methods=['GET'])
@@ -432,6 +456,30 @@ def actualizar_stock_contenedor(contenedor_id):
             'message': 'Stock actualizado correctamente'
         })
         
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/contenedores/<contenedor_id>', methods=['DELETE'])
+def eliminar_contenedor(contenedor_id):
+    """Eliminar un contenedor del inventario"""
+    try:
+        contenedor = Contenedor.query.get(contenedor_id)
+        if not contenedor:
+            return jsonify({'success': False, 'error': 'Contenedor no encontrado'}), 404
+
+        nombre_contenedor = contenedor.nombre
+
+        # Eliminar permanentemente de la base de datos
+        db.session.delete(contenedor)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Contenedor "{nombre_contenedor}" eliminado exitosamente'
+        })
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
