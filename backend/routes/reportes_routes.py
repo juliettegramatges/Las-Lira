@@ -41,8 +41,11 @@ def obtener_ventas_mensuales():
 def obtener_top_productos():
     """Obtiene los productos más vendidos"""
     try:
-        limite = int(request.args.get('limite', 10))
-        productos = ReportesService.obtener_top_productos(limite)
+        limite = int(request.args.get('limit', 10))
+        anio = request.args.get('anio', type=int)
+        mes = request.args.get('mes', type=int)
+
+        productos = ReportesService.obtener_top_productos(limite, anio, mes)
 
         return jsonify({
             'success': True,
@@ -156,7 +159,10 @@ def obtener_personalizaciones():
 def ventas_por_dia_semana():
     """Analiza ventas agrupadas por día de la semana"""
     try:
-        ventas = ReportesService.ventas_por_dia_semana()
+        anio = request.args.get('año', type=int)  # Mantener compatibilidad con frontend
+        mes = request.args.get('mes', type=int)
+
+        ventas = ReportesService.ventas_por_dia_semana(anio, mes)
 
         return jsonify({
             'success': True,
@@ -184,7 +190,10 @@ def obtener_canales_venta():
 def arreglos_por_motivo():
     """Obtiene los arreglos más solicitados por cada motivo"""
     try:
-        arreglos = ReportesService.arreglos_por_motivo()
+        anio = request.args.get('anio', type=int)
+        mes = request.args.get('mes', type=int)
+
+        arreglos = ReportesService.arreglos_por_motivo(anio, mes)
 
         return jsonify({
             'success': True,
@@ -198,7 +207,10 @@ def arreglos_por_motivo():
 def analisis_anticipacion_pedidos():
     """Analiza con cuánta anticipación se hacen los pedidos"""
     try:
-        analisis = ReportesService.analisis_anticipacion_pedidos()
+        anio = request.args.get('anio', type=int)
+        mes = request.args.get('mes', type=int)
+
+        analisis = ReportesService.analisis_anticipacion_pedidos(anio, mes)
 
         return jsonify({
             'success': True,
@@ -212,7 +224,10 @@ def analisis_anticipacion_pedidos():
 def obtener_colores_frecuentes():
     """Obtiene los colores más solicitados en pedidos personalizados"""
     try:
-        colores = ReportesService.obtener_colores_frecuentes()
+        anio = request.args.get('anio', type=int)
+        mes = request.args.get('mes', type=int)
+
+        colores = ReportesService.obtener_colores_frecuentes(anio, mes)
 
         return jsonify({
             'success': True,
@@ -226,7 +241,10 @@ def obtener_colores_frecuentes():
 def analisis_personalizaciones():
     """Análisis detallado de personalizaciones"""
     try:
-        analisis = ReportesService.analisis_personalizaciones_detallado()
+        anio = request.args.get('anio', type=int)
+        mes = request.args.get('mes', type=int)
+
+        analisis = ReportesService.analisis_personalizaciones_detallado(anio, mes)
 
         return jsonify({
             'success': True,

@@ -12,6 +12,34 @@ import { API_URL } from '../services/api'
 
 const COLORS = ['#EC4899', '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444']
 
+// Función helper para generar opciones de años dinámicamente
+const generarOpcionesAnios = () => {
+  const añoActual = new Date().getFullYear()
+  const años = []
+  // Desde 2022 hasta 2 años en el futuro
+  for (let año = 2022; año <= añoActual + 2; año++) {
+    años.push(año)
+  }
+  return años
+}
+
+const AÑOS_DISPONIBLES = generarOpcionesAnios()
+
+const MESES = [
+  { valor: 1, nombre: 'Enero' },
+  { valor: 2, nombre: 'Febrero' },
+  { valor: 3, nombre: 'Marzo' },
+  { valor: 4, nombre: 'Abril' },
+  { valor: 5, nombre: 'Mayo' },
+  { valor: 6, nombre: 'Junio' },
+  { valor: 7, nombre: 'Julio' },
+  { valor: 8, nombre: 'Agosto' },
+  { valor: 9, nombre: 'Septiembre' },
+  { valor: 10, nombre: 'Octubre' },
+  { valor: 11, nombre: 'Noviembre' },
+  { valor: 12, nombre: 'Diciembre' }
+]
+
 function ReportesPage() {
   const [loading, setLoading] = useState(true)
   const [kpis, setKpis] = useState({})
@@ -25,31 +53,31 @@ function ReportesPage() {
   const [analisisCobranza, setAnalisisCobranza] = useState([])
   const [ventasDiaSemana, setVentasDiaSemana] = useState([])
   const [canalesVenta, setCanalesVenta] = useState([])
-  
+
   // Filtros para ventas por día de semana
   const fechaActual = new Date()
   const [mesDiaSemana, setMesDiaSemana] = useState(fechaActual.getMonth() + 1)
   const [añoDiaSemana, setAñoDiaSemana] = useState(fechaActual.getFullYear())
-  
+
   // Filtros para top productos
   const [mesTopProductos, setMesTopProductos] = useState(null) // null = todos los meses
   const [añoTopProductos, setAñoTopProductos] = useState(null) // null = todos los años
-  
+
   // Estados y filtros para personalizaciones
   const [analisisPersonalizaciones, setAnalisisPersonalizaciones] = useState(null)
   const [mesPersonalizaciones, setMesPersonalizaciones] = useState(null)
   const [añoPersonalizaciones, setAñoPersonalizaciones] = useState(null)
-  
+
   // Estados y filtros para arreglos por motivo (general)
   const [arreglosPorMotivo, setArreglosPorMotivo] = useState([])
   const [mesArreglosMotivo, setMesArreglosMotivo] = useState(null)
   const [añoArreglosMotivo, setAñoArreglosMotivo] = useState(null)
-  
+
   // Estados y filtros para anticipación de pedidos
   const [anticipacionPedidos, setAnticipacionPedidos] = useState(null)
   const [mesAnticipacion, setMesAnticipacion] = useState(null)
   const [añoAnticipacion, setAñoAnticipacion] = useState(null)
-  
+
   // Estados y filtros para colores frecuentes
   const [coloresFrecuentes, setColoresFrecuentes] = useState([])
   const [mesColores, setMesColores] = useState(null)
@@ -347,25 +375,16 @@ function ReportesPage() {
                   onChange={(e) => setMesDiaSemana(parseInt(e.target.value))}
                   className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  <option value="1">Enero</option>
-                  <option value="2">Febrero</option>
-                  <option value="3">Marzo</option>
-                  <option value="4">Abril</option>
-                  <option value="5">Mayo</option>
-                  <option value="6">Junio</option>
-                  <option value="7">Julio</option>
-                  <option value="8">Agosto</option>
-                  <option value="9">Septiembre</option>
-                  <option value="10">Octubre</option>
-                  <option value="11">Noviembre</option>
-                  <option value="12">Diciembre</option>
+                  {MESES.map(mes => (
+                    <option key={mes.valor} value={mes.valor}>{mes.nombre}</option>
+                  ))}
                 </select>
                 <select
                   value={añoDiaSemana}
                   onChange={(e) => setAñoDiaSemana(parseInt(e.target.value))}
                   className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  {[2024, 2025, 2026].map(año => (
+                  {AÑOS_DISPONIBLES.map(año => (
                     <option key={año} value={año}>{año}</option>
                   ))}
                 </select>
@@ -408,18 +427,9 @@ function ReportesPage() {
                 className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               >
                 <option value="">Todos los meses</option>
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
+                {MESES.map(mes => (
+                  <option key={mes.valor} value={mes.valor}>{mes.nombre}</option>
+                ))}
               </select>
               <select
                 value={añoTopProductos || ''}
@@ -427,7 +437,7 @@ function ReportesPage() {
                 className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               >
                 <option value="">Todos los años</option>
-                {[2022, 2023, 2024, 2025].map(año => (
+                {AÑOS_DISPONIBLES.map(año => (
                   <option key={año} value={año}>{año}</option>
                 ))}
               </select>
@@ -777,7 +787,7 @@ function ReportesPage() {
               className="text-xs border border-blue-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Todos los años</option>
-              {[2022, 2023, 2024, 2025].map(año => (
+              {AÑOS_DISPONIBLES.map(año => (
                 <option key={año} value={año}>{año}</option>
               ))}
             </select>
@@ -859,18 +869,9 @@ function ReportesPage() {
                 className="text-xs border border-pink-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               >
                 <option value="">Todos los meses</option>
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
+                {MESES.map(mes => (
+                  <option key={mes.valor} value={mes.valor}>{mes.nombre}</option>
+                ))}
               </select>
               <select
                 value={añoPersonalizaciones || ''}
@@ -878,7 +879,7 @@ function ReportesPage() {
                 className="text-xs border border-pink-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               >
                 <option value="">Todos los años</option>
-                {[2022, 2023, 2024, 2025].map(año => (
+                {AÑOS_DISPONIBLES.map(año => (
                   <option key={año} value={año}>{año}</option>
                 ))}
               </select>
@@ -1079,18 +1080,9 @@ function ReportesPage() {
                 className="text-xs border border-green-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500"
               >
                 <option value="">Todos los meses</option>
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
+                {MESES.map(mes => (
+                  <option key={mes.valor} value={mes.valor}>{mes.nombre}</option>
+                ))}
               </select>
               <select
                 value={añoAnticipacion || ''}
@@ -1098,7 +1090,7 @@ function ReportesPage() {
                 className="text-xs border border-green-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-green-500 focus:border-green-500"
               >
                 <option value="">Todos los años</option>
-                {[2022, 2023, 2024, 2025].map(año => (
+                {AÑOS_DISPONIBLES.map(año => (
                   <option key={año} value={año}>{año}</option>
                 ))}
               </select>
@@ -1248,7 +1240,7 @@ function ReportesPage() {
               className="text-xs border border-purple-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             >
               <option value="">Todos los años</option>
-              {[2022, 2023, 2024, 2025].map(año => (
+              {AÑOS_DISPONIBLES.map(año => (
                 <option key={año} value={año}>{año}</option>
               ))}
             </select>
