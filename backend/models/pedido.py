@@ -163,25 +163,61 @@ class Pedido(db.Model):
         return f'<Pedido {self.id} - {self.cliente_nombre}>'
 
 
+class PedidoProducto(db.Model):
+    """Tabla intermedia para múltiples productos en un pedido"""
+    __tablename__ = 'pedidos_productos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
+    producto_id = db.Column(db.String(10), db.ForeignKey('productos.id'), nullable=False)
+    producto_nombre = db.Column(db.String(200))
+    precio = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+    cantidad = db.Column(db.Integer, nullable=False, default=1)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    pedido = db.relationship('Pedido', backref='pedido_productos', lazy=True)
+    producto = db.relationship('Producto', backref='pedido_productos', lazy=True)
+    insumos = db.relationship('PedidoInsumo', back_populates='pedido_producto', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'pedido_id': self.pedido_id,
+            'producto_id': self.producto_id,
+            'producto_nombre': self.producto_nombre,
+            'precio': float(self.precio),
+            'cantidad': self.cantidad,
+            'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None
+        }
+
+
 class PedidoInsumo(db.Model):
     __tablename__ = 'pedidos_insumos'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)  # Cambio a Integer
+    pedido_producto_id = db.Column(db.Integer, db.ForeignKey('pedidos_productos.id'), nullable=True)  # Asociar a producto específico
     insumo_tipo = db.Column(db.Enum('Flor', 'Contenedor', name='insumo_tipo_enum'), nullable=False)
     insumo_id = db.Column(db.String(10), nullable=False)
+    insumo_nombre = db.Column(db.String(200))  # Nombre del insumo para histórico
     cantidad = db.Column(db.Integer, nullable=False)
     costo_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     costo_total = db.Column(db.Numeric(10, 2), nullable=False)
     descontado_stock = db.Column(db.Boolean, default=False)
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relaciones
+    pedido_producto = db.relationship('PedidoProducto', back_populates='insumos', lazy=True)
     
     def to_dict(self):
         return {
             'id': self.id,
             'pedido_id': self.pedido_id,
+            'pedido_producto_id': self.pedido_producto_id,
             'insumo_tipo': self.insumo_tipo,
             'insumo_id': self.insumo_id,
+            'insumo_nombre': self.insumo_nombre,
             'cantidad': self.cantidad,
             'costo_unitario': float(self.costo_unitario),
             'costo_total': float(self.costo_total),

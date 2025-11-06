@@ -219,6 +219,42 @@ class PedidosService:
             )
 
             db.session.add(pedido)
+            db.session.flush()  # Obtener el ID del pedido antes de commit
+
+            # Procesar múltiples productos con sus insumos
+            if 'productos' in data and isinstance(data['productos'], list):
+                from models.pedido import PedidoProducto, PedidoInsumo
+
+                for producto_data in data['productos']:
+                    # Crear relación pedido-producto
+                    pedido_producto = PedidoProducto(
+                        pedido_id=pedido.id,
+                        producto_id=producto_data['producto_id'],
+                        producto_nombre=producto_data.get('producto_nombre', ''),
+                        precio=producto_data.get('precio', 0),
+                        cantidad=1  # Por ahora, siempre 1
+                    )
+                    db.session.add(pedido_producto)
+                    db.session.flush()  # Obtener ID de pedido_producto
+
+                    # Guardar insumos de este producto
+                    if 'insumos' in producto_data and isinstance(producto_data['insumos'], list):
+                        for insumo in producto_data['insumos']:
+                            cantidad = insumo.get('cantidad', 1)
+                            costo_unitario = insumo.get('costo_unitario', 0)
+                            costo_total = cantidad * costo_unitario
+
+                            pedido_insumo = PedidoInsumo(
+                                pedido_id=pedido.id,
+                                pedido_producto_id=pedido_producto.id,
+                                insumo_tipo=insumo.get('insumo_tipo', 'Flor'),
+                                insumo_id=insumo.get('insumo_id'),
+                                insumo_nombre=insumo.get('insumo_nombre', ''),
+                                cantidad=cantidad,
+                                costo_unitario=costo_unitario,
+                                costo_total=costo_total
+                            )
+                            db.session.add(pedido_insumo)
 
             # Actualizar estadísticas del cliente
             if cliente:

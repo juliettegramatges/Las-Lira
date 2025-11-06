@@ -133,6 +133,10 @@ function PedidosPage() {
   const [loadingReceta, setLoadingReceta] = useState(false)
   const [flores, setFlores] = useState([])
   const [contenedores, setContenedores] = useState([])
+
+  // Estado para múltiples productos en un pedido
+  const [productosDelPedido, setProductosDelPedido] = useState([])
+  const [productoTemporal, setProductoTemporal] = useState(null) // Producto siendo configurado antes de agregar
   
   
   // Estado del formulario
@@ -156,6 +160,7 @@ function PedidosPage() {
     comuna: '',
     motivo: '',
     fecha_entrega: '',
+    hora_entrega: '', // Hora opcional
     plazo_pago_dias: 0
   })
   
@@ -491,7 +496,61 @@ function PedidosPage() {
       setInsumosModificados([])
     }
   }
-  
+
+  // ============================================
+  // FUNCIONES PARA MÚLTIPLES PRODUCTOS
+  // ============================================
+
+  // Agregar producto al pedido con sus insumos
+  const handleAgregarProductoAlPedido = () => {
+    if (!formData.producto_id) {
+      alert('❌ Selecciona un producto primero')
+      return
+    }
+
+    const productoSeleccionado = (productos || []).find(p => p.id == formData.producto_id)
+
+    if (!productoSeleccionado) {
+      alert('❌ Producto no encontrado')
+      return
+    }
+
+    // Agregar producto con sus insumos actuales
+    const nuevoProducto = {
+      id: Date.now(), // ID temporal para el frontend
+      producto_id: formData.producto_id,
+      producto_nombre: productoSeleccionado.nombre,
+      precio: parseFloat(formData.precio_ramo) || productoSeleccionado.precio || 0,
+      insumos: JSON.parse(JSON.stringify(insumosModificados)) // Copia profunda
+    }
+
+    setProductosDelPedido(prev => [...prev, nuevoProducto])
+
+    // Limpiar selección actual para agregar otro producto
+    setFormData(prev => ({
+      ...prev,
+      producto_id: '',
+      arreglo_pedido: '',
+      precio_ramo: 0
+    }))
+    setReceta([])
+    setInsumosModificados([])
+
+    alert(`✅ Producto "${productoSeleccionado.nombre}" agregado al pedido`)
+  }
+
+  // Eliminar producto del pedido
+  const handleEliminarProductoDelPedido = (productoIndex) => {
+    if (confirm('¿Eliminar este producto del pedido?')) {
+      setProductosDelPedido(prev => prev.filter((_, index) => index !== productoIndex))
+    }
+  }
+
+  // Calcular precio total de todos los productos
+  const precioTotalProductos = useMemo(() => {
+    return productosDelPedido.reduce((sum, producto) => sum + (parseFloat(producto.precio) || 0), 0)
+  }, [productosDelPedido])
+
   // Función para personalización
   const handlePersonalizacionChange = (campo, valor) => {
     setDatosPersonalizacion(prev => ({
@@ -504,6 +563,7 @@ function PedidosPage() {
     setMostrarFormulario(false)
     setClienteEncontrado(null)
     setPlazoPagoManual(false)
+    setProductosDelPedido([]) // Limpiar productos del pedido
     setSugerenciasClientes([])
     setMostrarSugerencias(false)
     setHistorialPedidos([])
@@ -536,6 +596,7 @@ function PedidosPage() {
       comuna: '',
       motivo: '',
       fecha_entrega: '',
+      hora_entrega: '',
       plazo_pago_dias: 0
     })
   }
@@ -734,22 +795,28 @@ function PedidosPage() {
       alert('❌ Nombre y teléfono del cliente son obligatorios')
       return
     }
-    
+
     if (!formData.fecha_entrega) {
       alert('❌ La fecha de entrega es obligatoria')
       return
     }
-    
+
     if (!formData.direccion_entrega) {
       alert('❌ La dirección de entrega es obligatoria')
       return
     }
-    
-    const precioRamo = parseFloat(formData.precio_ramo) || 0
+
+    // Validar que haya al menos un producto agregado
+    if (productosDelPedido.length === 0) {
+      alert('❌ Debes agregar al menos un producto al pedido')
+      return
+    }
+
+    const precioRamo = parseFloat(formData.precio_ramo) || precioTotalProductos
     const precioEnvio = parseFloat(formData.precio_envio) || 0
-    
-    if (precioRamo <= 0) {
-      alert('❌ El precio del ramo debe ser mayor a 0')
+
+    if (precioRamo <= 0 && precioTotalProductos <= 0) {
+      alert('❌ El precio total del pedido debe ser mayor a 0')
       return
     }
     
@@ -766,6 +833,16 @@ function PedidosPage() {
           : refShopify
       }
       
+      // Combinar fecha y hora (si hay hora)
+      let fechaEntregaCompleta
+      if (formData.hora_entrega && formData.hora_entrega.trim()) {
+        // Si hay hora, combinar fecha + hora
+        fechaEntregaCompleta = new Date(`${formData.fecha_entrega}T${formData.hora_entrega}`).toISOString()
+      } else {
+        // Si no hay hora, usar solo la fecha (a las 00:00)
+        fechaEntregaCompleta = new Date(`${formData.fecha_entrega}T00:00:00`).toISOString()
+      }
+
       const pedidoData = {
         canal: formData.canal,
         shopify_order_number: formData.shopify_order_number || null,
@@ -773,7 +850,8 @@ function PedidosPage() {
         cliente_telefono: formData.cliente_telefono,
         cliente_email: formData.cliente_email || null,
         arreglo_pedido: formData.arreglo_pedido || null,
-        producto_id: formData.producto_id || null,
+        // Para compatibilidad con pedidos antiguos, enviamos el ID del primer producto
+        producto_id: productosDelPedido.length > 0 ? productosDelPedido[0].producto_id : null,
         detalles_adicionales: detallesCompletos || null,
         precio_ramo: precioRamo,
         precio_envio: precioEnvio,
@@ -784,16 +862,25 @@ function PedidosPage() {
         direccion_entrega: formData.direccion_entrega,
         comuna: formData.comuna || null,
         motivo: formData.motivo || null,
-        fecha_entrega: new Date(formData.fecha_entrega).toISOString()
+        fecha_entrega: fechaEntregaCompleta,
+        tiene_hora_especifica: !!(formData.hora_entrega && formData.hora_entrega.trim()),
+        // Nuevo: Array de productos con sus insumos
+        productos: productosDelPedido.map(producto => ({
+          producto_id: producto.producto_id,
+          producto_nombre: producto.producto_nombre,
+          precio: producto.precio,
+          insumos: producto.insumos
+        }))
       }
-      
+
       const response = await axios.post(`${API_URL}/pedidos`, pedidoData)
-      
+
       if (response.data.success) {
         const nuevoPedidoId = response.data.data.id
-        
-        // Si hay insumos modificados, guardarlos
-        if (insumosModificados.length > 0) {
+
+        // Los insumos ya se enviaron dentro de cada producto
+        // Solo guardar insumos sueltos si existen (compatibilidad con flujo antiguo)
+        if (insumosModificados.length > 0 && productosDelPedido.length === 0) {
           try {
             await axios.post(`${API_URL}/pedidos/${nuevoPedidoId}/insumos`, {
               insumos: insumosModificados
@@ -895,6 +982,14 @@ function PedidosPage() {
   const formatFecha = (fechaStr) => {
     try {
       const fecha = new Date(fechaStr)
+      const horas = fecha.getHours()
+      const minutos = fecha.getMinutes()
+
+      // Si es medianoche (00:00), significa que no hay hora específica
+      if (horas === 0 && minutos === 0) {
+        return format(fecha, "dd/MM/yyyy", { locale: es }) + " - sin hora de llegada"
+      }
+
       return format(fecha, "dd/MM/yyyy HH:mm", { locale: es })
     } catch {
       return fechaStr
@@ -2599,7 +2694,63 @@ function PedidosPage() {
                         </div>
                       ) : null
                     })()}
-                    
+
+                    {/* Botón para agregar producto al pedido */}
+                    {formData.producto_id && (
+                      <button
+                        type="button"
+                        onClick={handleAgregarProductoAlPedido}
+                        className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <Plus className="h-5 w-5" />
+                        Agregar Producto al Pedido
+                      </button>
+                    )}
+
+                    {/* Lista de productos agregados */}
+                    {productosDelPedido.length > 0 && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Productos en el Pedido ({productosDelPedido.length})
+                        </h4>
+
+                        <div className="space-y-3">
+                          {productosDelPedido.map((producto, index) => (
+                            <div
+                              key={producto.id}
+                              className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between"
+                            >
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-gray-900">{producto.producto_nombre}</h5>
+                                <p className="text-sm text-gray-600">
+                                  Precio: <span className="font-bold text-green-600">${producto.precio.toLocaleString('es-CL')}</span>
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {producto.insumos.length} insumo(s) configurado(s)
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleEliminarProductoDelPedido(index)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Eliminar producto"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-blue-300">
+                          <p className="text-sm font-bold text-blue-900 flex justify-between">
+                            <span>Subtotal Productos:</span>
+                            <span className="text-green-600">${precioTotalProductos.toLocaleString('es-CL')}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Campo para Personalización */}
                     {esPersonalizacion && (
                       <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
@@ -3018,12 +3169,25 @@ function PedidosPage() {
                           Fecha de Entrega <span className="text-red-500">*</span>
                         </label>
                         <input
-                          type="datetime-local"
+                          type="date"
                           required
                           value={formData.fecha_entrega}
                           onChange={(e) => setFormData({...formData, fecha_entrega: e.target.value})}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Hora de Entrega <span className="text-gray-400 text-xs">(opcional)</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={formData.hora_entrega}
+                          onChange={(e) => setFormData({...formData, hora_entrega: e.target.value})}
+                          placeholder="Sin hora específica"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Deja vacío si no hay hora específica</p>
                       </div>
                     </div>
                   </div>
