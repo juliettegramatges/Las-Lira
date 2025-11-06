@@ -20,7 +20,7 @@ function RutasPage() {
     try {
       setLoading(true)
       const fecha = filtroFecha === 'personalizada' ? fechaPersonalizada : filtroFecha
-      const response = await axios.get(\`\${API_URL}/pedidos/rutas?fecha=\${fecha}\`)
+      const response = await axios.get(`${API_URL}/pedidos/rutas?fecha=${fecha}`)
 
       if (response.data.success) {
         setRutas(response.data.data)
@@ -68,12 +68,12 @@ function RutasPage() {
 
   const marcarUrgente = async (pedidoId, esUrgente) => {
     try {
-      await axios.patch(\`\${API_URL}/pedidos/\${pedidoId}/urgente\`, {
+      await axios.patch(`${API_URL}/pedidos/${pedidoId}/urgente`, {
         es_urgente: esUrgente
       })
 
       cargarRutas()
-      alert(\`✅ Pedido marcado como \${esUrgente ? 'urgente' : 'normal'}\`)
+      alert(`✅ Pedido marcado como ${esUrgente ? 'urgente' : 'normal'}`)
     } catch (error) {
       console.error('Error:', error)
       alert('Error al marcar urgente: ' + (error.response?.data?.error || error.message))
@@ -86,17 +86,17 @@ function RutasPage() {
       return
     }
 
-    if (!confirm(\`¿Marcar \${pedidosSeleccionados.length} pedido(s) como despachados?\`)) {
+    if (!confirm(`¿Marcar ${pedidosSeleccionados.length} pedido(s) como despachados?`)) {
       return
     }
 
     try {
-      const response = await axios.post(\`\${API_URL}/pedidos/marcar-despachados\`, {
+      const response = await axios.post(`${API_URL}/pedidos/marcar-despachados`, {
         pedidos_ids: pedidosSeleccionados
       })
 
       if (response.data.success) {
-        alert(\`✅ \${response.data.data.actualizados} pedidos marcados como despachados\`)
+        alert(`✅ ${response.data.data.actualizados} pedidos marcados como despachados`)
         setPedidosSeleccionados([])
         cargarRutas()
       }
@@ -108,7 +108,7 @@ function RutasPage() {
 
   const abrirDocumentoRepartidor = () => {
     const fecha = filtroFecha === 'personalizada' ? fechaPersonalizada : filtroFecha
-    window.open(\`\${API_URL}/pedidos/documento-repartidor?fecha=\${fecha}&formato=html\`, '_blank')
+    window.open(`${API_URL}/pedidos/documento-repartidor?fecha=${fecha}&formato=html`, '_blank')
   }
 
   const totalPedidos = rutas.reduce((sum, ruta) => sum + ruta.total_pedidos, 0)
@@ -249,11 +249,11 @@ function RutasPage() {
                   {ruta.pedidos.map((pedido) => (
                     <div
                       key={pedido.id}
-                      className={\`p-4 hover:bg-gray-50 transition-colors \${
+                      className={`p-4 hover:bg-gray-50 transition-colors ${
                         pedido.es_urgente ? 'bg-red-50 border-l-4 border-red-500' : ''
-                      } \${
+                      } ${
                         pedidosSeleccionados.includes(pedido.id) ? 'bg-blue-50' : ''
-                      }\`}
+                      }`}
                     >
                       <div className="flex items-start gap-4">
                         <input
@@ -321,11 +321,11 @@ function RutasPage() {
 
                           <button
                             onClick={() => marcarUrgente(pedido.id, !pedido.es_urgente)}
-                            className={\`px-3 py-1 rounded-lg text-sm font-medium transition-colors \${
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                               pedido.es_urgente
                                 ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 : 'bg-red-100 text-red-700 hover:bg-red-200'
-                            }\`}
+                            }`}
                           >
                             {pedido.es_urgente ? '🔽 Normal' : '🔺 Urgente'}
                           </button>
