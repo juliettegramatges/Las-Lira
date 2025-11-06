@@ -29,6 +29,24 @@ function InsumosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [vistaActiva, setVistaActiva] = useState('flores')
   const [guardando, setGuardando] = useState({})
+  const [modalFlorAbierto, setModalFlorAbierto] = useState(false)
+  const [modalContenedorAbierto, setModalContenedorAbierto] = useState(false)
+  const [nuevaFlor, setNuevaFlor] = useState({
+    tipo: '',
+    color: '',
+    costo_unitario: 0,
+    ubicacion: 'Taller',
+    cantidad_stock: 0
+  })
+  const [nuevoContenedor, setNuevoContenedor] = useState({
+    tipo: '',
+    material: '',
+    tamano: '',
+    color: '',
+    costo: 0,
+    ubicacion: 'Bodega 1',
+    cantidad_stock: 0
+  })
 
   useEffect(() => {
     cargarInsumos()
@@ -99,12 +117,12 @@ function InsumosPage() {
   const actualizarContenedor = async (id, campo, valor) => {
     try {
       setGuardando(prev => ({ ...prev, [`contenedor-${id}`]: true }))
-      
+
       // Actualizar estado local inmediatamente para feedback visual
-      setContenedores(prev => prev.map(c => 
+      setContenedores(prev => prev.map(c =>
         c.id === id ? { ...c, [campo]: valor } : c
       ))
-      
+
       // Determinar el tipo de valor según el campo
       let valorFinal
       if (campo === 'ubicacion') {
@@ -114,14 +132,14 @@ function InsumosPage() {
       } else {
         valorFinal = parseInt(valor) || 0
       }
-      
+
       const response = await axios.patch(`${API_URL}/inventario/contenedores/${id}`, {
         [campo]: valorFinal
       })
-      
+
       if (response.data.success) {
         // Actualizar con la respuesta del servidor
-        setContenedores(prev => prev.map(c => 
+        setContenedores(prev => prev.map(c =>
           c.id === id ? response.data.data : c
         ))
       }
@@ -132,6 +150,62 @@ function InsumosPage() {
       cargarInsumos()
     } finally {
       setGuardando(prev => ({ ...prev, [`contenedor-${id}`]: false }))
+    }
+  }
+
+  const crearFlor = async () => {
+    try {
+      if (!nuevaFlor.tipo.trim()) {
+        alert('El tipo de flor es obligatorio')
+        return
+      }
+
+      const response = await axios.post(`${API_URL}/inventario/flores`, nuevaFlor)
+
+      if (response.data.success) {
+        setFlores(prev => [...prev, response.data.data])
+        setModalFlorAbierto(false)
+        setNuevaFlor({
+          tipo: '',
+          color: '',
+          costo_unitario: 0,
+          ubicacion: 'Taller',
+          cantidad_stock: 0
+        })
+        alert(response.data.message || 'Flor creada exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al crear flor:', error)
+      alert(error.response?.data?.error || 'Error al crear flor')
+    }
+  }
+
+  const crearContenedor = async () => {
+    try {
+      if (!nuevoContenedor.tipo.trim()) {
+        alert('El tipo de contenedor es obligatorio')
+        return
+      }
+
+      const response = await axios.post(`${API_URL}/inventario/contenedores`, nuevoContenedor)
+
+      if (response.data.success) {
+        setContenedores(prev => [...prev, response.data.data])
+        setModalContenedorAbierto(false)
+        setNuevoContenedor({
+          tipo: '',
+          material: '',
+          tamano: '',
+          color: '',
+          costo: 0,
+          ubicacion: 'Bodega 1',
+          cantidad_stock: 0
+        })
+        alert(response.data.message || 'Contenedor creado exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al crear contenedor:', error)
+      alert(error.response?.data?.error || 'Error al crear contenedor')
     }
   }
 
@@ -292,6 +366,26 @@ function InsumosPage() {
                 <Package className="inline h-4 w-4 mr-2" />
                 Contenedores ({contenedores.length})
               </button>
+
+              {vistaActiva === 'flores' && (
+                <button
+                  onClick={() => setModalFlorAbierto(true)}
+                  className="px-4 py-2 rounded-lg font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nueva Flor
+                </button>
+              )}
+
+              {vistaActiva === 'contenedores' && (
+                <button
+                  onClick={() => setModalContenedorAbierto(true)}
+                  className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nuevo Contenedor
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -531,6 +625,243 @@ function InsumosPage() {
           💡 <strong>Edición directa:</strong> Puedes modificar los valores de stock y sector directamente en la tabla. Los cambios se guardan automáticamente.
         </div>
       </div>
+
+      {/* Modal Nueva Flor */}
+      {modalFlorAbierto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Flower className="h-6 w-6 text-purple-600" />
+                Nueva Flor
+              </h2>
+              <button
+                onClick={() => setModalFlorAbierto(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Flor <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nuevaFlor.tipo}
+                  onChange={(e) => setNuevaFlor({ ...nuevaFlor, tipo: e.target.value })}
+                  placeholder="Ej: Rosa, Clavel, Lilium..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Color
+                </label>
+                <select
+                  value={nuevaFlor.color}
+                  onChange={(e) => setNuevaFlor({ ...nuevaFlor, color: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Seleccionar color</option>
+                  {COLORES_FLORES.map(color => (
+                    <option key={color} value={color}>{color}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Costo Unitario (CLP)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={nuevaFlor.costo_unitario}
+                  onChange={(e) => setNuevaFlor({ ...nuevaFlor, costo_unitario: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ubicación
+                </label>
+                <input
+                  type="text"
+                  value={nuevaFlor.ubicacion}
+                  onChange={(e) => setNuevaFlor({ ...nuevaFlor, ubicacion: e.target.value })}
+                  placeholder="Ej: Taller, Bodega 1..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Stock Inicial
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={nuevaFlor.cantidad_stock}
+                  onChange={(e) => setNuevaFlor({ ...nuevaFlor, cantidad_stock: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setModalFlorAbierto(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={crearFlor}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Crear Flor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nuevo Contenedor */}
+      {modalContenedorAbierto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Package className="h-6 w-6 text-blue-600" />
+                Nuevo Contenedor
+              </h2>
+              <button
+                onClick={() => setModalContenedorAbierto(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nuevoContenedor.tipo}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, tipo: e.target.value })}
+                  placeholder="Ej: Florero, Macetero, Canasto..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Material
+                </label>
+                <input
+                  type="text"
+                  value={nuevoContenedor.material}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, material: e.target.value })}
+                  placeholder="Ej: Vidrio, Cerámica, Mimbre..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tamaño
+                </label>
+                <input
+                  type="text"
+                  value={nuevoContenedor.tamano}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, tamano: e.target.value })}
+                  placeholder="Ej: Pequeño, Mediano, Grande..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  value={nuevoContenedor.color}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, color: e.target.value })}
+                  placeholder="Ej: Transparente, Blanco..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Costo (CLP)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={nuevoContenedor.costo}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, costo: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ubicación
+                </label>
+                <input
+                  type="text"
+                  value={nuevoContenedor.ubicacion}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, ubicacion: e.target.value })}
+                  placeholder="Ej: Bodega 1, Bodega 2..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Stock Inicial
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={nuevoContenedor.cantidad_stock}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, cantidad_stock: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setModalContenedorAbierto(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={crearContenedor}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Crear Contenedor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -116,9 +116,9 @@ def listar_flores():
         tipo = request.args.get('tipo')
         color = request.args.get('color')
         stock_bajo = request.args.get('stock_bajo', type=bool)
-        
+
         query = Flor.query
-        
+
         if bodega_id:
             query = query.filter_by(bodega_id=bodega_id)
         if tipo:
@@ -127,15 +127,66 @@ def listar_flores():
             query = query.filter_by(color=color)
         if stock_bajo:
             query = query.filter(Flor.cantidad_stock < 20)
-        
+
         flores = query.order_by(Flor.tipo, Flor.color).all()
-        
+
         return jsonify({
             'success': True,
             'data': [f.to_dict() for f in flores],
             'total': len(flores)
         })
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/flores', methods=['POST'])
+def crear_flor():
+    """Crear una nueva flor"""
+    try:
+        data = request.json
+
+        # Validar campos requeridos
+        if not data.get('tipo'):
+            return jsonify({'success': False, 'error': 'Campo requerido: tipo'}), 400
+
+        # Generar ID automático (FL + número secuencial)
+        ultima_flor = Flor.query.order_by(Flor.id.desc()).first()
+        if ultima_flor and ultima_flor.id.startswith('FL'):
+            try:
+                ultimo_num = int(ultima_flor.id[2:])
+                nuevo_id = f'FL{str(ultimo_num + 1).zfill(3)}'
+            except:
+                nuevo_id = f'FL{str(Flor.query.count() + 1).zfill(3)}'
+        else:
+            nuevo_id = f'FL{str(Flor.query.count() + 1).zfill(3)}'
+
+        # Crear flor
+        nueva_flor = Flor(
+            id=nuevo_id,
+            tipo=data['tipo'],
+            color=data.get('color', ''),
+            nombre=data.get('nombre') or f"{data['tipo']} {data.get('color', '')}".strip(),
+            ubicacion=data.get('ubicacion', 'Taller'),
+            foto_url=data.get('foto_url'),
+            proveedor_id=data.get('proveedor_id'),
+            costo_unitario=data.get('costo_unitario', 0),
+            cantidad_stock=data.get('cantidad_stock', 0),
+            cantidad_en_uso=0,
+            cantidad_en_evento=0,
+            unidad=data.get('unidad', 'Tallos')
+        )
+
+        db.session.add(nueva_flor)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'data': nueva_flor.to_dict(),
+            'message': f'Flor "{nueva_flor.nombre}" creada exitosamente'
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -238,22 +289,78 @@ def listar_contenedores():
     try:
         bodega_id = request.args.get('bodega_id', type=int)
         tipo = request.args.get('tipo')
-        
+
         query = Contenedor.query
-        
+
         if bodega_id:
             query = query.filter_by(bodega_id=bodega_id)
         if tipo:
             query = query.filter_by(tipo=tipo)
-        
+
         contenedores = query.order_by(Contenedor.tipo, Contenedor.tamano).all()
-        
+
         return jsonify({
             'success': True,
             'data': [c.to_dict() for c in contenedores],
             'total': len(contenedores)
         })
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/contenedores', methods=['POST'])
+def crear_contenedor():
+    """Crear un nuevo contenedor"""
+    try:
+        data = request.json
+
+        # Validar campos requeridos
+        if not data.get('tipo'):
+            return jsonify({'success': False, 'error': 'Campo requerido: tipo'}), 400
+
+        # Generar ID automático (CT + número secuencial)
+        ultimo_contenedor = Contenedor.query.order_by(Contenedor.id.desc()).first()
+        if ultimo_contenedor and ultimo_contenedor.id.startswith('CT'):
+            try:
+                ultimo_num = int(ultimo_contenedor.id[2:])
+                nuevo_id = f'CT{str(ultimo_num + 1).zfill(3)}'
+            except:
+                nuevo_id = f'CT{str(Contenedor.query.count() + 1).zfill(3)}'
+        else:
+            nuevo_id = f'CT{str(Contenedor.query.count() + 1).zfill(3)}'
+
+        # Generar nombre si no se proporciona
+        nombre_auto = f"{data['tipo']} {data.get('material', '')} {data.get('tamano', '')}".strip()
+
+        # Crear contenedor
+        nuevo_contenedor = Contenedor(
+            id=nuevo_id,
+            nombre=data.get('nombre') or nombre_auto,
+            tipo=data['tipo'],
+            material=data.get('material', ''),
+            forma=data.get('forma', ''),
+            tamano=data.get('tamano', ''),
+            color=data.get('color', ''),
+            ubicacion=data.get('ubicacion', 'Bodega 1'),
+            foto_url=data.get('foto_url'),
+            costo=data.get('costo', 0),
+            cantidad_stock=data.get('cantidad_stock', 0),
+            cantidad_en_uso=0,
+            cantidad_en_evento=0,
+            bodega_id=data.get('bodega_id')
+        )
+
+        db.session.add(nuevo_contenedor)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'data': nuevo_contenedor.to_dict(),
+            'message': f'Contenedor "{nuevo_contenedor.nombre}" creado exitosamente'
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
