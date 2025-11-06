@@ -466,3 +466,117 @@ def obtener_receta_producto(producto_id):
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:producto_id>/receta', methods=['POST'])
+def agregar_insumo_receta(producto_id):
+    """Agrega un insumo a la receta del producto"""
+    try:
+        data = request.json
+
+        # Validar campos requeridos
+        if not data.get('insumo_tipo') or not data.get('insumo_id'):
+            return jsonify({'success': False, 'error': 'Campos requeridos: insumo_tipo, insumo_id'}), 400
+
+        conn = sqlite3.connect(get_main_db_path())
+        cursor = conn.cursor()
+
+        # Insertar insumo en receta
+        cursor.execute('''
+            INSERT INTO recetas_productos
+            (producto_id, insumo_tipo, insumo_id, cantidad, unidad, es_opcional, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            producto_id,
+            data['insumo_tipo'],
+            data['insumo_id'],
+            data.get('cantidad', 1),
+            data.get('unidad', 'Unidad' if data['insumo_tipo'] == 'Contenedor' else 'Tallos'),
+            data.get('es_opcional', False),
+            data.get('notas')
+        ))
+
+        receta_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': {'id': receta_id},
+            'message': 'Insumo agregado a la receta'
+        }), 201
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:producto_id>/receta', methods=['PUT'])
+def actualizar_receta_completa(producto_id):
+    """Actualiza la receta completa del producto (reemplaza todos los insumos)"""
+    try:
+        data = request.json
+        insumos = data.get('insumos', [])
+
+        conn = sqlite3.connect(get_main_db_path())
+        cursor = conn.cursor()
+
+        # Eliminar receta actual
+        cursor.execute('DELETE FROM recetas_productos WHERE producto_id = ?', (producto_id,))
+
+        # Insertar nueva receta
+        for insumo in insumos:
+            cursor.execute('''
+                INSERT INTO recetas_productos
+                (producto_id, insumo_tipo, insumo_id, cantidad, unidad, es_opcional, notas)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                producto_id,
+                insumo['insumo_tipo'],
+                insumo['insumo_id'],
+                insumo.get('cantidad', 1),
+                insumo.get('unidad', 'Unidad' if insumo['insumo_tipo'] == 'Contenedor' else 'Tallos'),
+                insumo.get('es_opcional', False),
+                insumo.get('notas')
+            ))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Receta actualizada con {len(insumos)} insumos'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:producto_id>/receta/<int:receta_id>', methods=['DELETE'])
+def eliminar_insumo_receta(producto_id, receta_id):
+    """Elimina un insumo específico de la receta"""
+    try:
+        conn = sqlite3.connect(get_main_db_path())
+        cursor = conn.cursor()
+
+        # Verificar que el insumo pertenece al producto
+        cursor.execute('''
+            SELECT id FROM recetas_productos
+            WHERE id = ? AND producto_id = ?
+        ''', (receta_id, producto_id))
+
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'Insumo no encontrado en esta receta'}), 404
+
+        # Eliminar insumo
+        cursor.execute('DELETE FROM recetas_productos WHERE id = ?', (receta_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Insumo eliminado de la receta'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

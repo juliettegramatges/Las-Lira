@@ -89,6 +89,12 @@ function ProductosPage() {
     tags: []
   })
 
+  // Estados para gestión de recetas
+  const [editandoReceta, setEditandoReceta] = useState(false)
+  const [recetaEditada, setRecetaEditada] = useState([])
+  const [modalAgregarInsumo, setModalAgregarInsumo] = useState(false)
+  const [tipoInsumoNuevo, setTipoInsumoNuevo] = useState('Flor')
+
   const cargarProductos = async () => {
     try {
       setLoading(true)
@@ -279,6 +285,90 @@ function ProductosPage() {
     } catch (error) {
       console.error('Error al eliminar producto:', error)
       alert(error.response?.data?.error || 'Error al eliminar producto')
+    }
+  }
+
+  // ============================================
+  // FUNCIONES DE GESTIÓN DE RECETAS
+  // ============================================
+
+  const handleActivarEdicionReceta = () => {
+    setEditandoReceta(true)
+    // Copiar la receta actual para editar
+    const recetaActual = receta?.receta || []
+    setRecetaEditada(recetaActual.map(item => ({
+      id: item.id,
+      insumo_tipo: item.tipo,
+      insumo_id: item.insumo_id || item.id,
+      nombre: item.nombre,
+      color: item.color,
+      cantidad: item.cantidad,
+      unidad: item.unidad,
+      costo_unitario: item.costo_unitario,
+      stock_disponible: item.stock_disponible,
+      foto_url: item.foto_url
+    })))
+  }
+
+  const handleCancelarEdicionReceta = () => {
+    setEditandoReceta(false)
+    setRecetaEditada([])
+  }
+
+  const handleActualizarCantidadInsumo = (index, nuevaCantidad) => {
+    const nuevaReceta = [...recetaEditada]
+    nuevaReceta[index].cantidad = parseInt(nuevaCantidad) || 0
+    setRecetaEditada(nuevaReceta)
+  }
+
+  const handleEliminarInsumoReceta = (index) => {
+    const nuevaReceta = recetaEditada.filter((_, i) => i !== index)
+    setRecetaEditada(nuevaReceta)
+  }
+
+  const handleAgregarInsumoReceta = async (insumoSeleccionado) => {
+    const nuevoInsumo = {
+      insumo_tipo: tipoInsumoNuevo,
+      insumo_id: insumoSeleccionado.id,
+      nombre: insumoSeleccionado.nombre,
+      color: insumoSeleccionado.color || '',
+      cantidad: 1,
+      unidad: tipoInsumoNuevo === 'Contenedor' ? 'Unidad' : 'Tallos',
+      costo_unitario: insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0,
+      stock_disponible: insumoSeleccionado.cantidad_disponible || 0,
+      foto_url: insumoSeleccionado.foto_url
+    }
+    setRecetaEditada([...recetaEditada, nuevoInsumo])
+    setModalAgregarInsumo(false)
+  }
+
+  const handleGuardarReceta = async () => {
+    try {
+      if (!productoDetalle) return
+
+      const insumos = recetaEditada.map(item => ({
+        insumo_tipo: item.insumo_tipo,
+        insumo_id: item.insumo_id,
+        cantidad: item.cantidad,
+        unidad: item.unidad,
+        es_opcional: false
+      }))
+
+      const response = await axios.put(
+        `${API_URL}/productos/${productoDetalle.id}/receta`,
+        { insumos }
+      )
+
+      if (response.data.success) {
+        alert(response.data.message || 'Receta actualizada exitosamente')
+        setEditandoReceta(false)
+        setRecetaEditada([])
+        // Recargar receta
+        cargarReceta(productoDetalle.id)
+      }
+    } catch (error) {
+      console.error('Error al guardar receta:', error)
+      alert(error.response?.data?.error || 'Error al guardar receta')
     }
   }
 
@@ -1151,22 +1241,143 @@ function ProductosPage() {
               
               {/* Recetario / Insumos Necesarios */}
               <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <Package className="h-5 w-5 mr-2 text-primary-600" />
-                  Recetario - Insumos Necesarios
-                </h3>
-                
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                    <Package className="h-5 w-5 mr-2 text-primary-600" />
+                    Recetario - Insumos Necesarios
+                  </h3>
+
+                  {!editandoReceta && receta && receta.receta && receta.receta.length > 0 && (
+                    <button
+                      onClick={handleActivarEdicionReceta}
+                      className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Editar Receta
+                    </button>
+                  )}
+                </div>
+
                 {loadingReceta ? (
                   <div className="text-center py-8 text-gray-500">
                     Cargando receta...
                   </div>
+                ) : editandoReceta ? (
+                  <div className="space-y-4">
+                    {/* Lista de insumos en modo edición */}
+                    <div className="space-y-3">
+                      {recetaEditada.map((insumo, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-4 p-3 rounded-lg border bg-white border-gray-200"
+                        >
+                          {/* Foto del insumo */}
+                          <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-gray-200">
+                            {insumo.foto_url ? (
+                              <img
+                                src={`${API_URL}/upload/imagen/${insumo.foto_url}`}
+                                alt={insumo.nombre}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none'
+                                  e.target.nextSibling.style.display = 'flex'
+                                }}
+                              />
+                            ) : null}
+                            <div className={insumo.foto_url ? 'hidden' : 'flex items-center justify-center w-full h-full bg-gray-100'}>
+                              {insumo.insumo_tipo === 'Flor' ? (
+                                <Flower2 className="h-6 w-6 text-gray-400" />
+                              ) : (
+                                <ShoppingBag className="h-6 w-6 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Información del insumo */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                                insumo.insumo_tipo === 'Flor' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {insumo.insumo_tipo}
+                              </span>
+                              <h4 className="font-semibold text-gray-900">{insumo.nombre}</h4>
+                              {insumo.color && (
+                                <span className="text-xs text-gray-500">({insumo.color})</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                              {/* Input de cantidad editable */}
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm text-gray-600">Cantidad:</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={insumo.cantidad}
+                                  onChange={(e) => handleActualizarCantidadInsumo(index, parseInt(e.target.value))}
+                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                                />
+                                <span className="text-sm text-gray-600">{insumo.unidad}</span>
+                              </div>
+
+                              <span className="text-sm text-gray-600">
+                                ${insumo.costo_unitario?.toLocaleString('es-CL')} c/u
+                              </span>
+
+                              {/* Stock disponible */}
+                              <span className="text-xs text-gray-500">
+                                Stock: {insumo.stock_disponible} {insumo.unidad}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Botón eliminar */}
+                          <button
+                            onClick={() => handleEliminarInsumoReceta(index)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="Eliminar insumo"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Botón agregar insumo */}
+                    <button
+                      onClick={() => setModalAgregarInsumo(true)}
+                      className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary-500 hover:text-primary-600 flex items-center justify-center gap-2"
+                    >
+                      <Plus className="h-5 w-5" />
+                      Agregar Insumo
+                    </button>
+
+                    {/* Botones de acción */}
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={handleGuardarReceta}
+                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        Guardar Receta
+                      </button>
+                      <button
+                        onClick={handleCancelarEdicionReceta}
+                        className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 flex items-center justify-center gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
                 ) : receta && receta.receta && receta.receta.length > 0 ? (
                   <div className="space-y-4">
-                    {/* Lista de insumos */}
+                    {/* Lista de insumos (solo lectura) */}
                     <div className="space-y-3">
                       {receta.receta.map((insumo) => (
-                        <div 
-                          key={insumo.id} 
+                        <div
+                          key={insumo.id}
                           className={`flex items-center gap-4 p-3 rounded-lg border ${
                             insumo.disponible ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                           }`}
@@ -1174,7 +1385,7 @@ function ProductosPage() {
                           {/* Foto del insumo */}
                           <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0 shadow-sm">
                             {insumo.foto_url ? (
-                              <img 
+                              <img
                                 src={`${API_URL}/upload/imagen/${insumo.foto_url}`}
                                 alt={insumo.nombre}
                                 className="w-full h-full object-cover"
@@ -1192,7 +1403,7 @@ function ProductosPage() {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Información del insumo */}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
@@ -1203,7 +1414,7 @@ function ProductosPage() {
                               </span>
                               <h4 className="font-semibold text-gray-900">{insumo.nombre}</h4>
                             </div>
-                            
+
                             <div className="flex items-center gap-4 text-sm text-gray-600">
                               <span>
                                 <strong>{insumo.cantidad}</strong> {insumo.unidad}
@@ -1215,7 +1426,7 @@ function ProductosPage() {
                                 Total: ${insumo.costo_total?.toLocaleString('es-CL')}
                               </span>
                             </div>
-                            
+
                             {/* Stock disponible */}
                             <div className="mt-1 text-xs">
                               {insumo.disponible ? (
@@ -1230,12 +1441,12 @@ function ProductosPage() {
                                 </span>
                               )}
                             </div>
-                            
+
                             {insumo.notas && (
                               <p className="text-xs text-gray-500 mt-1 italic">{insumo.notas}</p>
                             )}
                           </div>
-                          
+
                           {insumo.es_opcional && (
                             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                               Opcional
@@ -1244,7 +1455,7 @@ function ProductosPage() {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Resumen de costos */}
                     <div className="bg-gradient-to-r from-primary-50 to-primary-100 p-4 rounded-lg border-2 border-primary-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
@@ -1284,8 +1495,15 @@ function ProductosPage() {
                     <Package className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p>No hay receta configurada para este producto</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Configura los insumos necesarios en el recetario
+                      Haz clic en "Editar Receta" para configurar los insumos necesarios
                     </p>
+                    <button
+                      onClick={handleActivarEdicionReceta}
+                      className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 inline-flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Crear Receta
+                    </button>
                   </div>
                 )}
               </div>
@@ -1914,6 +2132,236 @@ function ProductosPage() {
               >
                 <Save className="h-4 w-4" />
                 Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Agregar Insumo a Receta */}
+      {modalAgregarInsumo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Plus className="h-6 w-6 text-blue-600" />
+                Agregar Insumo a la Receta
+              </h2>
+              <button
+                onClick={() => {
+                  setModalAgregarInsumo(false)
+                  setTipoInsumoNuevo('Flor')
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Selector de tipo de insumo */}
+            <div className="flex gap-2 mb-6 border-b border-gray-200">
+              <button
+                onClick={() => setTipoInsumoNuevo('Flor')}
+                className={`px-6 py-3 font-medium transition-colors relative ${
+                  tipoInsumoNuevo === 'Flor'
+                    ? 'text-pink-600 border-b-2 border-pink-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Flower2 className="h-5 w-5" />
+                  Flores
+                </div>
+              </button>
+              <button
+                onClick={() => setTipoInsumoNuevo('Contenedor')}
+                className={`px-6 py-3 font-medium transition-colors relative ${
+                  tipoInsumoNuevo === 'Contenedor'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5" />
+                  Contenedores
+                </div>
+              </button>
+            </div>
+
+            {/* Lista de insumos disponibles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+              {tipoInsumoNuevo === 'Flor' ? (
+                todasLasFlores.length > 0 ? (
+                  todasLasFlores.map((flor) => (
+                    <div
+                      key={flor.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-pink-300 hover:bg-pink-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        // Verificar si la flor ya está en la receta
+                        const yaExiste = recetaEditada.some(
+                          item => item.insumo_tipo === 'Flor' && item.insumo_id === flor.id
+                        )
+
+                        if (yaExiste) {
+                          alert('Esta flor ya está en la receta')
+                          return
+                        }
+
+                        // Agregar flor a la receta editada
+                        const nuevoInsumo = {
+                          insumo_tipo: 'Flor',
+                          insumo_id: flor.id,
+                          nombre: flor.nombre,
+                          color: flor.color,
+                          cantidad: 1,
+                          unidad: flor.unidad || 'unidad',
+                          costo_unitario: flor.costo_unitario || 0,
+                          stock_disponible: flor.cantidad_disponible || 0,
+                          foto_url: flor.foto_url
+                        }
+
+                        setRecetaEditada([...recetaEditada, nuevoInsumo])
+                        setModalAgregarInsumo(false)
+                        setTipoInsumoNuevo('Flor')
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Foto */}
+                        <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                          {flor.foto_url ? (
+                            <img
+                              src={`${API_URL}/upload/imagen/${flor.foto_url}`}
+                              alt={flor.nombre}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                                e.target.nextSibling.style.display = 'flex'
+                              }}
+                            />
+                          ) : null}
+                          <div className={flor.foto_url ? 'hidden' : 'flex items-center justify-center w-full h-full bg-gray-100'}>
+                            <Flower2 className="h-6 w-6 text-gray-400" />
+                          </div>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">{flor.nombre}</h4>
+                          {flor.color && (
+                            <p className="text-sm text-gray-600">Color: {flor.color}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-1 text-sm">
+                            <span className="text-gray-600">
+                              ${flor.costo_unitario?.toLocaleString('es-CL')} / {flor.unidad || 'unidad'}
+                            </span>
+                            <span className={`text-xs ${
+                              flor.cantidad_disponible > 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              Stock: {flor.cantidad_disponible || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-8 text-gray-500">
+                    <Flower2 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p>No hay flores disponibles en el inventario</p>
+                  </div>
+                )
+              ) : (
+                contenedores.length > 0 ? (
+                  contenedores.map((contenedor) => (
+                    <div
+                      key={contenedor.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        // Verificar si el contenedor ya está en la receta
+                        const yaExiste = recetaEditada.some(
+                          item => item.insumo_tipo === 'Contenedor' && item.insumo_id === contenedor.id
+                        )
+
+                        if (yaExiste) {
+                          alert('Este contenedor ya está en la receta')
+                          return
+                        }
+
+                        // Agregar contenedor a la receta editada
+                        const nuevoInsumo = {
+                          insumo_tipo: 'Contenedor',
+                          insumo_id: contenedor.id,
+                          nombre: contenedor.nombre,
+                          color: contenedor.color,
+                          cantidad: 1,
+                          unidad: contenedor.unidad || 'unidad',
+                          costo_unitario: contenedor.costo_unitario || 0,
+                          stock_disponible: contenedor.cantidad_disponible || 0,
+                          foto_url: contenedor.foto_url
+                        }
+
+                        setRecetaEditada([...recetaEditada, nuevoInsumo])
+                        setModalAgregarInsumo(false)
+                        setTipoInsumoNuevo('Flor')
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Foto */}
+                        <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                          {contenedor.foto_url ? (
+                            <img
+                              src={`${API_URL}/upload/imagen/${contenedor.foto_url}`}
+                              alt={contenedor.nombre}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                                e.target.nextSibling.style.display = 'flex'
+                              }}
+                            />
+                          ) : null}
+                          <div className={contenedor.foto_url ? 'hidden' : 'flex items-center justify-center w-full h-full bg-gray-100'}>
+                            <ShoppingBag className="h-6 w-6 text-gray-400" />
+                          </div>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">{contenedor.nombre}</h4>
+                          {contenedor.tipo && (
+                            <p className="text-sm text-gray-600">Tipo: {contenedor.tipo}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-1 text-sm">
+                            <span className="text-gray-600">
+                              ${contenedor.costo_unitario?.toLocaleString('es-CL')} / {contenedor.unidad || 'unidad'}
+                            </span>
+                            <span className={`text-xs ${
+                              contenedor.cantidad_disponible > 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              Stock: {contenedor.cantidad_disponible || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-8 text-gray-500">
+                    <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p>No hay contenedores disponibles en el inventario</p>
+                  </div>
+                )
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setModalAgregarInsumo(false)
+                  setTipoInsumoNuevo('Flor')
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cerrar
               </button>
             </div>
           </div>
