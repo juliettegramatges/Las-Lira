@@ -274,9 +274,13 @@ function ReportesPage() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">📊 Reportes & Analytics</h1>
-        <p className="text-gray-600">Dashboard ejecutivo de rendimiento</p>
+      <div className="mb-8 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
+        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+          <TrendingUp className="h-10 w-10" />
+          Reportes & Analytics
+        </h1>
+        <p className="text-pink-100 text-lg">Dashboard ejecutivo de rendimiento - Análisis en tiempo real</p>
+        <p className="text-pink-200 text-sm mt-2">Última actualización: {new Date().toLocaleString('es-CL')}</p>
       </div>
 
       {/* KPIs Principales */}
@@ -334,12 +338,20 @@ function ReportesPage() {
         </div>
       </div>
 
-      {/* Sección: Ventas & Rendimiento */}
+      {/* ==== SECCIÓN: VENTAS & RENDIMIENTO ==== */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-1 flex-1 bg-gradient-to-r from-pink-500 to-purple-500 rounded"></div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <TrendingUp className="h-7 w-7 text-pink-600" />
+            Ventas & Rendimiento
+          </h2>
+          <div className="h-1 flex-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded"></div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-          <TrendingUp className="h-6 w-6 text-pink-500 mr-2" />
-          Ventas & Rendimiento
-        </h2>
+        <h3 className="text-lg font-semibold text-gray-700 mb-6">Análisis de Ventas Mensuales</h3>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Ventas mensuales */}
@@ -408,6 +420,18 @@ function ReportesPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      {/* ==== SECCIÓN: PRODUCTOS & CLIENTES ==== */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-1 flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded"></div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Package className="h-7 w-7 text-blue-600" />
+            Productos & Clientes
+          </h2>
+          <div className="h-1 flex-1 bg-gradient-to-r from-indigo-500 to-blue-500 rounded"></div>
         </div>
       </div>
 
@@ -686,6 +710,18 @@ function ReportesPage() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* ==== SECCIÓN: ANÁLISIS GEOGRÁFICO & CANALES ==== */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-1 flex-1 bg-gradient-to-r from-green-500 to-teal-500 rounded"></div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <MapPin className="h-7 w-7 text-green-600" />
+            Análisis Geográfico & Canales
+          </h2>
+          <div className="h-1 flex-1 bg-gradient-to-r from-teal-500 to-green-500 rounded"></div>
         </div>
       </div>
 
@@ -1313,11 +1349,6 @@ function ReportesPage() {
         )}
       </div>
 
-      {/* Footer con timestamp */}
-      <div className="text-center text-sm text-gray-500 py-4">
-        <p>Última actualización: {new Date().toLocaleString('es-CL')}</p>
-        <p className="mt-1">🌸 Dashboard Las Lira - Todos los datos en tiempo real</p>
-      </div>
     </div>
   )
 }
