@@ -1,264 +1,342 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { MapPin, Calendar, Package, TrendingUp, Loader2 } from 'lucide-react'
+import { MapPin, Clock, AlertCircle, Check, FileText, Truck, Calendar, Package, Phone } from 'lucide-react'
+
+const API_URL = 'http://localhost:5001/api'
 
 function RutasPage() {
   const [rutas, setRutas] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState('hoy') // 'hoy', 'semana', 'todas'
-  
+  const [loading, setLoading] = useState(false)
+  const [filtroFecha, setFiltroFecha] = useState('manana')
+  const [fechaPersonalizada, setFechaPersonalizada] = useState('')
+  const [pedidosSeleccionados, setPedidosSeleccionados] = useState([])
+  const [expandidas, setExpandidas] = useState({})
+
+  useEffect(() => {
+    cargarRutas()
+  }, [filtroFecha])
+
   const cargarRutas = async () => {
     try {
       setLoading(true)
-      let endpoint = '/api/rutas/resumen-hoy'
-      
-      if (vistaActual === 'semana') {
-        endpoint = '/api/rutas/por-fecha?dias=7'
-      } else if (vistaActual === 'todas') {
-        endpoint = '/api/rutas/optimizar'
-      }
-      
-      const response = await axios.get(endpoint)
-      
+      const fecha = filtroFecha === 'personalizada' ? fechaPersonalizada : filtroFecha
+      const response = await axios.get(\`\${API_URL}/pedidos/rutas?fecha=\${fecha}\`)
+
       if (response.data.success) {
-        setRutas(vistaActual === 'semana' ? response.data.data : response.data.data)
+        setRutas(response.data.data)
+        const todasExpandidas = {}
+        response.data.data.forEach((ruta, idx) => {
+          todasExpandidas[idx] = true
+        })
+        setExpandidas(todasExpandidas)
       }
-    } catch (err) {
-      console.error('Error al cargar rutas:', err)
+    } catch (error) {
+      console.error('Error al cargar rutas:', error)
+      alert('Error al cargar rutas: ' + (error.response?.data?.error || error.message))
     } finally {
       setLoading(false)
     }
   }
-  
-  useEffect(() => {
-    cargarRutas()
-  }, [vistaActual])
-  
-  const getPrecioColor = (precio) => {
-    if (precio <= 7000) return 'bg-green-100 text-green-800'
-    if (precio <= 15000) return 'bg-blue-100 text-blue-800'
-    if (precio <= 25000) return 'bg-yellow-100 text-yellow-800'
-    return 'bg-red-100 text-red-800'
+
+  const toggleComuna = (index) => {
+    setExpandidas(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }))
   }
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-      </div>
-    )
+
+  const toggleSeleccion = (pedidoId) => {
+    setPedidosSeleccionados(prev => {
+      if (prev.includes(pedidoId)) {
+        return prev.filter(id => id !== pedidoId)
+      } else {
+        return [...prev, pedidoId]
+      }
+    })
   }
-  
+
+  const toggleSeleccionTodos = (pedidos) => {
+    const ids = pedidos.map(p => p.id)
+    const todosSeleccionados = ids.every(id => pedidosSeleccionados.includes(id))
+
+    if (todosSeleccionados) {
+      setPedidosSeleccionados(prev => prev.filter(id => !ids.includes(id)))
+    } else {
+      setPedidosSeleccionados(prev => [...new Set([...prev, ...ids])])
+    }
+  }
+
+  const marcarUrgente = async (pedidoId, esUrgente) => {
+    try {
+      await axios.patch(\`\${API_URL}/pedidos/\${pedidoId}/urgente\`, {
+        es_urgente: esUrgente
+      })
+
+      cargarRutas()
+      alert(\`✅ Pedido marcado como \${esUrgente ? 'urgente' : 'normal'}\`)
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al marcar urgente: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  const marcarDespachados = async () => {
+    if (pedidosSeleccionados.length === 0) {
+      alert('❌ Selecciona al menos un pedido')
+      return
+    }
+
+    if (!confirm(\`¿Marcar \${pedidosSeleccionados.length} pedido(s) como despachados?\`)) {
+      return
+    }
+
+    try {
+      const response = await axios.post(\`\${API_URL}/pedidos/marcar-despachados\`, {
+        pedidos_ids: pedidosSeleccionados
+      })
+
+      if (response.data.success) {
+        alert(\`✅ \${response.data.data.actualizados} pedidos marcados como despachados\`)
+        setPedidosSeleccionados([])
+        cargarRutas()
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al marcar despachados: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  const abrirDocumentoRepartidor = () => {
+    const fecha = filtroFecha === 'personalizada' ? fechaPersonalizada : filtroFecha
+    window.open(\`\${API_URL}/pedidos/documento-repartidor?fecha=\${fecha}&formato=html\`, '_blank')
+  }
+
+  const totalPedidos = rutas.reduce((sum, ruta) => sum + ruta.total_pedidos, 0)
+  const totalUrgentes = rutas.reduce((sum, ruta) => sum + ruta.urgentes, 0)
+
   return (
-    <div className="px-4 sm:px-0">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Rutas de Despacho</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Organiza entregas por comuna para optimizar rutas
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <Truck className="h-8 w-8 text-blue-600" />
+          Planificación de Rutas
+        </h1>
+        <p className="text-gray-600 mt-1">Organiza y optimiza las entregas por comuna</p>
       </div>
-      
-      {/* Filtros de vista */}
-      <div className="mb-6 flex gap-2">
-        <button
-          onClick={() => setVistaActual('hoy')}
-          className={`px-4 py-2 rounded-lg font-medium ${
-            vistaActual === 'hoy'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          Hoy
-        </button>
-        <button
-          onClick={() => setVistaActual('semana')}
-          className={`px-4 py-2 rounded-lg font-medium ${
-            vistaActual === 'semana'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          Esta Semana
-        </button>
-        <button
-          onClick={() => setVistaActual('todas')}
-          className={`px-4 py-2 rounded-lg font-medium ${
-            vistaActual === 'todas'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          Todos los Pendientes
-        </button>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Fecha de Entrega
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={filtroFecha}
+                onChange={(e) => setFiltroFecha(e.target.value)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="hoy">Hoy</option>
+                <option value="manana">Mañana</option>
+                <option value="personalizada">Otra fecha...</option>
+              </select>
+
+              {filtroFecha === 'personalizada' && (
+                <input
+                  type="date"
+                  value={fechaPersonalizada}
+                  onChange={(e) => setFechaPersonalizada(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p className="text-xs text-blue-600 font-medium mb-1">Total Pedidos</p>
+            <p className="text-2xl font-bold text-blue-700">{totalPedidos}</p>
+          </div>
+
+          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+            <p className="text-xs text-red-600 font-medium mb-1">Urgentes</p>
+            <p className="text-2xl font-bold text-red-700">{totalUrgentes}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={marcarDespachados}
+            disabled={pedidosSeleccionados.length === 0}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 font-semibold transition-colors"
+          >
+            <Check className="h-5 w-5" />
+            Marcar como Despachados ({pedidosSeleccionados.length})
+          </button>
+
+          <button
+            onClick={abrirDocumentoRepartidor}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 font-semibold transition-colors"
+          >
+            <FileText className="h-5 w-5" />
+            Generar Documento Repartidor
+          </button>
+
+          <button
+            onClick={cargarRutas}
+            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 font-semibold transition-colors"
+          >
+            ♻️ Actualizar
+          </button>
+        </div>
       </div>
-      
-      {/* Vista por día (semana) */}
-      {vistaActual === 'semana' ? (
-        <div className="space-y-6">
-          {rutas.map((dia) => (
-            <div key={dia.fecha} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="bg-primary-50 px-6 py-4 border-b border-primary-100">
+
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Cargando rutas...</p>
+        </div>
+      ) : rutas.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow-md">
+          <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg">No hay pedidos para esta fecha</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {rutas.map((ruta, rutaIndex) => (
+            <div key={rutaIndex} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 cursor-pointer hover:from-blue-700 hover:to-blue-800 transition-colors"
+                onClick={() => toggleComuna(rutaIndex)}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-primary-600" />
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      {new Date(dia.fecha).toLocaleDateString('es-CL', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </h2>
+                    <MapPin className="h-6 w-6" />
+                    <h3 className="text-xl font-bold">{ruta.comuna}</h3>
                   </div>
-                  <span className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
-                    {dia.total_pedidos} pedido{dia.total_pedidos !== 1 ? 's' : ''}
-                  </span>
+
+                  <div className="flex items-center gap-4">
+                    {ruta.urgentes > 0 && (
+                      <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {ruta.urgentes} urgente(s)
+                      </span>
+                    )}
+
+                    <span className="bg-white/20 px-4 py-1 rounded-full font-semibold">
+                      {ruta.total_pedidos} pedido(s)
+                    </span>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSeleccionTodos(ruta.pedidos)
+                      }}
+                      className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {ruta.pedidos.every(p => pedidosSeleccionados.includes(p.id))
+                        ? '☑ Deseleccionar todos'
+                        : '☐ Seleccionar todos'}
+                    </button>
+
+                    <span className="text-2xl">{expandidas[rutaIndex] ? '▼' : '▶'}</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {dia.comunas.map((ruta) => (
+
+              {expandidas[rutaIndex] && (
+                <div className="divide-y divide-gray-200">
+                  {ruta.pedidos.map((pedido) => (
                     <div
-                      key={ruta.comuna}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      key={pedido.id}
+                      className={\`p-4 hover:bg-gray-50 transition-colors \${
+                        pedido.es_urgente ? 'bg-red-50 border-l-4 border-red-500' : ''
+                      } \${
+                        pedidosSeleccionados.includes(pedido.id) ? 'bg-blue-50' : ''
+                      }\`}
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-gray-400" />
-                          <h3 className="font-semibold text-gray-900">{ruta.comuna}</h3>
+                      <div className="flex items-start gap-4">
+                        <input
+                          type="checkbox"
+                          checked={pedidosSeleccionados.includes(pedido.id)}
+                          onChange={() => toggleSeleccion(pedido.id)}
+                          className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+
+                        <div className="flex-shrink-0">
+                          <div className="text-lg font-bold text-blue-600">#{pedido.id}</div>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getPrecioColor(ruta.precio_envio)}`}>
-                          ${ruta.precio_envio.toLocaleString('es-CL')}
-                        </span>
-                      </div>
-                      
-                      <div className="text-sm text-gray-600">
-                        <p className="mb-2 font-medium">{ruta.pedidos.length} pedido{ruta.pedidos.length !== 1 ? 's' : ''}</p>
-                        <div className="space-y-1.5">
-                          {ruta.pedidos.slice(0, 4).map((pedido) => (
-                            <div key={pedido.id} className="text-xs bg-gray-50 p-2 rounded">
-                              <div className="font-medium text-gray-900">• {pedido.cliente_nombre}</div>
-                              <div className="text-gray-500 mt-0.5">
-                                {pedido.arreglo_pedido || 'Sin descripción'}
-                              </div>
-                              <div className="text-gray-500 mt-0.5 flex items-center gap-1">
-                                <span className="font-medium">${(pedido.precio_ramo + pedido.precio_envio).toLocaleString('es-CL')}</span>
-                                <span className="text-[10px]">(envío: ${pedido.precio_envio.toLocaleString('es-CL')})</span>
-                              </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            {pedido.es_urgente && (
+                              <span className="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
+                                🚨 URGENTE
+                              </span>
+                            )}
+
+                            {pedido.motivo && (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+                                {pedido.motivo}
+                              </span>
+                            )}
+
+                            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium">
+                              {pedido.estado}
+                            </span>
+                          </div>
+
+                          <p className="font-semibold text-gray-900 mb-1">{pedido.cliente_nombre}</p>
+
+                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-gray-400" />
+                              {pedido.direccion}
                             </div>
-                          ))}
-                          {ruta.pedidos.length > 4 && (
-                            <div className="text-xs text-gray-500 font-medium pl-2">
-                              + {ruta.pedidos.length - 4} pedido{ruta.pedidos.length - 4 !== 1 ? 's' : ''} más
+
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-gray-400" />
+                              {pedido.telefono}
                             </div>
+                          </div>
+
+                          {pedido.destinatario && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              👤 Para: <span className="font-medium">{pedido.destinatario}</span>
+                            </p>
                           )}
+
+                          {pedido.arreglo && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              🌸 {pedido.arreglo}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex-shrink-0 text-right">
+                          <div className="flex items-center gap-2 text-blue-600 font-bold text-lg mb-2">
+                            <Clock className="h-5 w-5" />
+                            {pedido.hora_llegada}
+                          </div>
+
+                          <button
+                            onClick={() => marcarUrgente(pedido.id, !pedido.es_urgente)}
+                            className={\`px-3 py-1 rounded-lg text-sm font-medium transition-colors \${
+                              pedido.es_urgente
+                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }\`}
+                          >
+                            {pedido.es_urgente ? '🔽 Normal' : '🔺 Urgente'}
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
           ))}
-        </div>
-      ) : (
-        /* Vista simple (hoy o todas) */
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Comuna
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Precio Envío
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cantidad
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Envíos
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Clientes
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {rutas.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-sm text-gray-500">
-                      No hay pedidos pendientes para esta selección
-                    </td>
-                  </tr>
-                ) : (
-                  rutas.map((ruta) => (
-                    <tr key={ruta.comuna} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm font-medium text-gray-900">{ruta.comuna}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getPrecioColor(ruta.precio_envio)}`}>
-                          ${ruta.precio_envio?.toLocaleString('es-CL') || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Package className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {ruta.cantidad || ruta.total_pedidos || ruta.pedidos?.length || 0}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-semibold text-gray-900">
-                          ${(ruta.total_envios || 0).toLocaleString('es-CL')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-600">
-                          {(ruta.pedidos || []).slice(0, 3).map((pedido, idx) => (
-                            <div key={idx} className="mb-1">
-                              <div className="font-medium">• {pedido.cliente_nombre}</div>
-                              <div className="text-xs text-gray-500 ml-3">
-                                {pedido.arreglo_pedido || 'Sin descripción'}
-                              </div>
-                            </div>
-                          ))}
-                          {(ruta.pedidos || []).length > 3 && (
-                            <div className="text-xs text-gray-500 mt-1 font-medium">
-                              + {(ruta.pedidos || []).length - 3} pedido{(ruta.pedidos || []).length - 3 !== 1 ? 's' : ''} más
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      
-      {/* Resumen */}
-      {rutas.length > 0 && (
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
-            <span className="text-sm font-medium text-blue-900">
-              {vistaActual === 'semana' 
-                ? `${rutas.reduce((sum, dia) => sum + dia.total_pedidos, 0)} pedidos en total esta semana`
-                : `${rutas.reduce((sum, r) => sum + (r.cantidad || r.total_pedidos || r.pedidos?.length || 0), 0)} pedidos en ${rutas.length} comunas diferentes`
-              }
-            </span>
-          </div>
         </div>
       )}
     </div>
@@ -266,4 +344,3 @@ function RutasPage() {
 }
 
 export default RutasPage
-

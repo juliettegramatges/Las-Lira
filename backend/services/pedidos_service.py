@@ -662,3 +662,372 @@ class PedidosService:
         except Exception as e:
             db.session.rollback()
             return False, 0, str(e)
+    @staticmethod
+    def obtener_rutas_por_comuna(fecha_objetivo):
+        """
+        Obtiene pedidos agrupados por comuna para planificar rutas
+
+        Args:
+            fecha_objetivo: date - fecha de entrega objetivo
+
+        Returns:
+            tuple: (success, rutas_dict, mensaje)
+        """
+        try:
+            from datetime import datetime, time
+            from sqlalchemy import and_, or_
+            from models.pedido import Pedido
+
+            # Obtener pedidos para la fecha objetivo (no despachados ni cancelados)
+            inicio_dia = datetime.combine(fecha_objetivo, time.min)
+            fin_dia = datetime.combine(fecha_objetivo, time.max)
+
+            pedidos = Pedido.query.filter(
+                and_(
+                    Pedido.fecha_entrega >= inicio_dia,
+                    Pedido.fecha_entrega <= fin_dia,
+                    Pedido.estado.notin_(['Despachados', 'Cancelado'])
+                )
+            ).order_by(Pedido.es_urgente.desc(), Pedido.fecha_entrega.asc()).all()
+
+            # Agrupar por comuna
+            rutas = {}
+            for pedido in pedidos:
+                comuna = pedido.comuna or 'Sin Comuna'
+
+                if comuna not in rutas:
+                    rutas[comuna] = {
+                        'comuna': comuna,
+                        'pedidos': [],
+                        'total_pedidos': 0,
+                        'urgentes': 0
+                    }
+
+                # Calcular hora de llegada
+                hora_llegada = pedido.fecha_entrega.strftime('%H:%M') if pedido.fecha_entrega.hour != 0 else 'Sin hora'
+
+                pedido_data = {
+                    'id': pedido.id,
+                    'cliente_nombre': pedido.cliente_nombre,
+                    'direccion': pedido.direccion_entrega,
+                    'telefono': pedido.cliente_telefono,
+                    'hora_llegada': hora_llegada,
+                    'motivo': pedido.motivo,
+                    'es_urgente': pedido.es_urgente or False,
+                    'arreglo': pedido.arreglo_pedido,
+                    'estado': pedido.estado,
+                    'destinatario': pedido.destinatario,
+                    'mensaje': pedido.mensaje
+                }
+
+                rutas[comuna]['pedidos'].append(pedido_data)
+                rutas[comuna]['total_pedidos'] += 1
+                if pedido.es_urgente:
+                    rutas[comuna]['urgentes'] += 1
+
+            # Convertir a lista y ordenar por urgentes (más urgentes primero)
+            rutas_lista = list(rutas.values())
+            rutas_lista.sort(key=lambda x: x['urgentes'], reverse=True)
+
+            return True, rutas_lista, f'{len(pedidos)} pedidos encontrados'
+
+        except Exception as e:
+            return False, [], str(e)
+
+    @staticmethod
+    def marcar_urgente(pedido_id, es_urgente):
+        """
+        Marca o desmarca un pedido como urgente
+
+        Args:
+            pedido_id: ID del pedido
+            es_urgente: boolean - True para marcar como urgente
+
+        Returns:
+            tuple: (success, pedido, mensaje)
+        """
+        try:
+            from models.pedido import Pedido
+
+            pedido = Pedido.query.get(pedido_id)
+            if not pedido:
+                return False, None, 'Pedido no encontrado'
+
+            pedido.es_urgente = es_urgente
+            db.session.commit()
+
+            mensaje = f'Pedido #{pedido_id} marcado como urgente' if es_urgente else f'Pedido #{pedido_id} desmarcado como urgente'
+            return True, pedido, mensaje
+
+        except Exception as e:
+            db.session.rollback()
+            return False, None, str(e)
+
+    @staticmethod
+    def marcar_multiples_despachados(pedidos_ids):
+        """
+        Marca múltiples pedidos como despachados
+
+        Args:
+            pedidos_ids: list - lista de IDs de pedidos
+
+        Returns:
+            tuple: (success, resultado_dict, mensaje)
+        """
+        try:
+            from models.pedido import Pedido
+
+            actualizados = 0
+            no_encontrados = []
+
+            for pedido_id in pedidos_ids:
+                pedido = Pedido.query.get(pedido_id)
+                if pedido:
+                    pedido.estado = 'Despachados'
+                    actualizados += 1
+                else:
+                    no_encontrados.append(pedido_id)
+
+            db.session.commit()
+
+            resultado = {
+                'actualizados': actualizados,
+                'no_encontrados': no_encontrados,
+                'total': len(pedidos_ids)
+            }
+
+            mensaje = f'{actualizados} pedidos marcados como despachados'
+            if no_encontrados:
+                mensaje += f', {len(no_encontrados)} no encontrados'
+
+            return True, resultado, mensaje
+
+        except Exception as e:
+            db.session.rollback()
+            return False, {}, str(e)
+
+    @staticmethod
+    def generar_documento_repartidor(fecha_objetivo):
+        """
+        Genera estructura de datos para documento del repartidor
+
+        Args:
+            fecha_objetivo: date - fecha de entrega objetivo
+
+        Returns:
+            tuple: (success, documento_dict, mensaje)
+        """
+        try:
+            # Reutilizar función de rutas
+            success, rutas, mensaje = PedidosService.obtener_rutas_por_comuna(fecha_objetivo)
+
+            if not success:
+                return False, {}, mensaje
+
+            documento = {
+                'fecha': fecha_objetivo.isoformat(),
+                'fecha_formateada': fecha_objetivo.strftime('%d/%m/%Y'),
+                'rutas': rutas,
+                'total_pedidos': sum(r['total_pedidos'] for r in rutas),
+                'total_urgentes': sum(r['urgentes'] for r in rutas)
+            }
+
+            return True, documento, 'Documento generado exitosamente'
+
+        except Exception as e:
+            return False, {}, str(e)
+
+    @staticmethod
+    def generar_html_documento_repartidor(documento, fecha_objetivo):
+        """
+        Genera HTML imprimible para el repartidor
+
+        Args:
+            documento: dict - estructura del documento
+            fecha_objetivo: date - fecha objetivo
+
+        Returns:
+            str: HTML
+        """
+        html = f"""
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rutas de Entrega - {fecha_objetivo.strftime('%d/%m/%Y')}</title>
+    <style>
+        @media print {{
+            @page {{ margin: 1cm; }}
+            body {{ margin: 0; }}
+        }}
+        body {{
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-size: 12px;
+        }}
+        h1 {{
+            text-align: center;
+            color: #2c5282;
+            margin-bottom: 10px;
+        }}
+        .fecha {{
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }}
+        .resumen {{
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }}
+        .resumen p {{
+            margin: 5px 0;
+            font-size: 14px;
+        }}
+        .comuna {{
+            border: 2px solid #2c5282;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }}
+        .comuna-header {{
+            background: #2c5282;
+            color: white;
+            padding: 12px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }}
+        .pedido {{
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 15px;
+            display: grid;
+            grid-template-columns: 60px 1fr 120px;
+            gap: 15px;
+            align-items: start;
+        }}
+        .pedido:last-child {{
+            border-bottom: none;
+        }}
+        .pedido.urgente {{
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+        }}
+        .pedido-numero {{
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c5282;
+        }}
+        .pedido-info {{
+            flex: 1;
+        }}
+        .pedido-info strong {{
+            color: #2d3748;
+        }}
+        .pedido-info p {{
+            margin: 3px 0;
+            line-height: 1.4;
+        }}
+        .hora {{
+            text-align: right;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c5282;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 5px;
+        }}
+        .badge-urgente {{
+            background: #fc8181;
+            color: white;
+        }}
+        .badge-motivo {{
+            background: #90cdf4;
+            color: #1a365d;
+        }}
+    </style>
+</head>
+<body>
+    <h1>🚚 Rutas de Entrega - Las Lira</h1>
+    <div class="fecha">{fecha_objetivo.strftime('%A, %d de %B de %Y')}</div>
+
+    <div class="resumen">
+        <p><strong>Total de Pedidos:</strong> {documento['total_pedidos']}</p>
+        <p><strong>Pedidos Urgentes:</strong> {documento['total_urgentes']}</p>
+        <p><strong>Comunas a Visitar:</strong> {len(documento['rutas'])}</p>
+    </div>
+"""
+
+        for ruta in documento['rutas']:
+            html += f"""
+    <div class="comuna">
+        <div class="comuna-header">
+            <span>{ruta['comuna']}</span>
+            <span>{ruta['total_pedidos']} pedido(s)"""
+
+            if ruta['urgentes'] > 0:
+                html += f" - {ruta['urgentes']} urgente(s)"
+
+            html += """</span>
+        </div>
+"""
+
+            for pedido in ruta['pedidos']:
+                urgente_class = ' urgente' if pedido['es_urgente'] else ''
+                pedido_id = pedido['id']
+                html += f"""
+        <div class="pedido{urgente_class}">
+            <div class="pedido-numero">#{pedido_id}</div>
+            <div class="pedido-info">"""
+
+                if pedido['es_urgente']:
+                    html += '<span class="badge badge-urgente">URGENTE</span>'
+
+                if pedido['motivo']:
+                    motivo = pedido['motivo']
+                    html += f'<span class="badge badge-motivo">{motivo}</span>'
+
+                cliente = pedido['cliente_nombre']
+                direccion = pedido['direccion']
+                telefono = pedido['telefono']
+                html += f"""
+                <p><strong>{cliente}</strong></p>
+                <p>📍 {direccion}</p>
+                <p>📞 {telefono}</p>"""
+
+                if pedido['destinatario']:
+                    destinatario = pedido['destinatario']
+                    html += f"<p>👤 Para: {destinatario}</p>"
+
+                if pedido['arreglo']:
+                    arreglo = pedido['arreglo']
+                    html += f"<p>🌸 {arreglo}</p>"
+
+                hora = pedido['hora_llegada']
+                html += f"""
+            </div>
+            <div class="hora">⏰ {hora}</div>
+        </div>
+"""
+
+            html += """
+    </div>
+"""
+
+        html += """
+</body>
+</html>
+"""
+
+        return html

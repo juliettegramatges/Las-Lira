@@ -57,7 +57,10 @@ class Pedido(db.Model):
     # Información de Evento
     es_evento = db.Column(db.Boolean, default=False)  # Si es un pedido de evento
     tipo_evento = db.Column(db.String(50))  # Matrimonio, Funeral, Cumpleaños, etc.
-    
+
+    # Prioridad de entrega
+    es_urgente = db.Column(db.Boolean, default=False)  # Pedido marcado como urgente
+
     # Información de Personalización
     colores_solicitados = db.Column(db.Text)  # JSON: ['Rojo', 'Blanco', 'Verde']
     tipo_personalizacion = db.Column(db.String(100))  # 'Ramo', 'Centro de Mesa', 'Arreglo Especial', etc.
@@ -153,6 +156,7 @@ class Pedido(db.Model):
             'foto_enviado_url': self.foto_enviado_url,
             'es_evento': self.es_evento,
             'tipo_evento': self.tipo_evento,
+            'es_urgente': self.es_urgente,
             'colores_solicitados': self.colores_solicitados,
             'tipo_personalizacion': self.tipo_personalizacion,
             'notas_personalizacion': self.notas_personalizacion,

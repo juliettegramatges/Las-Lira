@@ -303,3 +303,136 @@ def subir_foto_respaldo(pedido_id):
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================
+# ENDPOINTS PARA GESTIÓN DE RUTAS
+# ============================================
+
+@bp.route('/rutas', methods=['GET'])
+def obtener_rutas():
+    """Obtiene pedidos agrupados por comuna para planificar rutas"""
+    try:
+        from datetime import datetime, timedelta
+
+        # Parámetros de filtro
+        filtro_fecha = request.args.get('fecha', 'hoy')  # 'hoy', 'manana', 'YYYY-MM-DD'
+
+        # Calcular fecha objetivo
+        hoy = datetime.now().date()
+        if filtro_fecha == 'hoy':
+            fecha_objetivo = hoy
+        elif filtro_fecha == 'manana':
+            fecha_objetivo = hoy + timedelta(days=1)
+        else:
+            try:
+                fecha_objetivo = datetime.strptime(filtro_fecha, '%Y-%m-%d').date()
+            except:
+                fecha_objetivo = hoy
+
+        # Delegar al servicio
+        success, rutas, mensaje = PedidosService.obtener_rutas_por_comuna(fecha_objetivo)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': rutas,
+                'fecha': fecha_objetivo.isoformat()
+            })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:pedido_id>/urgente', methods=['PATCH'])
+def marcar_urgente(pedido_id):
+    """Marca o desmarca un pedido como urgente"""
+    try:
+        data = request.json
+        es_urgente = data.get('es_urgente', True)
+
+        # Delegar al servicio
+        success, pedido, mensaje = PedidosService.marcar_urgente(pedido_id, es_urgente)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': pedido.to_dict(),
+                'message': mensaje
+            })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 404 if 'no encontrado' in mensaje else 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/marcar-despachados', methods=['POST'])
+def marcar_despachados():
+    """Marca múltiples pedidos como despachados"""
+    try:
+        data = request.json
+        pedidos_ids = data.get('pedidos_ids', [])
+
+        if not pedidos_ids or not isinstance(pedidos_ids, list):
+            return jsonify({'success': False, 'error': 'Se requiere array de IDs de pedidos'}), 400
+
+        # Delegar al servicio
+        success, resultado, mensaje = PedidosService.marcar_multiples_despachados(pedidos_ids)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': resultado,
+                'message': mensaje
+            })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/documento-repartidor', methods=['GET'])
+def generar_documento_repartidor():
+    """Genera documento imprimible para el repartidor"""
+    try:
+        from datetime import datetime, timedelta
+
+        # Parámetros
+        filtro_fecha = request.args.get('fecha', 'hoy')
+        formato = request.args.get('formato', 'html')  # 'html' o 'json'
+
+        # Calcular fecha objetivo
+        hoy = datetime.now().date()
+        if filtro_fecha == 'hoy':
+            fecha_objetivo = hoy
+        elif filtro_fecha == 'manana':
+            fecha_objetivo = hoy + timedelta(days=1)
+        else:
+            try:
+                fecha_objetivo = datetime.strptime(filtro_fecha, '%Y-%m-%d').date()
+            except:
+                fecha_objetivo = hoy
+
+        # Delegar al servicio
+        success, documento, mensaje = PedidosService.generar_documento_repartidor(fecha_objetivo)
+
+        if success:
+            if formato == 'html':
+                # Generar HTML imprimible
+                html = PedidosService.generar_html_documento_repartidor(documento, fecha_objetivo)
+                return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+            else:
+                return jsonify({
+                    'success': True,
+                    'data': documento,
+                    'fecha': fecha_objetivo.isoformat()
+                })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
