@@ -2,34 +2,40 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { pedidosAPI } from '../services/api'
 import ColumnaKanban from '../components/Tablero/ColumnaKanban'
-import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
+import { AlertCircle, Loader2, RefreshCw, Plus } from 'lucide-react'
 
 function TableroPage() {
   const navigate = useNavigate()
   const [tablero, setTablero] = useState({
     'Entregas de Hoy': [],
     'Entregas para Mañana': [],
+    'Entregas Semana': [],
+    'Entregas Próx Semana': [],
+    'Entregas Este Mes': [],
+    'Entregas Próx Mes': [],
+    'Entregas Futuras': [],
     'En Proceso': [],
     'Listo para Despacho': [],
-    'Despachados': [],
-    'Pedidos Semana': [],
-    'Eventos': []
+    'Despachados': []
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [mensajeActualizacion, setMensajeActualizacion] = useState(null)
   const [actualizando, setActualizando] = useState(false)
   const [incluirDespachados, setIncluirDespachados] = useState(false)
-  
-  // Estados según flujo del Trello de Las-Lira (orden de prioridad)
+
+  // Estados según flujo actualizado (orden de prioridad)
   const estados = [
-    'Entregas de Hoy',      // 🔥 Urgente - hoy
-    'Entregas para Mañana', // ⚡ Próximo - mañana
-    'En Proceso',           // 🔧 Taller trabajando
+    'Entregas de Hoy',      // 🔥 Entrega HOY
+    'Entregas para Mañana', // ⚡ Entrega MAÑANA
+    'Entregas Semana',      // 📅 Entrega esta semana (no hoy ni mañana)
+    'Entregas Próx Semana', // 📆 Entrega próxima semana
+    'Entregas Este Mes',    // 🗓️ Entrega este mes (después de próxima semana)
+    'Entregas Próx Mes',    // 📅 Entrega próximo mes
+    'Entregas Futuras',     // 🔮 Entrega más allá del próximo mes
+    'En Proceso',           // 🔧 En preparación
     'Listo para Despacho',  // ✅ Listo para enviar
-    'Despachados',          // 📦 Completados
-    'Pedidos Semana',       // 📅 Planificación semanal
-    'Eventos'               // 🎉 Pedidos para eventos especiales
+    'Despachados'           // 📦 Ya entregado
   ]
   
   const cargarTablero = async (autoClasificar = true) => {
@@ -133,14 +139,23 @@ function TableroPage() {
               <span className="text-pink-600 font-bold">{totalPedidos}</span> pedido{totalPedidos !== 1 ? 's' : ''} pendiente{totalPedidos !== 1 ? 's' : ''}
             </p>
           </div>
-          <button
-            onClick={forzarActualizacion}
-            disabled={actualizando}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-          >
-            <RefreshCw className={`h-5 w-5 ${actualizando ? 'animate-spin' : ''}`} />
-            {actualizando ? 'Actualizando...' : 'Actualizar Estados'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/pedidos', { state: { abrirFormulario: true } })}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 shadow-sm hover:shadow-md transition-all duration-200 font-medium"
+            >
+              <Plus className="h-5 w-5" />
+              Nuevo Pedido
+            </button>
+            <button
+              onClick={forzarActualizacion}
+              disabled={actualizando}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+            >
+              <RefreshCw className={`h-5 w-5 ${actualizando ? 'animate-spin' : ''}`} />
+              {actualizando ? 'Actualizando...' : 'Actualizar Estados'}
+            </button>
+          </div>
         </div>
         
         {/* Mensaje de Actualización */}

@@ -137,12 +137,23 @@ def crear_cliente():
             }), 400
         
         # Generar ID del cliente
-        ultimo_cliente = Cliente.query.order_by(Cliente.id.desc()).first()
-        if ultimo_cliente:
-            numero = int(ultimo_cliente.id[3:]) + 1
-            nuevo_id = f"CLI{numero:03d}"
+        # Obtener todos los clientes que empiecen con "CLI" y extraer el número máximo
+        import re
+        clientes = Cliente.query.all()
+        numeros = []
+        for c in clientes:
+            if c.id.startswith('CLI'):
+                # Extraer solo los dígitos del ID
+                match = re.search(r'\d+', c.id[3:])
+                if match:
+                    numeros.append(int(match.group()))
+
+        if numeros:
+            numero = max(numeros) + 1
         else:
-            nuevo_id = "CLI001"
+            numero = 1
+
+        nuevo_id = f"CLI{numero:03d}"
         
         # Crear cliente
         cliente = Cliente(

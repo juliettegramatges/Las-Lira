@@ -17,6 +17,9 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+# Deshabilitar redirecciones automáticas por trailing slash (evita problemas con CORS preflight)
+app.url_map.strict_slashes = False
+
 # Configurar ruta correcta de la base de datos
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(basedir, "instance", "laslira.db")}')

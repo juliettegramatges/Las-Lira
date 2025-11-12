@@ -716,13 +716,13 @@ function ProductosPage() {
   const precioVenta = precioVentaEditado !== null ? precioVentaEditado : (productoDetalle?.precio_venta || 0)
   const margenActual = precioVenta - costoTotal
   const porcentajeMargen = precioVenta > 0 ? ((margenActual / precioVenta) * 100).toFixed(1) : 0
-  
-  const handleGuardarReceta = async () => {
+
+  const handleGuardarRecetaCompleta = async () => {
     if (!productoDetalle || !coloresEditables) return
-    
+
     try {
       setGuardandoReceta(true)
-      
+
       // Preparar datos para enviar
       const coloresParaGuardar = coloresEditables.map(color => {
         const floresColor = simulacion.flores[color.id] || []
@@ -1747,7 +1747,7 @@ function ProductosPage() {
                     
                     {/* Botón Guardar */}
                     <button
-                      onClick={handleGuardarReceta}
+                      onClick={handleGuardarRecetaCompleta}
                       disabled={guardandoReceta}
                       className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
                     >

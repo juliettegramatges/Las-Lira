@@ -7,45 +7,44 @@ bp = Blueprint('productos', __name__)
 
 @bp.route('/', methods=['GET'])
 def listar_productos():
-    """Lista todos los productos con sus imágenes"""
+    """Lista todos los productos con sus imágenes (de ambas bases de datos)"""
     try:
-        conn = sqlite3.connect(get_legacy_db_path())
-        cursor = conn.cursor()
-        
-        # Obtener productos
-        cursor.execute('''
-            SELECT id, nombre, descripcion, precio, categoria, tipo, 
+        productos_con_imagenes = []
+
+        # 1. Obtener productos de Shopify (base legacy)
+        conn_shopify = sqlite3.connect(get_legacy_db_path())
+        cursor_shopify = conn_shopify.cursor()
+
+        cursor_shopify.execute('''
+            SELECT id, nombre, descripcion, precio, categoria, tipo,
                    imagen_url, sku, peso, tags, metafields, activo
-            FROM productos 
+            FROM productos
             WHERE activo = 1
             ORDER BY nombre
         ''')
-        
-        productos = cursor.fetchall()
-        productos_con_imagenes = []
-        
-        for producto in productos:
+
+        for producto in cursor_shopify.fetchall():
             id_prod, nombre, descripcion, precio, categoria, tipo, imagen_url, sku, peso, tags, metafields, activo = producto
-            
+
             # Obtener todas las imágenes del producto
-            cursor.execute('''
+            cursor_shopify.execute('''
                 SELECT url, posicion, alt_text, es_principal
-                FROM imagenes_productos 
+                FROM imagenes_productos
                 WHERE producto_id = ?
                 ORDER BY posicion
             ''', (id_prod,))
-            
+
             imagenes = []
-            for img_url, pos, alt, es_principal in cursor.fetchall():
+            for img_url, pos, alt, es_principal in cursor_shopify.fetchall():
                 imagenes.append({
                     'url': img_url,
                     'posicion': pos,
                     'alt_text': alt,
                     'es_principal': bool(es_principal)
                 })
-            
+
             metafields_dict = json.loads(metafields) if metafields else {}
-            
+
             productos_con_imagenes.append({
                 'id': id_prod,
                 'nombre': nombre,
@@ -59,17 +58,56 @@ def listar_productos():
                 'peso': peso,
                 'tags': tags.split(',') if tags else [],
                 'metafields': metafields_dict,
-                'activo': bool(activo)
+                'activo': bool(activo),
+                'origen': 'shopify'
             })
-        
-        conn.close()
-        
+
+        conn_shopify.close()
+
+        # 2. Obtener productos internos (laslira.db) que tienen recetas
+        conn_internal = sqlite3.connect(get_main_db_path())
+        cursor_internal = conn_internal.cursor()
+
+        cursor_internal.execute('''
+            SELECT id, nombre, descripcion, precio_venta, tipo_arreglo, tamano, activo
+            FROM productos
+            WHERE activo = 1
+            ORDER BY nombre
+        ''')
+
+        for producto in cursor_internal.fetchall():
+            id_prod, nombre, descripcion, precio_venta, tipo_arreglo, tamano, activo = producto
+
+            productos_con_imagenes.append({
+                'id': id_prod,  # Este es un string tipo "PR001"
+                'nombre': nombre + ' 🌸',  # Agregar emoji para distinguir productos internos
+                'descripcion': descripcion or '',
+                'precio': precio_venta,
+                'precio_venta': precio_venta,
+                'categoria': 'Productos Las Lira',
+                'tipo': tipo_arreglo or 'Arreglo Floral',
+                'tamano': tamano or '',
+                'imagen_principal': '',
+                'imagenes': [],
+                'sku': id_prod,
+                'peso': 0,
+                'tags': ['Producto Interno', 'Con Receta'],
+                'metafields': {},
+                'activo': bool(activo),
+                'origen': 'interno'
+            })
+
+        conn_internal.close()
+
+        # Ordenar todos los productos por nombre
+        productos_con_imagenes.sort(key=lambda x: x['nombre'])
+
         return jsonify({
             'success': True,
             'productos': productos_con_imagenes,
             'total': len(productos_con_imagenes)
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -375,11 +413,12 @@ def productos_por_categoria(categoria):
         }), 500
 
 
-@bp.route('/<int:producto_id>/receta', methods=['GET'])
+@bp.route('/<producto_id>/receta', methods=['GET'])
 def obtener_receta_producto(producto_id):
     """Obtiene la receta (insumos) de un producto.
     Lee desde instance/laslira.db en la tabla recetas_productos y enriquece con datos
     de flores y contenedores (costo, stock, foto, etc.).
+    Acepta tanto IDs numéricos como strings (PR001, etc.)
     """
     try:
         # Preferir la base usada por la app
@@ -393,12 +432,13 @@ def obtener_receta_producto(producto_id):
             WHERE producto_id = ?
             ORDER BY insumo_tipo, insumo_id
             ''',
-            (producto_id,)
+            (str(producto_id),)  # Convertir a string para soportar ambos tipos
         )
 
         receta = []
         costo_total_insumos = 0.0
-        for insumo_tipo, insumo_id, cantidad, unidad, es_opcional in cursor.fetchall():
+        resultados = cursor.fetchall()
+        for insumo_tipo, insumo_id, cantidad, unidad, es_opcional in resultados:
             item = {
                 'id': insumo_id,
                 'tipo': insumo_tipo,
@@ -407,12 +447,16 @@ def obtener_receta_producto(producto_id):
                 'es_opcional': bool(es_opcional),
             }
             if insumo_tipo == 'Flor':
-                cursor.execute('SELECT id, nombre, tipo, color, costo_unitario, cantidad_disponible, foto_url FROM flores WHERE id = ?', (insumo_id,))
+                cursor.execute('SELECT id, tipo, color, costo_unitario, cantidad_stock, foto_url FROM flores WHERE id = ?', (insumo_id,))
                 row = cursor.fetchone()
                 if row:
-                    fid, nombre, tipo, color, costo_unitario, stock, foto = row
+                    fid, tipo, color, costo_unitario, stock, foto = row
+                    # Crear nombre descriptivo: "Tipo - Color"
+                    nombre_descriptivo = f"{tipo} {color}" if color else tipo
                     item.update({
-                        'nombre': nombre or tipo,
+                        'nombre': nombre_descriptivo,
+                        'insumo_nombre': nombre_descriptivo,
+                        'tipo_insumo': tipo,
                         'color': color,
                         'costo_unitario': float(costo_unitario or 0),
                         'stock_disponible': int(stock or 0),
@@ -420,13 +464,20 @@ def obtener_receta_producto(producto_id):
                         'unidad_stock': 'Tallos',
                     })
             elif insumo_tipo == 'Contenedor':
-                cursor.execute('SELECT id, nombre, tipo, material, costo, cantidad_disponible, foto_url FROM contenedores WHERE id = ?', (insumo_id,))
+                cursor.execute('SELECT id, tipo, material, forma, tamano, color, costo, stock, foto_url FROM contenedores WHERE id = ?', (insumo_id,))
                 row = cursor.fetchone()
                 if row:
-                    cid, nombre, tipo, material, costo, stock, foto = row
+                    cid, tipo, material, forma, tamano, color, costo, stock, foto = row
+                    # Crear nombre descriptivo: "Tipo Material Tamaño"
+                    nombre_descriptivo = f"{tipo} {material} {tamano}".strip()
                     item.update({
-                        'nombre': nombre or tipo,
+                        'nombre': nombre_descriptivo,
+                        'insumo_nombre': nombre_descriptivo,
+                        'tipo_insumo': tipo,
                         'material': material,
+                        'forma': forma,
+                        'tamano': tamano,
+                        'color': color,
                         'costo_unitario': float(costo or 0),
                         'stock_disponible': int(stock or 0),
                         'foto_url': foto,
@@ -438,18 +489,28 @@ def obtener_receta_producto(producto_id):
             costo_total_insumos += item['costo_total']
             receta.append(item)
 
-        conn.close()
-
         # Precio de venta de referencia (best-effort)
+        # Primero intentar en laslira.db (productos internos)
         try:
-            conn2 = sqlite3.connect(get_legacy_db_path())
-            c2 = conn2.cursor()
-            c2.execute('SELECT precio FROM productos WHERE id = ?', (producto_id,))
-            rowp = c2.fetchone()
+            cursor.execute('SELECT precio_venta FROM productos WHERE id = ?', (str(producto_id),))
+            rowp = cursor.fetchone()
             precio_venta = float(rowp[0]) if rowp and rowp[0] is not None else None
-            conn2.close()
         except Exception:
             precio_venta = None
+
+        conn.close()
+
+        # Si no se encontró en laslira.db, intentar en productos_shopify.db
+        if precio_venta is None:
+            try:
+                conn2 = sqlite3.connect(get_legacy_db_path())
+                c2 = conn2.cursor()
+                c2.execute('SELECT precio FROM productos WHERE id = ?', (producto_id,))
+                rowp = c2.fetchone()
+                precio_venta = float(rowp[0]) if rowp and rowp[0] is not None else None
+                conn2.close()
+            except Exception:
+                precio_venta = None
 
         ganancia = (precio_venta or 0) - costo_total_insumos
         margen = (ganancia / precio_venta * 100) if precio_venta and precio_venta > 0 else 0

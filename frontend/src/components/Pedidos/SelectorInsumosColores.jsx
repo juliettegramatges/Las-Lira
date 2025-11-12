@@ -290,8 +290,8 @@ function SelectorInsumosColores({ productoId, onInsumosChange, onCostoChange }) 
               .filter(c => c.tipo.includes(configuracion.producto.tipo_arreglo.replace('Con ', '')))
               .map(contenedor => (
                 <option key={contenedor.id} value={contenedor.id}>
-                  {contenedor.tipo} {contenedor.material} - ${parseFloat(contenedor.costo_unitario).toLocaleString('es-CL')} 
-                  (Stock: {contenedor.cantidad_stock})
+                  {contenedor.nombre || `${contenedor.tipo || 'Sin tipo'} ${contenedor.material || ''} ${contenedor.tamano ? `(${contenedor.tamano})` : ''}`} - ${parseFloat(contenedor.costo || contenedor.costo_unitario || 0).toLocaleString('es-CL')}
+                  (Stock: {contenedor.cantidad_stock || 0})
                 </option>
               ))}
           </select>

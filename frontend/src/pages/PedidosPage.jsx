@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Search, Filter, Plus, Edit, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle, Camera, Upload } from 'lucide-react'
+import { Search, Filter, Plus, Edit, Edit2, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle, Camera, Upload, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -124,6 +124,13 @@ function PedidosPage() {
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [historialPedidos, setHistorialPedidos] = useState([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
+  const [mostrarCrearCliente, setMostrarCrearCliente] = useState(false)
+  const [nuevoClienteData, setNuevoClienteData] = useState({
+    tipo_cliente: 'Nuevo',
+    direccion_principal: '',
+    notas: ''
+  })
+  const [creandoCliente, setCreandoCliente] = useState(false)
   
   // Estados para insumos
   const [receta, setReceta] = useState([])
@@ -520,7 +527,7 @@ function PedidosPage() {
       id: Date.now(), // ID temporal para el frontend
       producto_id: formData.producto_id,
       producto_nombre: productoSeleccionado.nombre,
-      precio: parseFloat(formData.precio_ramo) || productoSeleccionado.precio || 0,
+      precio: productoSeleccionado.precio || productoSeleccionado.precio_venta || 0,
       insumos: JSON.parse(JSON.stringify(insumosModificados)) // Copia profunda
     }
 
@@ -530,8 +537,8 @@ function PedidosPage() {
     setFormData(prev => ({
       ...prev,
       producto_id: '',
-      arreglo_pedido: '',
-      precio_ramo: 0
+      arreglo_pedido: ''
+      // NO resetear precio_ramo aquí, se actualizará automáticamente con el total
     }))
     setReceta([])
     setInsumosModificados([])
@@ -550,6 +557,16 @@ function PedidosPage() {
   const precioTotalProductos = useMemo(() => {
     return productosDelPedido.reduce((sum, producto) => sum + (parseFloat(producto.precio) || 0), 0)
   }, [productosDelPedido])
+
+  // Actualizar precio_ramo automáticamente cuando cambia el total de productos
+  useEffect(() => {
+    if (productosDelPedido.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        precio_ramo: precioTotalProductos
+      }))
+    }
+  }, [precioTotalProductos, productosDelPedido.length])
 
   // Función para personalización
   const handlePersonalizacionChange = (campo, valor) => {
@@ -575,6 +592,12 @@ function PedidosPage() {
     setEsPersonalizacion(false)
     setDatosPersonalizacion({
       producto_shopify_referencia: ''
+    })
+    setMostrarCrearCliente(false)
+    setNuevoClienteData({
+      tipo_cliente: 'Nuevo',
+      direccion_principal: '',
+      notas: ''
     })
     setFormData({
       canal: 'WhatsApp',
@@ -614,36 +637,38 @@ function PedidosPage() {
   // Buscar clientes por nombre
   const buscarClientesPorNombre = async (nombre) => {
     console.log('🔍 Buscando clientes con nombre:', nombre)
-    
+
     if (!nombre || nombre.length < 1) {
       setSugerenciasClientes([])
       setMostrarSugerencias(false)
       return
     }
-    
+
     try {
       setBuscandoCliente(true)
       console.log('📡 Enviando request a:', `${API_URL}/clientes/buscar-por-nombre`)
-      
+
       const response = await axios.get(`${API_URL}/clientes/buscar-por-nombre`, {
         params: { nombre }
       })
-      
+
       console.log('📥 Respuesta del servidor:', response.data)
-      
+
       if (response.data.success && response.data.clientes.length > 0) {
         setSugerenciasClientes(response.data.clientes)
         setMostrarSugerencias(true)
         console.log(`✅ Encontrados ${response.data.clientes.length} clientes`)
         console.log('👥 Clientes:', response.data.clientes.map(c => c.nombre))
       } else {
+        // Aunque no haya clientes, mostrar el dropdown con opción de crear nuevo
         setSugerenciasClientes([])
-        setMostrarSugerencias(false)
-        console.log('ℹ️ No se encontraron clientes')
+        setMostrarSugerencias(true)
+        console.log('ℹ️ No se encontraron clientes - mostrando opción de crear nuevo')
       }
     } catch (err) {
       console.error('❌ Error al buscar clientes:', err)
       setSugerenciasClientes([])
+      setMostrarSugerencias(true) // Mostrar opción de crear nuevo incluso con error
     } finally {
       setBuscandoCliente(false)
     }
@@ -666,14 +691,15 @@ function PedidosPage() {
 
   const seleccionarCliente = (cliente) => {
     console.log('✅ Cliente seleccionado:', cliente.nombre, `(${cliente.tipo_cliente})`)
-    
+
     setClienteEncontrado(cliente)
     setMostrarSugerencias(false)
     setSugerenciasClientes([])
-    
+    setMostrarCrearCliente(false)
+
     // Cargar historial de pedidos del cliente
     cargarHistorialPedidos(cliente.id)
-    
+
     // Autocompletar TODOS los datos del cliente
     setFormData(prev => ({
       ...prev,
@@ -683,7 +709,7 @@ function PedidosPage() {
       cliente_email: cliente.email || '',
       direccion_entrega: cliente.direccion_principal || prev.direccion_entrega
     }))
-    
+
     // Calcular plazo de pago automático si no es manual
     if (!plazoPagoManual) {
       const plazo = PLAZOS_PAGO[cliente.tipo_cliente] || 0
@@ -691,6 +717,59 @@ function PedidosPage() {
         ...prev,
         plazo_pago_dias: plazo
       }))
+    }
+  }
+
+  const handleCrearNuevoCliente = async () => {
+    // Validar datos mínimos
+    if (!formData.cliente_nombre || !formData.cliente_telefono) {
+      alert('❌ Nombre y teléfono son obligatorios para crear un cliente')
+      return
+    }
+
+    try {
+      setCreandoCliente(true)
+
+      const clienteData = {
+        nombre: formData.cliente_nombre,
+        telefono: formData.cliente_telefono,
+        email: formData.cliente_email || null,
+        tipo_cliente: nuevoClienteData.tipo_cliente,
+        direccion_principal: nuevoClienteData.direccion_principal || null,
+        notas: nuevoClienteData.notas || null
+      }
+
+      const response = await axios.post(`${API_URL}/clientes`, clienteData)
+
+      if (response.data.success) {
+        const nuevoCliente = response.data.data
+        alert(`✅ Cliente ${nuevoCliente.id} creado exitosamente`)
+
+        // Seleccionar automáticamente el nuevo cliente
+        seleccionarCliente(nuevoCliente)
+
+        // Limpiar formulario de creación
+        setMostrarCrearCliente(false)
+        setNuevoClienteData({
+          tipo_cliente: 'Nuevo',
+          direccion_principal: '',
+          notas: ''
+        })
+      }
+    } catch (err) {
+      console.error('Error al crear cliente:', err)
+      if (err.response?.data?.cliente_existente) {
+        // Si el teléfono ya existe, ofrecer usar ese cliente
+        const clienteExistente = err.response.data.cliente_existente
+        if (confirm(`Ya existe un cliente con ese teléfono: ${clienteExistente.nombre}.\n¿Deseas usar ese cliente?`)) {
+          seleccionarCliente(clienteExistente)
+          setMostrarCrearCliente(false)
+        }
+      } else {
+        alert('❌ Error al crear cliente: ' + (err.response?.data?.error || err.message))
+      }
+    } finally {
+      setCreandoCliente(false)
     }
   }
   
@@ -958,10 +1037,14 @@ function PedidosPage() {
     cargarDatosFormulario()
   }, [])
   
-  // Detectar si se navega desde el tablero con un pedido a abrir
+  // Detectar si se navega desde el tablero con un pedido a abrir o para crear uno nuevo
   useEffect(() => {
     if (location.state?.pedidoAAbrir) {
       handleAbrirPedido(location.state.pedidoAAbrir)
+      // Limpiar el state para que no se abra de nuevo si recarga
+      navigate(location.pathname, { replace: true, state: {} })
+    } else if (location.state?.abrirFormulario) {
+      setMostrarFormulario(true)
       // Limpiar el state para que no se abra de nuevo si recarga
       navigate(location.pathname, { replace: true, state: {} })
     }
@@ -1188,18 +1271,21 @@ function PedidosPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Entrega
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan="11" className="px-6 py-8 text-center text-sm text-gray-500">
                     Cargando pedidos...
                   </td>
                 </tr>
               ) : pedidosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="px-6 py-8 text-center">
+                  <td colSpan="11" className="px-6 py-8 text-center">
                     {busqueda ? (
                       <>
                         <p className="text-gray-500 mb-2">🔍 No se encontraron pedidos</p>
@@ -1320,6 +1406,40 @@ function PedidosPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {pedido.fecha_entrega ? formatFecha(pedido.fecha_entrega) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAbrirPedido(pedido)
+                          }}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Editar pedido"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!confirm('¿Eliminar este pedido?\n\nEsta acción no se puede deshacer.')) {
+                              return
+                            }
+                            try {
+                              await axios.delete(`${API_URL}/pedidos/${pedido.id}`)
+                              cargarPedidos()
+                              alert('✅ Pedido eliminado exitosamente')
+                            } catch (error) {
+                              console.error('Error al eliminar pedido:', error)
+                              alert('❌ Error al eliminar el pedido')
+                            }
+                          }}
+                          className="p-1 rounded-lg transition-all duration-200 hover:bg-red-50 text-red-600 hover:text-red-700"
+                          title="Eliminar pedido"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -2398,8 +2518,8 @@ function PedidosPage() {
                       />
                       
                       {/* Dropdown de sugerencias */}
-                      {mostrarSugerencias && sugerenciasClientes.length > 0 && (
-                        <div 
+                      {mostrarSugerencias && (
+                        <div
                           className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-64 overflow-y-auto"
                           onMouseDown={(e) => {
                             e.preventDefault()
@@ -2410,46 +2530,67 @@ function PedidosPage() {
                             e.stopPropagation()
                           }}
                         >
-                          {sugerenciasClientes.map((cliente) => (
-                            <div
-                              key={cliente.id}
-                              role="button"
-                              tabIndex={0}
-                              onMouseDown={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                seleccionarCliente(cliente)
-                                return false
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                return false
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <p className="font-semibold text-gray-900">{cliente.nombre}</p>
-                                  <p className="text-sm text-gray-600">{cliente.telefono}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    cliente.tipo_cliente === 'VIP' ? 'bg-purple-100 text-purple-700' :
-                                    cliente.tipo_cliente === 'Fiel' ? 'bg-blue-100 text-blue-700' :
-                                    cliente.tipo_cliente === 'Cumplidor' ? 'bg-green-100 text-green-700' :
-                                    cliente.tipo_cliente === 'No Cumplidor' ? 'bg-red-100 text-red-700' :
-                                    'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {cliente.tipo_cliente}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {cliente.total_pedidos} pedidos
-                                  </span>
+                          {sugerenciasClientes.length > 0 ? (
+                            sugerenciasClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                role="button"
+                                tabIndex={0}
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  seleccionarCliente(cliente)
+                                  return false
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  return false
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-gray-900">{cliente.nombre}</p>
+                                    <p className="text-sm text-gray-600">{cliente.telefono}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      cliente.tipo_cliente === 'VIP' ? 'bg-purple-100 text-purple-700' :
+                                      cliente.tipo_cliente === 'Fiel' ? 'bg-blue-100 text-blue-700' :
+                                      cliente.tipo_cliente === 'Cumplidor' ? 'bg-green-100 text-green-700' :
+                                      cliente.tipo_cliente === 'No Cumplidor' ? 'bg-red-100 text-red-700' :
+                                      'bg-gray-100 text-gray-700'
+                                    }`}>
+                                      {cliente.tipo_cliente}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {cliente.total_pedidos} pedidos
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
+                            ))
+                          ) : (
+                            <div className="px-4 py-3">
+                              <p className="text-sm text-gray-600 mb-3">
+                                No se encontró ningún cliente con ese nombre
+                              </p>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setMostrarCrearCliente(true)
+                                  setMostrarSugerencias(false)
+                                }}
+                                className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 font-medium flex items-center justify-center gap-2"
+                              >
+                                <Plus className="h-4 w-4" />
+                                Crear nuevo cliente "{formData.cliente_nombre}"
+                              </button>
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
                     </div>
@@ -2576,7 +2717,100 @@ function PedidosPage() {
                         />
                       </div>
                     </div>
-                    
+
+                    {/* Formulario para crear nuevo cliente */}
+                    {mostrarCrearCliente && (
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-300">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold text-green-800 flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Crear Nuevo Cliente
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMostrarCrearCliente(false)
+                              setNuevoClienteData({
+                                tipo_cliente: 'Nuevo',
+                                direccion_principal: '',
+                                notas: ''
+                              })
+                            }}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Tipo de Cliente
+                            </label>
+                            <select
+                              value={nuevoClienteData.tipo_cliente}
+                              onChange={(e) => setNuevoClienteData({...nuevoClienteData, tipo_cliente: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            >
+                              <option value="Nuevo">Nuevo</option>
+                              <option value="Ocasional">Ocasional</option>
+                              <option value="Fiel">Fiel</option>
+                              <option value="VIP">VIP</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Dirección Principal (opcional)
+                            </label>
+                            <input
+                              type="text"
+                              value={nuevoClienteData.direccion_principal}
+                              onChange={(e) => setNuevoClienteData({...nuevoClienteData, direccion_principal: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                              placeholder="Dirección frecuente del cliente"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Notas (opcional)
+                            </label>
+                            <textarea
+                              value={nuevoClienteData.notas}
+                              onChange={(e) => setNuevoClienteData({...nuevoClienteData, notas: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                              rows="2"
+                              placeholder="Preferencias, observaciones..."
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleCrearNuevoCliente}
+                            disabled={creandoCliente || !formData.cliente_nombre || !formData.cliente_telefono}
+                            className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {creandoCliente ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Creando...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4" />
+                                Guardar Cliente
+                              </>
+                            )}
+                          </button>
+
+                          <p className="text-xs text-gray-600 italic">
+                            El nombre, teléfono y email se tomarán de los campos de arriba
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Plazo de Pago */}
                     <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                       <div className="flex items-center justify-between mb-2">
@@ -2895,7 +3129,7 @@ function PedidosPage() {
                                       ) : (
                                         contenedores.map(cont => (
                                           <option key={cont.id} value={cont.id}>
-                                            {cont.tipo} - {cont.material}
+                                            {cont.nombre || `${cont.tipo || 'Sin tipo'} - ${cont.material || 'Sin material'} ${cont.tamano ? `(${cont.tamano})` : ''}`}
                                           </option>
                                         ))
                                       )}

@@ -6,6 +6,7 @@ Contiene toda la lógica de negocio relacionada con pedidos
 from extensions import db
 from models.pedido import Pedido, PedidoInsumo
 from models.cliente import Cliente
+from models.inventario import Flor, Contenedor
 from config.plazos_pago import obtener_plazo_pago
 from utils.fecha_helpers import clasificar_pedido
 from utils.telefono_helpers import normalizar_telefono
@@ -127,7 +128,26 @@ class PedidosService:
                 return c
 
         # Cliente no existe, crear uno nuevo
+        # Generar ID del cliente
+        import re
+        clientes = Cliente.query.all()
+        numeros = []
+        for c in clientes:
+            if c.id.startswith('CLI'):
+                # Extraer solo los dígitos del ID
+                match = re.search(r'\d+', c.id[3:])
+                if match:
+                    numeros.append(int(match.group()))
+
+        if numeros:
+            numero = max(numeros) + 1
+        else:
+            numero = 1
+
+        nuevo_id = f"CLI{numero:03d}"
+
         cliente = Cliente(
+            id=nuevo_id,
             nombre=data['cliente_nombre'],
             telefono=telefono_normalizado,
             email=data.get('cliente_email'),
@@ -262,13 +282,164 @@ class PedidosService:
                 cliente.total_gastado = (cliente.total_gastado or 0) + pedido.precio_total
                 cliente.ultima_compra = datetime.now()
 
+            # 📦 Reservar insumos automáticamente al crear el pedido
+            # Esto incrementa cantidad_en_uso para reflejar que están comprometidos
+            success_reserva, msg_reserva = PedidosService._reservar_insumos_pedido(pedido.id)
+            if not success_reserva:
+                # Si falla la reserva, hacer rollback completo
+                db.session.rollback()
+                return False, None, f'Error al reservar insumos: {msg_reserva}'
+
             db.session.commit()
 
-            return True, pedido, f'Pedido #{pedido.id} creado exitosamente'
+            mensaje_final = f'Pedido #{pedido.id} creado exitosamente'
+            if success_reserva:
+                mensaje_final += f' | {msg_reserva}'
+
+            return True, pedido, mensaje_final
 
         except Exception as e:
             db.session.rollback()
             return False, None, str(e)
+
+    @staticmethod
+    def _reservar_insumos_pedido(pedido_id):
+        """
+        Reserva los insumos de un pedido (incrementa cantidad_en_uso)
+        Se llama al CREAR un pedido
+
+        NOTA: NO hace commit, debe ser parte de una transacción mayor
+
+        Args:
+            pedido_id: ID del pedido
+
+        Returns:
+            tuple: (success, mensaje)
+        """
+        try:
+            # Obtener todos los insumos del pedido
+            insumos = PedidoInsumo.query.filter_by(pedido_id=pedido_id).all()
+
+            reservados = []
+            for insumo in insumos:
+                if insumo.insumo_tipo == 'Flor':
+                    flor = Flor.query.get(insumo.insumo_id)
+                    if flor:
+                        flor.cantidad_en_uso += insumo.cantidad
+                        reservados.append(f"{insumo.cantidad} {flor.nombre}")
+                elif insumo.insumo_tipo == 'Contenedor':
+                    contenedor = Contenedor.query.get(insumo.insumo_id)
+                    if contenedor:
+                        contenedor.cantidad_en_uso += insumo.cantidad
+                        reservados.append(f"{insumo.cantidad} {contenedor.nombre or contenedor.tipo}")
+
+            # NO hacer commit aquí - será parte de la transacción del caller
+
+            if reservados:
+                return True, f"Insumos reservados: {', '.join(reservados)}"
+            else:
+                return True, "No hay insumos para reservar"
+
+        except Exception as e:
+            return False, f"Error al reservar insumos: {str(e)}"
+
+    @staticmethod
+    def _liberar_insumos_pedido(pedido_id):
+        """
+        Libera los insumos reservados de un pedido (decrementa cantidad_en_uso)
+        Se llama cuando un pedido es cancelado o eliminado
+
+        NOTA: NO hace commit, debe ser parte de una transacción mayor
+
+        Args:
+            pedido_id: ID del pedido
+
+        Returns:
+            tuple: (success, mensaje)
+        """
+        try:
+            # Obtener todos los insumos del pedido que NO han sido descontados del stock
+            insumos = PedidoInsumo.query.filter_by(pedido_id=pedido_id, descontado_stock=False).all()
+
+            liberados = []
+            for insumo in insumos:
+                if insumo.insumo_tipo == 'Flor':
+                    flor = Flor.query.get(insumo.insumo_id)
+                    if flor:
+                        # Liberar la reserva
+                        flor.cantidad_en_uso = max(0, flor.cantidad_en_uso - insumo.cantidad)
+                        liberados.append(f"{insumo.cantidad} {flor.nombre}")
+                elif insumo.insumo_tipo == 'Contenedor':
+                    contenedor = Contenedor.query.get(insumo.insumo_id)
+                    if contenedor:
+                        # Liberar la reserva
+                        contenedor.cantidad_en_uso = max(0, contenedor.cantidad_en_uso - insumo.cantidad)
+                        liberados.append(f"{insumo.cantidad} {contenedor.nombre or contenedor.tipo}")
+
+            # NO hacer commit aquí - será parte de la transacción del caller
+
+            if liberados:
+                return True, f"Insumos liberados: {', '.join(liberados)}"
+            else:
+                return True, "No hay insumos reservados para liberar"
+
+        except Exception as e:
+            return False, f"Error al liberar insumos: {str(e)}"
+
+    @staticmethod
+    def _consumir_insumos_pedido(pedido_id):
+        """
+        Consume los insumos de un pedido (decrementa cantidad_stock Y cantidad_en_uso)
+        Se llama cuando un pedido pasa a "Listo para Despacho"
+
+        Esto representa el uso FÍSICO de los insumos al armar el pedido.
+        Decrementamos AMBOS: stock (consumo real) y en_uso (liberamos la reserva)
+        De esta forma cantidad_disponible se mantiene correcta sin doble descuento.
+
+        NOTA: NO hace commit, debe ser parte de una transacción mayor
+
+        Args:
+            pedido_id: ID del pedido
+
+        Returns:
+            tuple: (success, mensaje)
+        """
+        try:
+            # Obtener todos los insumos del pedido
+            insumos = PedidoInsumo.query.filter_by(pedido_id=pedido_id).all()
+
+            consumidos = []
+            for insumo in insumos:
+                if insumo.insumo_tipo == 'Flor':
+                    flor = Flor.query.get(insumo.insumo_id)
+                    if flor:
+                        # Consumir del stock real
+                        flor.cantidad_stock = max(0, flor.cantidad_stock - insumo.cantidad)
+                        # Liberar la reserva
+                        flor.cantidad_en_uso = max(0, flor.cantidad_en_uso - insumo.cantidad)
+                        consumidos.append(f"{insumo.cantidad} {flor.nombre}")
+                        # Marcar como descontado
+                        insumo.descontado_stock = True
+                elif insumo.insumo_tipo == 'Contenedor':
+                    contenedor = Contenedor.query.get(insumo.insumo_id)
+                    if contenedor:
+                        # Consumir del stock real
+                        contenedor.cantidad_stock = max(0, contenedor.cantidad_stock - insumo.cantidad)
+                        # Liberar la reserva
+                        contenedor.cantidad_en_uso = max(0, contenedor.cantidad_en_uso - insumo.cantidad)
+                        consumidos.append(f"{insumo.cantidad} {contenedor.nombre or contenedor.tipo}")
+                        # Marcar como descontado
+                        insumo.descontado_stock = True
+
+            # NO hacer commit aquí - será parte de la transacción del caller
+
+            if consumidos:
+                return True, f"Insumos consumidos del stock: {', '.join(consumidos)}"
+            else:
+                return True, "No hay insumos para consumir"
+
+        except Exception as e:
+            return False, f"Error al consumir insumos: {str(e)}"
 
     @staticmethod
     def actualizar_estado(pedido_id, nuevo_estado):
@@ -300,9 +471,27 @@ class PedidosService:
             )
             db.session.add(historial)
 
+            # 🔄 Gestión de consumo de insumos según cambio de estado
+            mensaje_insumos = ""
+
+            # Cuando el pedido pasa a "Listo para Despacho" → consumir insumos físicamente
+            if nuevo_estado == "Listo para Despacho" and estado_anterior != "Listo para Despacho":
+                # Verificar que los insumos no hayan sido ya descontados
+                insumos = PedidoInsumo.query.filter_by(pedido_id=pedido_id).all()
+                ya_descontados = all(insumo.descontado_stock for insumo in insumos) if insumos else False
+
+                if not ya_descontados:
+                    success_consumo, msg_consumo = PedidosService._consumir_insumos_pedido(pedido_id)
+                    if success_consumo:
+                        mensaje_insumos = f" | {msg_consumo}"
+                    else:
+                        # Si falla el consumo, hacer rollback del cambio de estado también
+                        db.session.rollback()
+                        return False, None, msg_consumo
+
             db.session.commit()
 
-            return True, pedido, f'Estado actualizado de "{estado_anterior}" a "{nuevo_estado}"'
+            return True, pedido, f'Estado actualizado de "{estado_anterior}" a "{nuevo_estado}"{mensaje_insumos}'
 
         except Exception as e:
             db.session.rollback()
@@ -325,9 +514,12 @@ class PedidosService:
             if not pedido:
                 return False, None, 'Pedido no encontrado'
 
-            # Devolver stock si fue descontado
+            # Devolver stock si fue descontado (insumos que ya pasaron por "Listo para Despacho")
             from services.inventario_service import InventarioService
-            success, mensaje_stock = InventarioService.devolver_stock_pedido(pedido_id)
+            success_devolucion, mensaje_stock = InventarioService.devolver_stock_pedido(pedido_id)
+
+            # Liberar insumos reservados (insumos que no fueron descontados aún)
+            success_liberacion, mensaje_liberacion = PedidosService._liberar_insumos_pedido(pedido_id)
 
             # Cambiar estado a cancelado
             pedido.estado = 'Cancelado'
@@ -336,7 +528,16 @@ class PedidosService:
 
             db.session.commit()
 
-            mensaje_final = f'Pedido #{pedido_id} cancelado. {mensaje_stock if success else ""}'
+            mensajes = []
+            if success_devolucion and mensaje_stock:
+                mensajes.append(mensaje_stock)
+            if success_liberacion and mensaje_liberacion:
+                mensajes.append(mensaje_liberacion)
+
+            mensaje_final = f'Pedido #{pedido_id} cancelado'
+            if mensajes:
+                mensaje_final += f'. {" | ".join(mensajes)}'
+
             return True, pedido, mensaje_final
 
         except Exception as e:
@@ -346,7 +547,7 @@ class PedidosService:
     @staticmethod
     def eliminar_pedido(pedido_id):
         """
-        Elimina un pedido (soft delete o hard delete)
+        Elimina un pedido y libera/devuelve sus insumos
 
         Args:
             pedido_id: ID del pedido
@@ -359,6 +560,21 @@ class PedidosService:
             if not pedido:
                 return False, 'Pedido no encontrado'
 
+            # Devolver stock si fue descontado (insumos consumidos físicamente)
+            from services.inventario_service import InventarioService
+            InventarioService.devolver_stock_pedido(pedido_id)
+
+            # Liberar insumos reservados (insumos que no fueron descontados aún)
+            PedidosService._liberar_insumos_pedido(pedido_id)
+
+            # Eliminar historial de estados (debe hacerse antes de eliminar el pedido)
+            from models.pedido import HistorialEstado
+            HistorialEstado.query.filter_by(pedido_id=pedido_id).delete()
+
+            # Eliminar productos del pedido (si existen)
+            from models.pedido import PedidoProducto
+            PedidoProducto.query.filter_by(pedido_id=pedido_id).delete()
+
             # Eliminar insumos asociados
             PedidoInsumo.query.filter_by(pedido_id=pedido_id).delete()
 
@@ -366,7 +582,7 @@ class PedidosService:
             db.session.delete(pedido)
             db.session.commit()
 
-            return True, f'Pedido #{pedido_id} eliminado'
+            return True, f'Pedido #{pedido_id} eliminado correctamente'
 
         except Exception as e:
             db.session.rollback()
@@ -477,8 +693,21 @@ class PedidosService:
 
         pedidos = query.order_by(Pedido.fecha_entrega.asc()).all()
 
+        # Inicializar tablero con todos los estados posibles
+        tablero = {
+            'Entregas de Hoy': [],
+            'Entregas para Mañana': [],
+            'Entregas Semana': [],
+            'Entregas Próx Semana': [],
+            'Entregas Este Mes': [],
+            'Entregas Próx Mes': [],
+            'Entregas Futuras': [],
+            'En Proceso': [],
+            'Listo para Despacho': [],
+            'Despachados': []
+        }
+
         # Agrupar por estado (excluyendo despachados si no se solicitan)
-        tablero = {}
         pedidos_filtrados = 0
         for pedido in pedidos:
             estado = pedido.estado or 'Sin Estado'
@@ -493,16 +722,13 @@ class PedidosService:
         # FORZAR: Si no se solicitan despachados, eliminarlos completamente del resultado
         # Esto es una medida de seguridad adicional
         if not incluir_despachados:
-            if 'Despachados' in tablero:
-                del tablero['Despachados']
+            # Eliminar estado Despachados
+            tablero['Despachados'] = []
             # También verificar que no haya ningún pedido con estado "Despachados" en ningún estado
-            tablero_limpio = {}
             for estado, pedidos_lista in tablero.items():
                 if estado != 'Despachados':
-                    pedidos_filtrados = [p for p in pedidos_lista if p.get('estado') != 'Despachados']
-                    if pedidos_filtrados:
-                        tablero_limpio[estado] = pedidos_filtrados
-            tablero = tablero_limpio
+                    # Filtrar cualquier pedido que tenga estado "Despachados"
+                    tablero[estado] = [p for p in pedidos_lista if p.get('estado') != 'Despachados']
 
         return tablero
 
@@ -607,9 +833,14 @@ class PedidosService:
         try:
             # Estados que pueden ser reclasificados automáticamente según fecha
             estados_reclasificables = [
-                'Pedidos Semana',
+                'Pedidos Semana',  # Estado antiguo, por compatibilidad
                 'Entregas de Hoy',
-                'Entregas para Mañana'
+                'Entregas para Mañana',
+                'Entregas Semana',
+                'Entregas Próx Semana',
+                'Entregas Este Mes',
+                'Entregas Próx Mes',
+                'Entregas Futuras'
             ]
             
             # Obtener pedidos que están en estados reclasificables o que no tienen estado de trabajo activo

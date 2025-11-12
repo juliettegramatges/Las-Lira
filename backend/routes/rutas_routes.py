@@ -5,7 +5,7 @@ Rutas para optimización de despachos y rutas
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.pedido import Pedido
-from config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS
+from config.comunas import obtener_precio_comuna, obtener_zona_comuna, ZONAS, COMUNAS_PRECIOS
 from utils.ubicacion_helpers import extraer_comuna
 from datetime import datetime, timedelta
 from sqlalchemy import func

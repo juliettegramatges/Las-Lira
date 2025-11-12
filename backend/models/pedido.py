@@ -196,6 +196,36 @@ class PedidoProducto(db.Model):
         }
 
 
+class HistorialEstado(db.Model):
+    """Tabla para registrar el historial de cambios de estado de pedidos"""
+    __tablename__ = 'historial_estados'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
+    estado_anterior = db.Column(db.String(50), nullable=False)
+    estado_nuevo = db.Column(db.String(50), nullable=False)
+    fecha_cambio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    usuario = db.Column(db.String(100))  # Opcional: quién hizo el cambio
+    notas = db.Column(db.Text)  # Opcional: notas sobre el cambio
+
+    # Relación
+    pedido = db.relationship('Pedido', backref='historial_estados', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'pedido_id': self.pedido_id,
+            'estado_anterior': self.estado_anterior,
+            'estado_nuevo': self.estado_nuevo,
+            'fecha_cambio': self.fecha_cambio.isoformat() if self.fecha_cambio else None,
+            'usuario': self.usuario,
+            'notas': self.notas
+        }
+
+    def __repr__(self):
+        return f'<HistorialEstado Pedido#{self.pedido_id}: {self.estado_anterior} → {self.estado_nuevo}>'
+
+
 class PedidoInsumo(db.Model):
     __tablename__ = 'pedidos_insumos'
 

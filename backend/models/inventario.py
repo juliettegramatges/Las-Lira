@@ -91,6 +91,7 @@ class Contenedor(db.Model):
     bodega = db.relationship('Bodega', backref='contenedores', lazy=True)
     
     def to_dict(self):
+        costo_valor = float(self.costo) if self.costo else 0
         return {
             'id': self.id,
             'nombre': self.nombre or f"{self.tipo or ''} {self.tamano or ''}".strip(),
@@ -101,7 +102,8 @@ class Contenedor(db.Model):
             'color': self.color,
             'ubicacion': self.ubicacion,
             'foto_url': self.foto_url,
-            'costo': float(self.costo) if self.costo else 0,
+            'costo': costo_valor,
+            'costo_unitario': costo_valor,  # Alias para compatibilidad con frontend
             'cantidad_stock': self.cantidad_stock,
             'stock': self.stock,  # Compatibilidad
             'cantidad_en_uso': self.cantidad_en_uso,
