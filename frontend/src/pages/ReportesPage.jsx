@@ -122,13 +122,12 @@ function ReportesPage() {
     try {
       setLoading(true)
       
-      // Cargar todos los datos en paralelo (excepto ventasDiaSemana y topProductos que se cargan separadamente)
+      // Cargar todos los datos en paralelo (excepto ventasDiaSemana, topProductos y distribucionClientes que se cargan separadamente)
       const [
         resKpis,
         resVentas,
         resTipos,
         resClientes,
-        resDistClientes,
         resComunas,
         resEventos,
         resCobranza,
@@ -138,7 +137,6 @@ function ReportesPage() {
         axios.get(`${API_URL}/reportes/ventas-mensuales`),
         axios.get(`${API_URL}/reportes/distribucion-tipos`),
         axios.get(`${API_URL}/reportes/top-clientes?limit=10`),
-        axios.get(`${API_URL}/reportes/distribucion-clientes${añoDistribucionClientes ? `?año=${añoDistribucionClientes}` : ''}`),
         axios.get(`${API_URL}/reportes/comunas-frecuentes?limit=15`),
         axios.get(`${API_URL}/reportes/analisis-eventos`),
         axios.get(`${API_URL}/reportes/analisis-cobranza`),
@@ -149,7 +147,7 @@ function ReportesPage() {
       if (resVentas.data.success) setVentasMensuales(resVentas.data.data)
       if (resTipos.data.success) setDistribucionTipos(resTipos.data.data)
       if (resClientes.data.success) setTopClientes(resClientes.data.data)
-      // Distribución de clientes se carga en useEffect separado
+      // Distribución de clientes se carga en useEffect separado con filtro de año
       if (resComunas.data.success) setComunasFrecuentes(resComunas.data.data)
       if (resEventos.data.success) setAnalisisEventos(resEventos.data.data)
       if (resCobranza.data.success) setAnalisisCobranza(resCobranza.data.data)
