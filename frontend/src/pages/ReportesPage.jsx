@@ -366,7 +366,7 @@ function ReportesPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" style={{ fontSize: '12px' }} />
+                <XAxis dataKey="nombre" style={{ fontSize: '12px' }} />
                 <YAxis style={{ fontSize: '12px' }} />
                 <Tooltip 
                   formatter={(value) => formatCurrency(value)}

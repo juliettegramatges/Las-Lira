@@ -166,27 +166,41 @@ class ReportesService:
         }
 
     @staticmethod
-    def obtener_ventas_mensuales(meses=6):
+    def obtener_ventas_mensuales(meses=12):
         """
-        Obtiene ventas agrupadas por mes
+        Obtiene ventas agrupadas por mes (últimos N meses)
 
         Args:
-            meses: cantidad de meses a retornar
+            meses: cantidad de meses a retornar (default: 12)
 
         Returns:
-            list: ventas por mes
+            list: ventas por mes con formato {mes, ventas, nombre}
         """
+        from datetime import datetime, timedelta
+        
+        # Calcular fecha límite (últimos N meses)
+        fecha_limite = datetime.now() - timedelta(days=meses * 30)
+        
         ventas = db.session.query(
             extract('year', Pedido.fecha_pedido).label('año'),
             extract('month', Pedido.fecha_pedido).label('mes'),
             func.sum(Pedido.precio_ramo + Pedido.precio_envio).label('total')
-        ).group_by('año', 'mes').order_by('año', 'mes').limit(meses).all()
+        ).filter(
+            Pedido.fecha_pedido >= fecha_limite,
+            Pedido.estado != 'Cancelado'
+        ).group_by('año', 'mes').order_by('año', 'mes').all()
+
+        # Mapear nombres de meses
+        nombres_meses = {
+            1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
+            7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
+        }
 
         return [
             {
-                'año': int(v.año),
                 'mes': int(v.mes),
-                'total': float(v.total or 0)
+                'ventas': float(v.total or 0),
+                'nombre': f"{nombres_meses.get(int(v.mes), int(v.mes))}/{int(v.año) % 100}"
             }
             for v in ventas
         ]
