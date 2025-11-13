@@ -946,6 +946,14 @@ class PedidosService:
                 # Calcular hora de llegada
                 hora_llegada = pedido.fecha_entrega.strftime('%H:%M') if pedido.fecha_entrega.hour != 0 else 'Sin hora'
 
+                # Obtener foto de respaldo del primer producto (si existe)
+                foto_respaldo = None
+                if pedido.productos:
+                    for producto in pedido.productos:
+                        if producto.foto_respaldo:
+                            foto_respaldo = producto.foto_respaldo
+                            break
+
                 pedido_data = {
                     'id': pedido.id,
                     'cliente_nombre': pedido.cliente_nombre,
@@ -957,7 +965,8 @@ class PedidosService:
                     'arreglo': pedido.arreglo_pedido,
                     'estado': pedido.estado,
                     'destinatario': pedido.destinatario,
-                    'mensaje': pedido.mensaje
+                    'mensaje': pedido.mensaje,
+                    'foto_respaldo': foto_respaldo
                 }
 
                 rutas[comuna]['pedidos'].append(pedido_data)
@@ -1196,6 +1205,13 @@ class PedidosService:
             background: #90cdf4;
             color: #1a365d;
         }}
+        .foto-respaldo {{
+            max-width: 150px;
+            max-height: 150px;
+            margin-top: 8px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }}
     </style>
 </head>
 <body>
@@ -1253,6 +1269,11 @@ class PedidosService:
                 if pedido['arreglo']:
                     arreglo = pedido['arreglo']
                     html += f"<p>🌸 {arreglo}</p>"
+
+                # Agregar foto de respaldo si existe
+                if pedido.get('foto_respaldo'):
+                    foto_url = f"/api/upload/imagen/{pedido['foto_respaldo']}"
+                    html += f'<p><img src="{foto_url}" class="foto-respaldo" alt="Foto de respaldo"></p>'
 
                 hora = pedido['hora_llegada']
                 html += f"""
