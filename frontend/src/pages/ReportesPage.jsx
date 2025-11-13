@@ -1312,43 +1312,12 @@ function ReportesPage() {
           </div>
         </div>
 
-        {/* Gráfico de Colores */}
+        {/* Lista de Colores */}
         {coloresFrecuentes.length > 0 ? (
           <div className="bg-white rounded-xl shadow-md border border-purple-100 p-6">
-            <ResponsiveContainer width="100%" height={500}>
-              <BarChart data={coloresFrecuentes} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  type="number" 
-                  style={{ fontSize: '11px' }}
-                />
-                <YAxis 
-                  dataKey="color" 
-                  type="category" 
-                  width={100} 
-                  style={{ fontSize: '11px', fontWeight: '600' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#F3E8FF', 
-                    border: '2px solid #A855F7',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Bar 
-                  dataKey="cantidad" 
-                  fill="#A855F7" 
-                  name="Cantidad de Pedidos"
-                  radius={[0, 8, 8, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-            
-            {/* Lista detallada de colores */}
-            <div className="mt-6 pt-6 border-t-2 border-purple-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Top 10 Colores</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                {coloresFrecuentes.slice(0, 10).map((item, index) => (
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Top 10 Colores</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              {coloresFrecuentes.slice(0, 10).map((item, index) => (
                   <div 
                     key={index} 
                     className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 text-center hover:shadow-lg transition-all hover:scale-105"
