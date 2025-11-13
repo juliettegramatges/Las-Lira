@@ -27,21 +27,19 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Inicializar extensiones
 # Configurar CORS para permitir requests desde el frontend
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "http://localhost:3001",
-            "http://localhost:3002", 
-            "http://localhost:5173", 
-            "http://127.0.0.1:3001",
-            "http://127.0.0.1:3002",
-            "http://127.0.0.1:5001"
-        ],
-        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
+CORS(app,
+     origins=[
+         "http://localhost:3001",
+         "http://localhost:3002",
+         "http://localhost:5173",
+         "http://127.0.0.1:3001",
+         "http://127.0.0.1:3002",
+         "http://127.0.0.1:5001"
+     ],
+     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True
+)
 db.init_app(app)
 
 # Importar rutas

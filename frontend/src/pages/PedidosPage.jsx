@@ -101,6 +101,8 @@ function PedidosPage() {
     firma: '',
     direccion_entrega: '',
     comuna: '',
+    latitud: null,
+    longitud: null,
     motivo: '',
     fecha_entrega: '',
     hora_entrega: '', // Hora opcional
@@ -688,6 +690,8 @@ function PedidosPage() {
       firma: '',
       direccion_entrega: '',
       comuna: '',
+      latitud: null,
+      longitud: null,
       motivo: '',
       fecha_entrega: '',
       hora_entrega: '',
@@ -3556,25 +3560,46 @@ function PedidosPage() {
                     Información de Entrega
                   </h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Dirección Completa <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.direccion_entrega}
-                        onChange={(e) => setFormData({...formData, direccion_entrega: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="Av. Apoquindo 1234, Depto 501"
-                      />
-                    </div>
+                    <DireccionConMapa
+                      direccion={formData.direccion_entrega}
+                      comuna={formData.comuna}
+                      latitud={formData.latitud}
+                      longitud={formData.longitud}
+                      onDireccionChange={(nuevaDireccion, nuevaComuna) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          direccion_entrega: nuevaDireccion
+                        }))
+                        if (nuevaComuna) {
+                          handleComunaChange(nuevaComuna)
+                        }
+                      }}
+                      onCoordenadasChange={(lat, lng) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          latitud: lat,
+                          longitud: lng
+                        }))
+                      }}
+                    />
+
+                    {formData.comuna && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm text-green-800">
+                          <strong>Comuna detectada:</strong> {formData.comuna}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          💡 Precio de envío actualizado, pero puedes modificarlo abajo
+                        </p>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Comuna
+                          Comuna Manual (opcional)
                           {formData.comuna && (
-                            <span className="ml-2 text-xs text-green-600">✓ Precio envío auto-rellenado</span>
+                            <span className="ml-2 text-xs text-green-600">✓ Auto-detectada</span>
                           )}
                         </label>
                         <select
@@ -3589,11 +3614,6 @@ function PedidosPage() {
                             </option>
                           ))}
                         </select>
-                        {formData.comuna && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            💡 Precio de envío actualizado, pero puedes modificarlo abajo
-                          </p>
-                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
