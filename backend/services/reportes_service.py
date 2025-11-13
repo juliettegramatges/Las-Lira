@@ -125,13 +125,13 @@ class ReportesService:
 
         # Clientes nuevos este mes
         clientes_nuevos_mes = Cliente.query.filter(
-            Cliente.fecha_creacion >= primer_dia_mes
+            Cliente.fecha_registro >= primer_dia_mes
         ).count()
 
         # Clientes nuevos mes anterior
         clientes_nuevos_mes_anterior = Cliente.query.filter(
-            Cliente.fecha_creacion >= mes_anterior,
-            Cliente.fecha_creacion < primer_dia_mes
+            Cliente.fecha_registro >= mes_anterior,
+            Cliente.fecha_registro < primer_dia_mes
         ).count()
 
         # Crecimiento clientes
