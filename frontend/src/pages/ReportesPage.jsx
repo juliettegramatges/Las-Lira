@@ -1318,24 +1318,23 @@ function ReportesPage() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">Top 10 Colores</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               {coloresFrecuentes.slice(0, 10).map((item, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 text-center hover:shadow-lg transition-all hover:scale-105"
-                  >
-                    <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-white ${
-                      index === 0 ? 'bg-yellow-500' : 
-                      index === 1 ? 'bg-gray-400' : 
-                      index === 2 ? 'bg-orange-600' : 
-                      'bg-purple-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <p className="text-sm font-bold text-gray-900 mb-1">{item.color}</p>
-                    <p className="text-2xl font-bold text-purple-600">{item.cantidad}</p>
-                    <p className="text-xs text-gray-500">pedidos</p>
+                <div 
+                  key={index} 
+                  className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 text-center hover:shadow-lg transition-all hover:scale-105"
+                >
+                  <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-white ${
+                    index === 0 ? 'bg-yellow-500' : 
+                    index === 1 ? 'bg-gray-400' : 
+                    index === 2 ? 'bg-orange-600' : 
+                    'bg-purple-500'
+                  }`}>
+                    {index + 1}
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm font-bold text-gray-900 mb-1">{item.color}</p>
+                  <p className="text-2xl font-bold text-purple-600">{item.cantidad}</p>
+                  <p className="text-xs text-gray-500">pedidos</p>
+                </div>
+              ))}
             </div>
           </div>
         ) : (
