@@ -78,8 +78,8 @@ export const AuthProvider = ({ children }) => {
     
     // Definir permisos por rol
     const permisos = {
-      secretaria: ['tablero', 'cobranza', 'clientes', 'productos', 'pedidos'],
-      taller: ['tablero', 'taller', 'productos']
+      secretaria: ['tablero', 'cobranza', 'clientes', 'productos', 'pedidos', 'inventario'],
+      taller: ['tablero', 'taller', 'productos', 'inventario']
     }
     
     return permisos[user.rol]?.includes(route) || false

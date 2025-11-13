@@ -185,7 +185,12 @@ function PedidosPage() {
     if (pedido.fecha_entrega) {
       try {
         const fechaObj = new Date(pedido.fecha_entrega)
-        fechaEdit = fechaObj.toISOString().split('T')[0] // YYYY-MM-DD
+        // Usar métodos locales para obtener fecha y hora en zona horaria local
+        const año = fechaObj.getFullYear()
+        const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0')
+        const dia = fechaObj.getDate().toString().padStart(2, '0')
+        fechaEdit = `${año}-${mes}-${dia}` // YYYY-MM-DD en hora local
+        
         const horas = fechaObj.getHours().toString().padStart(2, '0')
         const minutos = fechaObj.getMinutes().toString().padStart(2, '0')
         horaEdit = `${horas}:${minutos}`
@@ -241,7 +246,12 @@ function PedidosPage() {
     if (pedidoDetalle.fecha_entrega) {
       try {
         const fechaObj = new Date(pedidoDetalle.fecha_entrega)
-        fechaEdit = fechaObj.toISOString().split('T')[0] // YYYY-MM-DD
+        // Usar métodos locales para obtener fecha y hora en zona horaria local
+        const año = fechaObj.getFullYear()
+        const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0')
+        const dia = fechaObj.getDate().toString().padStart(2, '0')
+        fechaEdit = `${año}-${mes}-${dia}` // YYYY-MM-DD en hora local
+        
         const horas = fechaObj.getHours().toString().padStart(2, '0')
         const minutos = fechaObj.getMinutes().toString().padStart(2, '0')
         horaEdit = `${horas}:${minutos}`
@@ -283,11 +293,14 @@ function PedidosPage() {
       if (datosActualizacion.fecha_entrega_edit) {
         let fechaEntregaCompleta
         if (datosActualizacion.hora_entrega_edit && datosActualizacion.hora_entrega_edit.trim()) {
-          // Combinar fecha + hora
-          fechaEntregaCompleta = new Date(`${datosActualizacion.fecha_entrega_edit}T${datosActualizacion.hora_entrega_edit}`).toISOString()
+          // Combinar fecha + hora en zona horaria local, luego convertir a ISO
+          // Crear fecha en hora local del navegador
+          const fechaLocal = new Date(`${datosActualizacion.fecha_entrega_edit}T${datosActualizacion.hora_entrega_edit}`)
+          fechaEntregaCompleta = fechaLocal.toISOString()
         } else {
-          // Solo fecha (a las 00:00)
-          fechaEntregaCompleta = new Date(`${datosActualizacion.fecha_entrega_edit}T00:00:00`).toISOString()
+          // Solo fecha (a las 00:00 hora local)
+          const fechaLocal = new Date(`${datosActualizacion.fecha_entrega_edit}T00:00:00`)
+          fechaEntregaCompleta = fechaLocal.toISOString()
         }
         datosActualizacion.fecha_entrega = fechaEntregaCompleta
         if (datosActualizacion.hora_entrega_edit) {
@@ -311,7 +324,12 @@ function PedidosPage() {
         if (response.data.data.fecha_entrega) {
           try {
             const fechaObj = new Date(response.data.data.fecha_entrega)
-            fechaEdit = fechaObj.toISOString().split('T')[0]
+            // Usar métodos locales para obtener fecha y hora en zona horaria local
+            const año = fechaObj.getFullYear()
+            const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0')
+            const dia = fechaObj.getDate().toString().padStart(2, '0')
+            fechaEdit = `${año}-${mes}-${dia}` // YYYY-MM-DD en hora local
+            
             const horas = fechaObj.getHours().toString().padStart(2, '0')
             const minutos = fechaObj.getMinutes().toString().padStart(2, '0')
             horaEdit = `${horas}:${minutos}`

@@ -35,7 +35,7 @@ function Layout() {
     { name: 'Clientes', path: '/clientes', icon: Users, color: 'text-indigo-600', roles: ['admin', 'secretaria'] },
     { name: 'Cobranza', path: '/cobranza', icon: DollarSign, color: 'text-emerald-600', roles: ['admin', 'secretaria'] },
     { name: 'Rutas', path: '/rutas', icon: MapPin, color: 'text-red-600', roles: ['admin'] },
-    { name: 'Inventario', path: '/inventario', icon: Package, color: 'text-amber-600', roles: ['admin'] },
+    { name: 'Inventario', path: '/inventario', icon: Package, color: 'text-amber-600', roles: ['admin', 'secretaria', 'taller'] },
     { name: 'Productos', path: '/productos', icon: Flower2, color: 'text-pink-600', roles: ['admin', 'secretaria', 'taller'] },
     { name: 'Reportes', path: '/reportes', icon: BarChart3, color: 'text-violet-600', roles: ['admin'] },
     { name: 'Movimientos', path: '/auditoria', icon: History, color: 'text-cyan-600', roles: ['admin'] },

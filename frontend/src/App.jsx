@@ -87,6 +87,18 @@ function AppRoutes() {
           />
         )}
         
+        {/* Rutas accesibles para secretaria, taller y admin */}
+        {canAccess('inventario') && (
+          <Route 
+            path="inventario" 
+            element={
+              <ProtectedRoute>
+                <InsumosPage />
+              </ProtectedRoute>
+            } 
+          />
+        )}
+        
         {/* Rutas solo para admin */}
         {user?.rol === 'admin' && (
           <>
@@ -103,14 +115,6 @@ function AppRoutes() {
               element={
                 <ProtectedRoute>
                   <RutasPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="inventario" 
-              element={
-                <ProtectedRoute>
-                  <InsumosPage />
                 </ProtectedRoute>
               } 
             />

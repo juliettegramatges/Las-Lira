@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Flower, Package, AlertCircle, Search, Plus, Save, X, Trash2, Building2, Phone, Mail, ShoppingCart } from 'lucide-react'
 import axios from 'axios'
 import { API_URL, inventarioAPI } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 
 // Colores comunes para flores
 const COLORES_FLORES = [
@@ -23,6 +24,8 @@ const COLORES_FLORES = [
 ]
 
 function InsumosPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.rol === 'admin'
   const [flores, setFlores] = useState([])
   const [contenedores, setContenedores] = useState([])
   const [proveedores, setProveedores] = useState([])
@@ -754,64 +757,69 @@ function InsumosPage() {
                   <Package className="inline h-3.5 w-3.5 mr-1" />
                   Contenedores <span className="text-xs opacity-75">({contenedores.length})</span>
                 </button>
-                <button
-                  onClick={() => setVistaActiva('proveedores')}
-                  className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
-                    vistaActiva === 'proveedores'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Building2 className="inline h-3.5 w-3.5 mr-1" />
-                  Proveedores <span className="text-xs opacity-75">({proveedores.length})</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setVistaActiva('proveedores')}
+                    className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                      vistaActiva === 'proveedores'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Building2 className="inline h-3.5 w-3.5 mr-1" />
+                    Proveedores <span className="text-xs opacity-75">({proveedores.length})</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex gap-2">
-                {vistaActiva === 'flores' && (
-                  <button
-                    onClick={() => setModalFlorAbierto(true)}
-                    className="px-3 py-1.5 text-sm rounded-md font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Nueva
-                  </button>
-                )}
+              {isAdmin && (
+                <div className="flex gap-2">
+                  {vistaActiva === 'flores' && (
+                    <button
+                      onClick={() => setModalFlorAbierto(true)}
+                      className="px-3 py-1.5 text-sm rounded-md font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Nueva
+                    </button>
+                  )}
 
-                {vistaActiva === 'contenedores' && (
-                  <button
-                    onClick={() => setModalContenedorAbierto(true)}
-                    className="px-3 py-1.5 text-sm rounded-md font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Nuevo
-                  </button>
-                )}
+                  {vistaActiva === 'contenedores' && (
+                    <button
+                      onClick={() => setModalContenedorAbierto(true)}
+                      className="px-3 py-1.5 text-sm rounded-md font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Nuevo
+                    </button>
+                  )}
 
-                {vistaActiva === 'proveedores' && (
-                  <button
-                    onClick={() => {
-                      setProveedorEditando(null)
-                      setNuevoProveedor({
-                        nombre: '',
-                        contacto: '',
-                        telefono: '',
-                        empresa: '',
-                        email: '',
-                        especialidad: '',
-                        dias_entrega: '',
-                        notas: ''
-                      })
-                      setModalProveedorAbierto(true)
-                    }}
-                    className="px-3 py-1.5 text-sm rounded-md font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Nuevo
-                  </button>
-                )}
+                  {vistaActiva === 'proveedores' && (
+                    <button
+                      onClick={() => {
+                        setProveedorEditando(null)
+                        setNuevoProveedor({
+                          nombre: '',
+                          contacto: '',
+                          telefono: '',
+                          empresa: '',
+                          email: '',
+                          especialidad: '',
+                          dias_entrega: '',
+                          notas: ''
+                        })
+                        setModalProveedorAbierto(true)
+                      }}
+                      className="px-3 py-1.5 text-sm rounded-md font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Nuevo
+                    </button>
+                  )}
+                </div>
+              )}
 
-                {(vistaActiva === 'flores' || vistaActiva === 'contenedores') && (
+                {isAdmin && (vistaActiva === 'flores' || vistaActiva === 'contenedores') && (
                   <button
                     onClick={() => {
                       setLineasReposicion([{
@@ -833,6 +841,8 @@ function InsumosPage() {
           </div>
         </div>
 
+      {/* Contenedor de Tablas */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         {/* Tabla de Flores */}
         {vistaActiva === 'flores' && (
           <div className="overflow-x-auto">
@@ -841,15 +851,15 @@ function InsumosPage() {
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Nombre</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Color</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Costo/u</th>
+                  {isAdmin && <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Costo/u</th>}
                   <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Sector</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Proveedores</th>
+                  {isAdmin && <th className="px-3 py-2 text-left text-xs font-semibold text-purple-900 uppercase">Proveedores</th>}
                   <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase">Stock</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase">En Uso</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase">Evento</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase">Disp.</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase">Bajo</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase w-16">Acciones</th>
+                  {isAdmin && <th className="px-3 py-2 text-center text-xs font-semibold text-purple-900 uppercase w-16">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -870,89 +880,113 @@ function InsumosPage() {
                         </div>
                       </td>
                     <td className="px-3 py-2">
-                      <select
-                        value={flor.color || ''}
-                        onChange={(e) => actualizarFlor(flor.id, 'color', e.target.value)}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
-                      >
-                        <option value="">-</option>
-                        {COLORES_FLORES.map(color => (
-                          <option key={color} value={color}>{color}</option>
-                        ))}
-                      </select>
+                      {isAdmin ? (
+                        <select
+                          value={flor.color || ''}
+                          onChange={(e) => actualizarFlor(flor.id, 'color', e.target.value)}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
+                        >
+                          <option value="">-</option>
+                          {COLORES_FLORES.map(color => (
+                            <option key={color} value={color}>{color}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-sm text-gray-700">{flor.color || '-'}</span>
+                      )}
                     </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gray-500">$</span>
+                          <input
+                            type="text"
+                            value={flor.costo_unitario || 0}
+                            onChange={(e) => actualizarFlor(flor.id, 'costo_unitario', e.target.value)}
+                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          />
+                        </div>
+                      </td>
+                    )}
                     <td className="px-3 py-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">$</span>
+                      {isAdmin ? (
                         <input
                           type="text"
-                          value={flor.costo_unitario || 0}
-                          onChange={(e) => actualizarFlor(flor.id, 'costo_unitario', e.target.value)}
-                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          value={flor.ubicacion || ''}
+                          onChange={(e) => actualizarFlor(flor.id, 'ubicacion', e.target.value)}
+                          placeholder="Sector"
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                         />
-                      </div>
+                      ) : (
+                        <span className="text-sm text-gray-700">{flor.ubicacion || '-'}</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={flor.ubicacion || ''}
-                        onChange={(e) => actualizarFlor(flor.id, 'ubicacion', e.target.value)}
-                        placeholder="Sector"
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1 max-w-[140px] overflow-x-auto">
-                        {(flor.proveedores || []).length > 0 ? (
-                          <>
-                            {(flor.proveedores || []).slice(0, 1).map(prov => (
-                              <button
-                                key={prov.id}
-                                onClick={() => verDetalleProveedor(prov.id)}
-                                className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors whitespace-nowrap"
-                                title={`Ver detalles de ${prov.nombre}`}
-                              >
-                                {prov.nombre.length > 10 ? `${prov.nombre.substring(0, 9)}...` : prov.nombre}
-                              </button>
-                            ))}
-                            {(flor.proveedores || []).length > 1 && (
-                              <button
-                                onClick={() => verDetalleProveedor(flor.proveedores[0].id)}
-                                className="px-1.5 py-0.5 bg-green-200 text-green-800 text-xs rounded hover:bg-green-300 transition-colors whitespace-nowrap font-semibold"
-                                title={`Ver ${(flor.proveedores || []).length} proveedores`}
-                              >
-                                +{(flor.proveedores || []).length - 1}
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
-                      </div>
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1 max-w-[140px] overflow-x-auto">
+                          {(flor.proveedores || []).length > 0 ? (
+                            <>
+                              {(flor.proveedores || []).slice(0, 1).map(prov => (
+                                <button
+                                  key={prov.id}
+                                  onClick={() => verDetalleProveedor(prov.id)}
+                                  className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors whitespace-nowrap"
+                                  title={`Ver detalles de ${prov.nombre}`}
+                                >
+                                  {prov.nombre.length > 10 ? `${prov.nombre.substring(0, 9)}...` : prov.nombre}
+                                </button>
+                              ))}
+                              {(flor.proveedores || []).length > 1 && (
+                                <button
+                                  onClick={() => verDetalleProveedor(flor.proveedores[0].id)}
+                                  className="px-1.5 py-0.5 bg-green-200 text-green-800 text-xs rounded hover:bg-green-300 transition-colors whitespace-nowrap font-semibold"
+                                  title={`Ver ${(flor.proveedores || []).length} proveedores`}
+                                >
+                                  +{(flor.proveedores || []).length - 1}
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-3 py-2 text-center">
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={flor.cantidad_stock || 0}
+                          onChange={(e) => actualizarFlor(flor.id, 'cantidad_stock', e.target.value)}
+                          className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-gray-900">{flor.cantidad_stock || 0}</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={flor.cantidad_stock || 0}
-                        onChange={(e) => actualizarFlor(flor.id, 'cantidad_stock', e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={flor.cantidad_en_uso || 0}
+                          onChange={(e) => actualizarFlor(flor.id, 'cantidad_en_uso', e.target.value)}
+                          className="w-16 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-blue-50"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-blue-700">{flor.cantidad_en_uso || 0}</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={flor.cantidad_en_uso || 0}
-                        onChange={(e) => actualizarFlor(flor.id, 'cantidad_en_uso', e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-blue-50"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={flor.cantidad_en_evento || 0}
-                        onChange={(e) => actualizarFlor(flor.id, 'cantidad_en_evento', e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-purple-50"
-                      />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={flor.cantidad_en_evento || 0}
+                          onChange={(e) => actualizarFlor(flor.id, 'cantidad_en_evento', e.target.value)}
+                          className="w-16 px-2 py-1 text-sm text-center border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-purple-50"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-purple-700">{flor.cantidad_en_evento || 0}</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center">
                       <span className={`text-sm font-semibold ${getStockColor(flor.cantidad_disponible, flor.cantidad_stock)} ${flor.cantidad_disponible <= (flor.stock_bajo || 10) ? 'text-red-600 font-bold' : ''}`}>
@@ -963,41 +997,47 @@ function InsumosPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={flor.stock_bajo !== undefined && flor.stock_bajo !== null ? flor.stock_bajo : ''}
-                        onChange={(e) => {
-                          const valor = e.target.value
-                          setFlores(prev => prev.map(f =>
-                            f.id === flor.id ? { ...f, stock_bajo: valor === '' ? '' : parseInt(valor) || 0 } : f
-                          ))
-                        }}
-                        onBlur={(e) => {
-                          const valor = e.target.value
-                          const valorFinal = valor === '' ? 10 : parseInt(valor) || 10
-                          console.log('💾 Guardando stock_bajo para flor', flor.id, 'valor:', valorFinal)
-                          actualizarFlor(flor.id, 'stock_bajo', valorFinal)
-                        }}
-                        className="w-14 px-2 py-1 text-sm text-center border border-orange-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500 bg-orange-50"
-                        title="Umbral bajo"
-                        placeholder="10"
-                      />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={flor.stock_bajo !== undefined && flor.stock_bajo !== null ? flor.stock_bajo : ''}
+                          onChange={(e) => {
+                            const valor = e.target.value
+                            setFlores(prev => prev.map(f =>
+                              f.id === flor.id ? { ...f, stock_bajo: valor === '' ? '' : parseInt(valor) || 0 } : f
+                            ))
+                          }}
+                          onBlur={(e) => {
+                            const valor = e.target.value
+                            const valorFinal = valor === '' ? 10 : parseInt(valor) || 10
+                            console.log('💾 Guardando stock_bajo para flor', flor.id, 'valor:', valorFinal)
+                            actualizarFlor(flor.id, 'stock_bajo', valorFinal)
+                          }}
+                          className="w-14 px-2 py-1 text-sm text-center border border-orange-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500 bg-orange-50"
+                          title="Umbral bajo"
+                          placeholder="10"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-orange-700">{flor.stock_bajo || 10}</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      <button
-                        onClick={() => eliminarFlor(flor.id, flor.nombre)}
-                        className="p-1.5 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => eliminarFlor(flor.id, flor.nombre)}
+                          className="p-1.5 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                   )
                 })}
                 {floresFiltradas.length === 0 && (
                   <tr>
-                    <td colSpan="11" className="px-2 py-6 text-center text-xs text-gray-500">
+                    <td colSpan={isAdmin ? 11 : 8} className="px-2 py-6 text-center text-xs text-gray-500">
                       No se encontraron flores
                     </td>
                   </tr>
@@ -1015,15 +1055,15 @@ function InsumosPage() {
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Nombre</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Tipo</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Costo</th>
+                  {isAdmin && <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Costo</th>}
                   <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Sector</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Proveedores</th>
+                  {isAdmin && <th className="px-3 py-2 text-left text-xs font-semibold text-blue-900 uppercase">Proveedores</th>}
                   <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase">Stock</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase">En Uso</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase">Evento</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase">Disp.</th>
                   <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase">Bajo</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase w-16">Acciones</th>
+                  {isAdmin && <th className="px-3 py-2 text-center text-xs font-semibold text-blue-900 uppercase w-16">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1046,78 +1086,98 @@ function InsumosPage() {
                     <td className="px-3 py-2">
                       <span className="text-sm text-gray-700">{contenedor.tipo || '-'}</span>
                     </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gray-500">$</span>
+                          <input
+                            type="text"
+                            value={contenedor.costo || 0}
+                            onChange={(e) => actualizarContenedor(contenedor.id, 'costo', e.target.value)}
+                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                      </td>
+                    )}
                     <td className="px-3 py-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">$</span>
+                      {isAdmin ? (
                         <input
                           type="text"
-                          value={contenedor.costo || 0}
-                          onChange={(e) => actualizarContenedor(contenedor.id, 'costo', e.target.value)}
-                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          value={contenedor.ubicacion || ''}
+                          onChange={(e) => actualizarContenedor(contenedor.id, 'ubicacion', e.target.value)}
+                          placeholder="Sector"
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
-                      </div>
+                      ) : (
+                        <span className="text-sm text-gray-700">{contenedor.ubicacion || '-'}</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={contenedor.ubicacion || ''}
-                        onChange={(e) => actualizarContenedor(contenedor.id, 'ubicacion', e.target.value)}
-                        placeholder="Sector"
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1 max-w-[140px] overflow-x-auto">
-                        {(contenedor.proveedores || []).length > 0 ? (
-                          <>
-                            {(contenedor.proveedores || []).slice(0, 1).map(prov => (
-                              <button
-                                key={prov.id}
-                                onClick={() => verDetalleProveedor(prov.id)}
-                                className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors whitespace-nowrap"
-                                title={`Ver detalles de ${prov.nombre}`}
-                              >
-                                {prov.nombre.length > 10 ? `${prov.nombre.substring(0, 9)}...` : prov.nombre}
-                              </button>
-                            ))}
-                            {(contenedor.proveedores || []).length > 1 && (
-                              <button
-                                onClick={() => verDetalleProveedor(contenedor.proveedores[0].id)}
-                                className="px-1.5 py-0.5 bg-green-200 text-green-800 text-xs rounded hover:bg-green-300 transition-colors whitespace-nowrap font-semibold"
-                                title={`Ver ${(contenedor.proveedores || []).length} proveedores`}
-                              >
-                                +{(contenedor.proveedores || []).length - 1}
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
-                      </div>
+                    {isAdmin && (
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1 max-w-[140px] overflow-x-auto">
+                          {(contenedor.proveedores || []).length > 0 ? (
+                            <>
+                              {(contenedor.proveedores || []).slice(0, 1).map(prov => (
+                                <button
+                                  key={prov.id}
+                                  onClick={() => verDetalleProveedor(prov.id)}
+                                  className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200 transition-colors whitespace-nowrap"
+                                  title={`Ver detalles de ${prov.nombre}`}
+                                >
+                                  {prov.nombre.length > 10 ? `${prov.nombre.substring(0, 9)}...` : prov.nombre}
+                                </button>
+                              ))}
+                              {(contenedor.proveedores || []).length > 1 && (
+                                <button
+                                  onClick={() => verDetalleProveedor(contenedor.proveedores[0].id)}
+                                  className="px-1.5 py-0.5 bg-green-200 text-green-800 text-xs rounded hover:bg-green-300 transition-colors whitespace-nowrap font-semibold"
+                                  title={`Ver ${(contenedor.proveedores || []).length} proveedores`}
+                                >
+                                  +{(contenedor.proveedores || []).length - 1}
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-3 py-2 text-center">
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={contenedor.cantidad_stock || 0}
+                          onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_stock', e.target.value)}
+                          className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-gray-900">{contenedor.cantidad_stock || 0}</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={contenedor.cantidad_stock || 0}
-                        onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_stock', e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={contenedor.cantidad_en_uso || 0}
+                          onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_en_uso', e.target.value)}
+                          className="w-16 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-blue-50"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-blue-700">{contenedor.cantidad_en_uso || 0}</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={contenedor.cantidad_en_uso || 0}
-                        onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_en_uso', e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-blue-50"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={contenedor.cantidad_en_evento || 0}
-                        onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_en_evento', e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-purple-50"
-                      />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={contenedor.cantidad_en_evento || 0}
+                          onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_en_evento', e.target.value)}
+                          className="w-16 px-2 py-1 text-sm text-center border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 bg-purple-50"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-purple-700">{contenedor.cantidad_en_evento || 0}</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-center">
                       <span className={`text-sm font-semibold ${getStockColor(contenedor.cantidad_disponible, contenedor.cantidad_stock)} ${contenedor.cantidad_disponible <= (contenedor.stock_bajo || 5) ? 'text-red-600 font-bold' : ''}`}>
@@ -1128,41 +1188,47 @@ function InsumosPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <input
-                        type="text"
-                        value={contenedor.stock_bajo !== undefined && contenedor.stock_bajo !== null ? contenedor.stock_bajo : ''}
-                        onChange={(e) => {
-                          const valor = e.target.value
-                          setContenedores(prev => prev.map(c =>
-                            c.id === contenedor.id ? { ...c, stock_bajo: valor === '' ? '' : parseInt(valor) || 0 } : c
-                          ))
-                        }}
-                        onBlur={(e) => {
-                          const valor = e.target.value
-                          const valorFinal = valor === '' ? 5 : parseInt(valor) || 5
-                          console.log('💾 Guardando stock_bajo para contenedor', contenedor.id, 'valor:', valorFinal)
-                          actualizarContenedor(contenedor.id, 'stock_bajo', valorFinal)
-                        }}
-                        className="w-14 px-2 py-1 text-sm text-center border border-orange-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500 bg-orange-50"
-                        title="Umbral bajo"
-                        placeholder="5"
-                      />
+                      {isAdmin ? (
+                        <input
+                          type="text"
+                          value={contenedor.stock_bajo !== undefined && contenedor.stock_bajo !== null ? contenedor.stock_bajo : ''}
+                          onChange={(e) => {
+                            const valor = e.target.value
+                            setContenedores(prev => prev.map(c =>
+                              c.id === contenedor.id ? { ...c, stock_bajo: valor === '' ? '' : parseInt(valor) || 0 } : c
+                            ))
+                          }}
+                          onBlur={(e) => {
+                            const valor = e.target.value
+                            const valorFinal = valor === '' ? 5 : parseInt(valor) || 5
+                            console.log('💾 Guardando stock_bajo para contenedor', contenedor.id, 'valor:', valorFinal)
+                            actualizarContenedor(contenedor.id, 'stock_bajo', valorFinal)
+                          }}
+                          className="w-14 px-2 py-1 text-sm text-center border border-orange-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500 bg-orange-50"
+                          title="Umbral bajo"
+                          placeholder="5"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-orange-700">{contenedor.stock_bajo || 5}</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      <button
-                        onClick={() => eliminarContenedor(contenedor.id, contenedor.nombre)}
-                        className="px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
-                        title="Eliminar contenedor"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => eliminarContenedor(contenedor.id, contenedor.nombre)}
+                          className="px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+                          title="Eliminar contenedor"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                   )
                 })}
                 {contenedoresFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan="11" className="px-3 py-8 text-center text-gray-500">
+                    <td colSpan={isAdmin ? 11 : 8} className="px-3 py-8 text-center text-gray-500">
                       No se encontraron contenedores
                     </td>
                   </tr>
@@ -1173,7 +1239,7 @@ function InsumosPage() {
         )}
 
         {/* Tabla de Proveedores */}
-        {vistaActiva === 'proveedores' && (
+        {isAdmin && vistaActiva === 'proveedores' && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-green-50">
