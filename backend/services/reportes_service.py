@@ -385,26 +385,52 @@ class ReportesService:
         Analiza el estado de cobranza de pedidos
 
         Returns:
-            dict: estadísticas de cobranza
+            list: array de objetos con estado, cantidad y monto
         """
-        total_pendiente = db.session.query(
-            func.sum(Pedido.precio_ramo + Pedido.precio_envio)
-        ).filter(
+        # Contar y sumar pedidos pagados
+        pedidos_pagados = Pedido.query.filter(
+            Pedido.estado_pago == 'Pagado',
+            Pedido.estado != 'Cancelado'
+        ).all()
+        cantidad_pagados = len(pedidos_pagados)
+        monto_pagado = sum(float((p.precio_ramo or 0) + (p.precio_envio or 0)) for p in pedidos_pagados)
+
+        # Contar y sumar pedidos pendientes
+        pedidos_pendientes = Pedido.query.filter(
             Pedido.estado_pago != 'Pagado',
             Pedido.estado != 'Cancelado'
-        ).scalar() or 0
+        ).all()
+        cantidad_pendientes = len(pedidos_pendientes)
+        monto_pendiente = sum(float((p.precio_ramo or 0) + (p.precio_envio or 0)) for p in pedidos_pendientes)
 
-        total_pagado = db.session.query(
-            func.sum(Pedido.precio_ramo + Pedido.precio_envio)
-        ).filter(
-            Pedido.estado_pago == 'Pagado'
-        ).scalar() or 0
+        # Contar y sumar pedidos vencidos
+        from datetime import datetime
+        hoy = datetime.now()
+        pedidos_vencidos = Pedido.query.filter(
+            Pedido.estado_pago != 'Pagado',
+            Pedido.fecha_maxima_pago < hoy,
+            Pedido.estado != 'Cancelado'
+        ).all()
+        cantidad_vencidos = len(pedidos_vencidos)
+        monto_vencido = sum(float((p.precio_ramo or 0) + (p.precio_envio or 0)) for p in pedidos_vencidos)
 
-        return {
-            'total_pendiente': float(total_pendiente),
-            'total_pagado': float(total_pagado),
-            'tasa_cobranza': (total_pagado / (total_pagado + total_pendiente) * 100) if (total_pagado + total_pendiente) > 0 else 0
-        }
+        return [
+            {
+                'estado': 'Pagado',
+                'cantidad': cantidad_pagados,
+                'monto': monto_pagado
+            },
+            {
+                'estado': 'Pendiente',
+                'cantidad': cantidad_pendientes,
+                'monto': monto_pendiente
+            },
+            {
+                'estado': 'Vencido',
+                'cantidad': cantidad_vencidos,
+                'monto': monto_vencido
+            }
+        ]
 
     @staticmethod
     def obtener_personalizaciones():
