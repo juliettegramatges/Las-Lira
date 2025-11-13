@@ -767,9 +767,15 @@ class PedidosService:
             if 'numero_documento' in data:
                 pedido.numero_documento = data['numero_documento']
             if 'monto_pagado' in data:
-                pedido.monto_pagado = data['monto_pagado']
+                pedido.monto_pagado = data['monto_pago']
             if 'fecha_pago' in data:
                 pedido.fecha_pago = datetime.fromisoformat(data['fecha_pago'])
+            
+            # Lógica automática: Si está pagado con BICE, automáticamente marcar documento como "No requiere"
+            # Esto se aplica tanto si se actualiza el método de pago como si ya estaba pagado con BICE
+            if pedido.estado_pago == 'Pagado' and pedido.metodo_pago == 'Tr. BICE':
+                if pedido.documento_tributario in ['Hacer boleta', 'Hacer factura', 'Falta boleta o factura', None]:
+                    pedido.documento_tributario = 'No requiere'
 
             db.session.commit()
 
