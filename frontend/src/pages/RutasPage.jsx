@@ -311,6 +311,16 @@ function RutasPage() {
                               🌸 {pedido.arreglo}
                             </p>
                           )}
+
+                          {pedido.foto_respaldo && (
+                            <div className="mt-2">
+                              <img
+                                src={`${API_URL}/upload/imagen/${pedido.foto_respaldo}`}
+                                alt="Foto de respaldo"
+                                className="max-w-[150px] max-h-[150px] rounded-lg border-2 border-gray-200 object-cover"
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex-shrink-0 text-right">
