@@ -782,10 +782,10 @@ class PedidosService:
     @staticmethod
     def obtener_resumen_cobranza():
         """
-        Obtiene resumen de cobranza: pagados, pendientes, vencidos
+        Obtiene resumen de cobranza: pagados, pendientes, vencidos, sin documentar
 
         Returns:
-            dict: resumen con totales y montos
+            dict: resumen con totales, montos y listas de pedidos
         """
         hoy = datetime.now()
 
@@ -794,11 +794,19 @@ class PedidosService:
         monto_pagado = db.session.query(func.sum(Pedido.precio_ramo + Pedido.precio_envio))\
             .filter_by(estado_pago='Pagado').scalar() or 0
 
-        # Pedidos pendientes
-        pendientes = Pedido.query.filter(
-            Pedido.estado_pago != 'Pagado',
+        # Pedidos sin pagar (pendientes)
+        # Incluir todos los que NO están pagados (incluyendo NULL)
+        pedidos_sin_pagar = Pedido.query.filter(
+            or_(
+                Pedido.estado_pago != 'Pagado',
+                Pedido.estado_pago.is_(None)
+            ),
             Pedido.estado != 'Cancelado'
-        ).count()
+        ).order_by(
+            Pedido.fecha_maxima_pago.asc().nullslast()
+        ).all()
+        
+        pendientes = len(pedidos_sin_pagar)
         monto_pendiente = db.session.query(func.sum(Pedido.precio_ramo + Pedido.precio_envio))\
             .filter(Pedido.estado_pago != 'Pagado', Pedido.estado != 'Cancelado').scalar() or 0
 
@@ -813,6 +821,35 @@ class PedidosService:
                    Pedido.fecha_maxima_pago < hoy,
                    Pedido.estado != 'Cancelado').scalar() or 0
 
+        # Pedidos sin documentar
+        # Lógica: Si está pagado con BICE, no requiere documento
+        # Solo mostrar como pendiente de documento si:
+        # 1. Está pagado Y
+        # 2. No es pagado con BICE Y
+        # 3. El documento está en estado "Hacer boleta" o "Hacer factura" o "Falta boleta o factura"
+        pedidos_sin_documentar = Pedido.query.filter(
+            Pedido.estado_pago == 'Pagado',
+            Pedido.estado != 'Cancelado',
+            # Excluir pagos con BICE (no requieren documento)
+            or_(
+                Pedido.metodo_pago.is_(None),
+                Pedido.metodo_pago != 'Tr. BICE'
+            ),
+            # Solo los que necesitan documento
+            or_(
+                Pedido.documento_tributario == 'Hacer boleta',
+                Pedido.documento_tributario == 'Hacer factura',
+                Pedido.documento_tributario == 'Falta boleta o factura',
+                Pedido.documento_tributario.is_(None)
+            )
+        ).order_by(Pedido.fecha_pedido.desc()).all()
+
+        sin_documentar = len(pedidos_sin_documentar)
+        monto_sin_documentar = sum(
+            float((p.precio_ramo or 0) + (p.precio_envio or 0))
+            for p in pedidos_sin_documentar
+        )
+
         return {
             'pagados': {
                 'cantidad': pagados,
@@ -825,6 +862,16 @@ class PedidosService:
             'vencidos': {
                 'cantidad': vencidos,
                 'monto': float(monto_vencido)
+            },
+            'sin_pagar': {
+                'cantidad': pendientes,
+                'total': float(monto_pendiente),
+                'pedidos': [p.to_dict() for p in pedidos_sin_pagar]
+            },
+            'sin_documentar': {
+                'cantidad': sin_documentar,
+                'total': float(monto_sin_documentar),
+                'pedidos': [p.to_dict() for p in pedidos_sin_documentar]
             }
         }
 
