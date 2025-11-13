@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { MapPin, Clock, AlertCircle, Check, FileText, Truck, Calendar, Package, Phone } from 'lucide-react'
+import { MapPin, Clock, AlertCircle, Check, FileText, Truck, Calendar, Package, Phone, RefreshCw } from 'lucide-react'
+import Button from '../components/common/Button'
 
 const API_URL = 'http://localhost:5001/api'
 
@@ -165,29 +166,30 @@ function RutasPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-200">
-          <button
+          <Button
             onClick={marcarDespachados}
             disabled={pedidosSeleccionados.length === 0}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 font-semibold transition-colors"
+            variant="success"
+            icon={Check}
           >
-            <Check className="h-5 w-5" />
             Marcar como Despachados ({pedidosSeleccionados.length})
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={abrirDocumentoRepartidor}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 font-semibold transition-colors"
+            variant="info"
+            icon={FileText}
           >
-            <FileText className="h-5 w-5" />
             Generar Documento Repartidor
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={cargarRutas}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 font-semibold transition-colors"
+            variant="gray"
+            icon={RefreshCw}
           >
-            ♻️ Actualizar
-          </button>
+            Actualizar
+          </Button>
         </div>
       </div>
 

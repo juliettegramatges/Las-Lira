@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { pedidosAPI } from '../services/api'
 import ColumnaKanban from '../components/Tablero/ColumnaKanban'
 import { AlertCircle, Loader2, RefreshCw, Plus } from 'lucide-react'
+import Button from '../components/common/Button'
 
 function TableroPage() {
   const navigate = useNavigate()
@@ -128,12 +129,12 @@ function TableroPage() {
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600">{error}</p>
-          <button
+          <Button
             onClick={cargarTablero}
-            className="mt-4 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 shadow-sm hover:shadow-md transition-all duration-200 font-medium"
+            variant="primary"
           >
             Reintentar
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -153,21 +154,22 @@ function TableroPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
+            <Button
               onClick={() => navigate('/pedidos', { state: { abrirFormulario: true } })}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 shadow-sm hover:shadow-md transition-all duration-200 font-medium"
+              variant="success"
+              icon={Plus}
             >
-              <Plus className="h-5 w-5" />
               Nuevo Pedido
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={forzarActualizacion}
               disabled={actualizando}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+              loading={actualizando}
+              variant="primary"
+              icon={RefreshCw}
             >
-              <RefreshCw className={`h-5 w-5 ${actualizando ? 'animate-spin' : ''}`} />
               {actualizando ? 'Actualizando...' : 'Actualizar Estados'}
-            </button>
+            </Button>
           </div>
         </div>
         
