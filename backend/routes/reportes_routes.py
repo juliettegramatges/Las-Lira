@@ -88,7 +88,8 @@ def obtener_top_clientes():
 def obtener_distribucion_clientes():
     """Obtiene la distribución de clientes por tipo"""
     try:
-        distribucion = ReportesService.obtener_distribucion_clientes()
+        anio = request.args.get('año', type=int) or request.args.get('anio', type=int)
+        distribucion = ReportesService.obtener_distribucion_clientes(anio=anio)
 
         return jsonify({
             'success': True,

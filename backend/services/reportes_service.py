@@ -305,17 +305,31 @@ class ReportesService:
         ]
 
     @staticmethod
-    def obtener_distribucion_clientes():
+    def obtener_distribucion_clientes(anio=None):
         """
-        Obtiene la distribución de clientes por tipo
+        Obtiene la distribución de clientes por tipo, opcionalmente filtrado por año
+
+        Args:
+            anio: año para filtrar por fecha_registro (None = todos los años)
 
         Returns:
             list: distribución por tipo de cliente
         """
-        distribucion = db.session.query(
+        query = db.session.query(
             Cliente.tipo_cliente,
             func.count(Cliente.id).label('cantidad')
-        ).group_by(
+        )
+        
+        if anio:
+            from datetime import datetime
+            inicio_anio = datetime(anio, 1, 1)
+            fin_anio = datetime(anio + 1, 1, 1)
+            query = query.filter(
+                Cliente.fecha_registro >= inicio_anio,
+                Cliente.fecha_registro < fin_anio
+            )
+        
+        distribucion = query.group_by(
             Cliente.tipo_cliente
         ).all()
 
@@ -330,19 +344,21 @@ class ReportesService:
     @staticmethod
     def obtener_comunas_frecuentes(limite=10):
         """
-        Obtiene las comunas con más pedidos
+        Obtiene las comunas con más pedidos y su monto total
 
         Args:
             limite: cantidad de comunas a retornar
 
         Returns:
-            list: comunas ordenadas por frecuencia
+            list: comunas ordenadas por frecuencia con monto total
         """
         comunas = db.session.query(
             Pedido.comuna,
-            func.count(Pedido.id).label('cantidad')
+            func.count(Pedido.id).label('cantidad'),
+            func.sum(Pedido.precio_ramo + Pedido.precio_envio).label('total')
         ).filter(
-            Pedido.comuna.isnot(None)
+            Pedido.comuna.isnot(None),
+            Pedido.estado != 'Cancelado'
         ).group_by(
             Pedido.comuna
         ).order_by(
@@ -352,7 +368,8 @@ class ReportesService:
         return [
             {
                 'comuna': c.comuna,
-                'cantidad': c.cantidad
+                'cantidad': c.cantidad,
+                'total': float(c.total or 0)
             }
             for c in comunas
         ]
@@ -534,8 +551,8 @@ class ReportesService:
         return [
             {
                 'canal': c.canal,
-                'cantidad': c.cantidad,
-                'total': float(c.total or 0)
+                'pedidos': c.cantidad,
+                'ventas': float(c.total or 0)
             }
             for c in canales
         ]

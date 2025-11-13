@@ -83,9 +83,16 @@ function ReportesPage() {
   const [mesColores, setMesColores] = useState(null)
   const [añoColores, setAñoColores] = useState(null)
 
+  // Filtro para distribución de clientes
+  const [añoDistribucionClientes, setAñoDistribucionClientes] = useState(null)
+
   useEffect(() => {
     cargarDatos()
   }, [])
+
+  useEffect(() => {
+    cargarDistribucionClientes()
+  }, [añoDistribucionClientes])
   
   useEffect(() => {
     cargarVentasDiaSemana()
@@ -131,7 +138,7 @@ function ReportesPage() {
         axios.get(`${API_URL}/reportes/ventas-mensuales`),
         axios.get(`${API_URL}/reportes/distribucion-tipos`),
         axios.get(`${API_URL}/reportes/top-clientes?limit=10`),
-        axios.get(`${API_URL}/reportes/distribucion-clientes`),
+        axios.get(`${API_URL}/reportes/distribucion-clientes${añoDistribucionClientes ? `?año=${añoDistribucionClientes}` : ''}`),
         axios.get(`${API_URL}/reportes/comunas-frecuentes?limit=15`),
         axios.get(`${API_URL}/reportes/analisis-eventos`),
         axios.get(`${API_URL}/reportes/analisis-cobranza`),
@@ -142,7 +149,7 @@ function ReportesPage() {
       if (resVentas.data.success) setVentasMensuales(resVentas.data.data)
       if (resTipos.data.success) setDistribucionTipos(resTipos.data.data)
       if (resClientes.data.success) setTopClientes(resClientes.data.data)
-      if (resDistClientes.data.success) setDistribucionClientes(resDistClientes.data.data)
+      // Distribución de clientes se carga en useEffect separado
       if (resComunas.data.success) setComunasFrecuentes(resComunas.data.data)
       if (resEventos.data.success) setAnalisisEventos(resEventos.data.data)
       if (resCobranza.data.success) setAnalisisCobranza(resCobranza.data.data)
@@ -235,6 +242,18 @@ function ReportesPage() {
     }
   }
   
+  const cargarDistribucionClientes = async () => {
+    try {
+      const url = `${API_URL}/reportes/distribucion-clientes${añoDistribucionClientes ? `?año=${añoDistribucionClientes}` : ''}`
+      const response = await axios.get(url)
+      if (response.data.success) {
+        setDistribucionClientes(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error al cargar distribución de clientes:', error)
+    }
+  }
+
   const cargarColoresFrecuentes = async () => {
     try {
       let url = `${API_URL}/reportes/colores-frecuentes`
@@ -592,10 +611,22 @@ function ReportesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Distribución de clientes */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <Users className="h-5 w-5 text-indigo-500 mr-2" />
-            Distribución Clientes
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center">
+              <Users className="h-5 w-5 text-indigo-500 mr-2" />
+              Distribución Clientes
+            </h3>
+            <select
+              value={añoDistribucionClientes || ''}
+              onChange={(e) => setAñoDistribucionClientes(e.target.value ? parseInt(e.target.value) : null)}
+              className="text-xs border border-indigo-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">Todos los años</option>
+              {AÑOS_DISPONIBLES.map(año => (
+                <option key={año} value={año}>{año}</option>
+              ))}
+            </select>
+          </div>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
@@ -752,7 +783,7 @@ function ReportesPage() {
                   </div>
                 </div>
                 <span className="ml-4 font-bold text-green-600 text-sm">
-                  {formatCurrency(comuna.ventas)}
+                  {formatCurrency(comuna.total || 0)}
                 </span>
               </div>
             ))}
@@ -779,7 +810,7 @@ function ReportesPage() {
               />
               <Legend />
               <Bar dataKey="ventas" fill="#3B82F6" name="Ventas" />
-              <Bar dataKey="cantidad" fill="#10B981" name="Pedidos" />
+              <Bar dataKey="pedidos" fill="#10B981" name="Pedidos" />
             </BarChart>
           </ResponsiveContainer>
         </div>
