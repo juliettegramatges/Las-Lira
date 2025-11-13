@@ -832,7 +832,8 @@ class PedidosService:
         # Solo mostrar como pendiente de documento si:
         # 1. Está pagado Y
         # 2. No es pagado con BICE Y
-        # 3. El documento está en estado "Hacer boleta" o "Hacer factura" o "Falta boleta o factura"
+        # 3. El documento está en estado pendiente ("Hacer boleta", "Hacer factura", "Falta boleta o factura", NULL)
+        # 4. NO está ya emitido ("Boleta emitida", "Factura emitida", "No requiere")
         pedidos_sin_documentar = Pedido.query.filter(
             Pedido.estado_pago == 'Pagado',
             Pedido.estado != 'Cancelado',
@@ -841,12 +842,23 @@ class PedidosService:
                 Pedido.metodo_pago.is_(None),
                 Pedido.metodo_pago != 'Tr. BICE'
             ),
-            # Solo los que necesitan documento
-            or_(
-                Pedido.documento_tributario == 'Hacer boleta',
-                Pedido.documento_tributario == 'Hacer factura',
-                Pedido.documento_tributario == 'Falta boleta o factura',
-                Pedido.documento_tributario.is_(None)
+            # Solo los que necesitan documento (pendientes) Y que NO están ya emitidos
+            and_(
+                or_(
+                    Pedido.documento_tributario == 'Hacer boleta',
+                    Pedido.documento_tributario == 'Hacer factura',
+                    Pedido.documento_tributario == 'Falta boleta o factura',
+                    Pedido.documento_tributario.is_(None)
+                ),
+                # Excluir explícitamente los que ya están completados
+                or_(
+                    Pedido.documento_tributario.is_(None),
+                    and_(
+                        Pedido.documento_tributario != 'Boleta emitida',
+                        Pedido.documento_tributario != 'Factura emitida',
+                        Pedido.documento_tributario != 'No requiere'
+                    )
+                )
             )
         ).order_by(Pedido.fecha_pedido.desc()).all()
 

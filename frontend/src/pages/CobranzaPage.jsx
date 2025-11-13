@@ -112,7 +112,12 @@ const CobranzaPage = () => {
         if (editandoPedido) {
           setEditandoPedido(response.data.data)
         }
-        cargarResumen()
+        // Recargar resumen para actualizar las listas
+        await cargarResumen()
+        // Si se actualizó el documento a emitido, cerrar el modal
+        if (datos.documento_tributario && datos.documento_tributario in ['Boleta emitida', 'Factura emitida']) {
+          setEditandoPedido(null)
+        }
       }
     } catch (err) {
       console.error('Error al actualizar:', err)
