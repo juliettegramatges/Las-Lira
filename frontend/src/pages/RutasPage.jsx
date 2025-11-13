@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { MapPin, Clock, AlertCircle, Check, FileText, Truck, Calendar, Package, Phone, RefreshCw, Download } from 'lucide-react'
+import { MapPin, Clock, AlertCircle, Check, FileText, Truck, Calendar, Package, Phone, RefreshCw, Download, Navigation, TrendingUp } from 'lucide-react'
 import Button from '../components/common/Button'
+import RutaOptimizada from '../components/Rutas/RutaOptimizada'
 import { API_URL } from '../services/api'
 
 function RutasPage() {
@@ -12,7 +13,10 @@ function RutasPage() {
   const [fechaPersonalizada, setFechaPersonalizada] = useState('')
   const [pedidosSeleccionados, setPedidosSeleccionados] = useState([])
   const [expandidas, setExpandidas] = useState({})
-  const [vistaActiva, setVistaActiva] = useState('rutas') // 'rutas' o 'retiro-tienda'
+  const [vistaActiva, setVistaActiva] = useState('rutas') // 'rutas', 'retiro-tienda', o 'ruta-optimizada'
+  const [rutaOptimizada, setRutaOptimizada] = useState(null)
+  const [optimizandoRuta, setOptimizandoRuta] = useState(false)
+  const [horaInicio, setHoraInicio] = useState('09:00')
 
   useEffect(() => {
     if (vistaActiva === 'rutas') {
@@ -129,6 +133,35 @@ function RutasPage() {
     }
   }
 
+  const optimizarRuta = async () => {
+    if (pedidosSeleccionados.length === 0) {
+      alert('❌ Selecciona al menos un pedido para optimizar la ruta')
+      return
+    }
+
+    try {
+      setOptimizandoRuta(true)
+
+      const response = await axios.post(`${API_URL}/pedidos/rutas/optimizar`, {
+        pedidos_ids: pedidosSeleccionados,
+        hora_inicio: horaInicio
+      })
+
+      if (response.data.success) {
+        setRutaOptimizada(response.data.data)
+        setVistaActiva('ruta-optimizada')
+        console.log('✅ Ruta optimizada:', response.data.message)
+      } else {
+        alert('Error al optimizar ruta: ' + response.data.error)
+      }
+    } catch (error) {
+      console.error('Error al optimizar ruta:', error)
+      alert('Error al optimizar ruta: ' + (error.response?.data?.error || error.message))
+    } finally {
+      setOptimizandoRuta(false)
+    }
+  }
+
   const abrirDocumentoRepartidor = () => {
     const fecha = filtroFecha === 'personalizada' ? fechaPersonalizada : filtroFecha
     window.open(`${API_URL}/pedidos/documento-repartidor?fecha=${fecha}&formato=html`, '_blank')
@@ -176,6 +209,19 @@ function RutasPage() {
             <Package className="h-4 w-4 inline mr-2" />
             Retiro en Tienda ({pedidosRetiroTienda.length})
           </button>
+          {rutaOptimizada && (
+            <button
+              onClick={() => setVistaActiva('ruta-optimizada')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                vistaActiva === 'ruta-optimizada'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4 inline mr-2" />
+              Ruta Optimizada ({rutaOptimizada.ruta_optimizada?.length || 0})
+            </button>
+          )}
         </div>
       </div>
 
@@ -220,6 +266,36 @@ function RutasPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-200">
+          {vistaActiva !== 'ruta-optimizada' && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Hora inicio:</label>
+                <input
+                  type="time"
+                  value={horaInicio}
+                  onChange={(e) => setHoraInicio(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <Button
+                onClick={optimizarRuta}
+                disabled={pedidosSeleccionados.length === 0 || optimizandoRuta}
+                variant="primary"
+                icon={optimizandoRuta ? null : Navigation}
+              >
+                {optimizandoRuta ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    Optimizando...
+                  </>
+                ) : (
+                  `Optimizar Ruta (${pedidosSeleccionados.length})`
+                )}
+              </Button>
+            </>
+          )}
+
           <Button
             onClick={marcarDespachados}
             disabled={pedidosSeleccionados.length === 0}
@@ -256,7 +332,10 @@ function RutasPage() {
         </div>
       </div>
 
-      {vistaActiva === 'retiro-tienda' ? (
+      {vistaActiva === 'ruta-optimizada' ? (
+        // Vista de Ruta Optimizada
+        <RutaOptimizada rutaData={rutaOptimizada} />
+      ) : vistaActiva === 'retiro-tienda' ? (
         // Vista de Retiro en Tienda
         loading ? (
           <div className="text-center py-12">

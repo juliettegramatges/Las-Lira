@@ -35,6 +35,8 @@ class Pedido(db.Model):
     # Dirección y motivo
     direccion_entrega = db.Column(db.String(300), nullable=False)
     comuna = db.Column(db.String(100))  # Comuna de entrega
+    latitud = db.Column(db.Float)  # Latitud GPS para optimización de rutas
+    longitud = db.Column(db.Float)  # Longitud GPS para optimización de rutas
     motivo = db.Column(db.String(50))  # Cumpleaños, Aniversario, etc.
     # Estado (según flujo del Trello - ordenado por prioridad)
     # Cambiado a String para soportar datos históricos variados
@@ -170,6 +172,8 @@ class Pedido(db.Model):
             'firma': self.firma,
             'direccion_entrega': self.direccion_entrega,
             'comuna': self.comuna,
+            'latitud': self.latitud,
+            'longitud': self.longitud,
             'motivo': self.motivo,
             'estado': self.estado,
             'dia_entrega': self.dia_entrega,

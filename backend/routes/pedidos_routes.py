@@ -424,6 +424,43 @@ def obtener_rutas():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/rutas/optimizar', methods=['POST'], strict_slashes=False)
+def optimizar_ruta():
+    """Optimiza la ruta de entrega para una lista de pedidos"""
+    try:
+        from services.rutas_service import RutasService
+        from models.pedido import Pedido
+
+        data = request.get_json()
+        pedidos_ids = data.get('pedidos_ids', [])
+        hora_inicio = data.get('hora_inicio', '09:00')
+
+        if not pedidos_ids:
+            return jsonify({'success': False, 'error': 'Debe proporcionar al menos un pedido'}), 400
+
+        # Obtener pedidos
+        pedidos = Pedido.query.filter(Pedido.id.in_(pedidos_ids)).all()
+
+        if not pedidos:
+            return jsonify({'success': False, 'error': 'No se encontraron pedidos'}), 404
+
+        # Optimizar ruta
+        success, resultado, mensaje = RutasService.optimizar_ruta_google(pedidos, hora_inicio)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': resultado,
+                'message': mensaje
+            })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 500
+
+    except Exception as e:
+        print(f"❌ Error al optimizar ruta: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/rutas/retiro-tienda', methods=['GET'], strict_slashes=False)
 def obtener_retiro_tienda():
     """Obtiene pedidos con retiro en tienda para una fecha específica"""

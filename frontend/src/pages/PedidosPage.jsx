@@ -6,6 +6,7 @@ import { API_URL, pedidosAPI, clientesAPI, pedidoInsumosAPI } from '../services/
 import { formatFecha } from '../utils/helpers'
 import { COLORES_DISPONIBLES, MOTIVOS_PEDIDO } from '../utils/constants'
 import { eventBus, EVENT_TYPES } from '../utils/eventBus'
+import DireccionConMapa from '../components/common/DireccionConMapa'
 
 function PedidosPage() {
   const location = useLocation()
@@ -2144,38 +2145,43 @@ function PedidosPage() {
                       Información de Entrega
                     </h3>
                     <div className="space-y-3">
-                      <div>
-                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Dirección Completa</p>
-                        {modoEdicion ? (
-                          <textarea
-                            value={pedidoEditado.direccion_entrega || ''}
-                            onChange={(e) => handleCampoEdicion('direccion_entrega', e.target.value)}
-                            rows="2"
-                            className="w-full text-sm font-medium text-gray-900 bg-white p-3 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
-                          />
-                        ) : (
-                          <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200">
-                            {pedidoDetalle.direccion_entrega}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Comuna</p>
-                        {modoEdicion ? (
-                          <input
-                            type="text"
-                            value={pedidoEditado.comuna || ''}
-                            onChange={(e) => handleCampoEdicion('comuna', e.target.value)}
-                            className="w-full px-3 py-1.5 bg-white text-gray-900 rounded-full text-sm font-bold border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
-                          />
-                        ) : pedidoDetalle.comuna && (
-                          <span className="inline-flex px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm font-bold border border-gray-300">
-                            📍 {pedidoDetalle.comuna}
-                          </span>
-                        )}
-                      </div>
-                      
+                      {modoEdicion ? (
+                        <DireccionConMapa
+                          direccion={pedidoEditado.direccion_entrega || ''}
+                          comuna={pedidoEditado.comuna || ''}
+                          latitud={pedidoEditado.latitud}
+                          longitud={pedidoEditado.longitud}
+                          onDireccionChange={(nuevaDireccion, nuevaComuna) => {
+                            handleCampoEdicion('direccion_entrega', nuevaDireccion)
+                            if (nuevaComuna) {
+                              handleCampoEdicion('comuna', nuevaComuna)
+                            }
+                          }}
+                          onCoordenadasChange={(lat, lng) => {
+                            handleCampoEdicion('latitud', lat)
+                            handleCampoEdicion('longitud', lng)
+                          }}
+                        />
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Dirección Completa</p>
+                            <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200">
+                              {pedidoDetalle.direccion_entrega}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500 font-semibold uppercase mb-1">Comuna</p>
+                            {pedidoDetalle.comuna && (
+                              <span className="inline-flex px-3 py-1.5 bg-gray-100 text-gray-800 rounded-full text-sm font-bold border border-gray-300">
+                                📍 {pedidoDetalle.comuna}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+
                       <div className="grid grid-cols-2 gap-3 pt-2">
                         <div>
                           <p className="text-xs text-gray-500 font-semibold uppercase mb-1 flex items-center">
