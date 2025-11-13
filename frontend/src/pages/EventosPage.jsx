@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Calendar, Users, DollarSign, Package, Plus, X, CheckCircle, Clock, FileText, Trash2, AlertTriangle, Edit2 } from 'lucide-react'
+import { Calendar, Users, DollarSign, Package, Plus, X, CheckCircle, Clock, FileText, Trash2, AlertTriangle, Edit2, Download } from 'lucide-react'
 
 import { API_URL } from '../services/api'
 import { ESTADOS_EVENTO } from '../utils/constants'
@@ -1542,9 +1542,20 @@ function EventosPage() {
                 <h2 className="text-2xl font-bold text-gray-900">{eventoSeleccionado.nombre_evento}</h2>
                 <p className="text-sm text-gray-600">{eventoSeleccionado.id} - {eventoSeleccionado.tipo_evento}</p>
               </div>
-              <button onClick={() => setEventoSeleccionado(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-6 w-6" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    window.open(`${API_URL}/eventos/${eventoSeleccionado.id}/cotizacion-pdf`, '_blank')
+                  }}
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2 font-medium"
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar PDF
+                </button>
+                <button onClick={() => setEventoSeleccionado(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
             
             <div className="p-6 space-y-6">

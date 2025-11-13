@@ -251,7 +251,8 @@ class PedidosService:
                 dia_entrega=clasificacion['dia_entrega'],
                 # Para pedidos de Shopify: automáticamente pagados
                 estado_pago=estado_pago_shopify,
-                documento_tributario=documento_shopify
+                documento_tributario=documento_shopify,
+                retiro_en_tienda=data.get('retiro_en_tienda', False)
             )
 
             db.session.add(pedido)
@@ -276,15 +277,30 @@ class PedidosService:
                     # Guardar insumos de este producto
                     if 'insumos' in producto_data and isinstance(producto_data['insumos'], list):
                         for insumo in producto_data['insumos']:
+                            # Validar que insumo_id esté presente
+                            insumo_id = insumo.get('insumo_id') or insumo.get('flor_id') or insumo.get('contenedor_id')
+                            if not insumo_id:
+                                # Si no hay insumo_id, saltar este insumo
+                                continue
+                            
                             cantidad = insumo.get('cantidad', 1)
                             costo_unitario = insumo.get('costo_unitario', 0)
                             costo_total = cantidad * costo_unitario
+                            insumo_tipo = insumo.get('insumo_tipo', 'Flor')
+                            
+                            # Si no se especifica el tipo, intentar inferirlo
+                            if not insumo_tipo or insumo_tipo == 'Flor':
+                                # Verificar si es flor o contenedor basándose en el ID
+                                if insumo.get('flor_id') or (isinstance(insumo_id, str) and insumo_id.startswith('F')):
+                                    insumo_tipo = 'Flor'
+                                elif insumo.get('contenedor_id') or (isinstance(insumo_id, str) and insumo_id.startswith('C')):
+                                    insumo_tipo = 'Contenedor'
 
                             pedido_insumo = PedidoInsumo(
                                 pedido_id=pedido.id,
                                 pedido_producto_id=pedido_producto.id,
-                                insumo_tipo=insumo.get('insumo_tipo', 'Flor'),
-                                insumo_id=insumo.get('insumo_id'),
+                                insumo_tipo=insumo_tipo,
+                                insumo_id=str(insumo_id),  # Asegurar que sea string
                                 insumo_nombre=insumo.get('insumo_nombre', ''),
                                 cantidad=cantidad,
                                 costo_unitario=costo_unitario,
@@ -734,17 +750,23 @@ class PedidosService:
             'Entregas Futuras': [],
             'En Proceso': [],
             'Listo para Despacho': [],
+            'Retiro en Tienda': [],
             'Despachados': []
         }
 
         # Agrupar por estado
         # NOTA: NO filtrar despachados aquí porque ya se filtró en la consulta SQL
         # según la fecha (los recientes sí se incluyen, los antiguos no)
+        # Separar pedidos con retiro en tienda en su propia columna
         for pedido in pedidos:
-            estado = pedido.estado or 'Sin Estado'
-            if estado not in tablero:
-                tablero[estado] = []
-            tablero[estado].append(pedido.to_dict())
+            # Si es retiro en tienda, ponerlo en su columna especial
+            if pedido.retiro_en_tienda:
+                tablero['Retiro en Tienda'].append(pedido.to_dict())
+            else:
+                estado = pedido.estado or 'Sin Estado'
+                if estado not in tablero:
+                    tablero[estado] = []
+                tablero[estado].append(pedido.to_dict())
 
         # Ya no necesitamos filtrar despachados aquí porque la consulta SQL
         # ya los filtró correctamente según la fecha
@@ -1000,6 +1022,48 @@ class PedidosService:
             db.session.rollback()
             return False, 0, str(e)
     @staticmethod
+    def obtener_pedidos_retiro_tienda(fecha_objetivo):
+        """
+        Obtiene pedidos con retiro en tienda para una fecha específica
+        
+        Args:
+            fecha_objetivo: date - fecha de entrega objetivo
+            
+        Returns:
+            tuple: (success, pedidos_list, mensaje)
+        """
+        try:
+            from datetime import datetime, time
+            from models.pedido import Pedido
+            
+            # Obtener pedidos con retiro en tienda para la fecha objetivo
+            inicio_dia = datetime.combine(fecha_objetivo, time.min)
+            fin_dia = datetime.combine(fecha_objetivo, time.max)
+            
+            pedidos = Pedido.query.filter(
+                and_(
+                    Pedido.fecha_entrega >= inicio_dia,
+                    Pedido.fecha_entrega <= fin_dia,
+                    Pedido.estado.notin_(['Despachados', 'Cancelado']),
+                    Pedido.retiro_en_tienda == True
+                )
+            ).order_by(Pedido.es_urgente.desc(), Pedido.fecha_entrega.asc()).all()
+            
+            # Convertir a lista de diccionarios
+            pedidos_list = []
+            for pedido in pedidos:
+                hora_llegada = pedido.fecha_entrega.strftime('%H:%M') if pedido.fecha_entrega and pedido.fecha_entrega.hour != 0 else 'Sin hora'
+                
+                pedido_dict = pedido.to_dict()
+                pedido_dict['hora_llegada'] = hora_llegada
+                pedidos_list.append(pedido_dict)
+            
+            return True, pedidos_list, f'{len(pedidos_list)} pedidos con retiro en tienda'
+            
+        except Exception as e:
+            return False, [], f"Error al obtener pedidos con retiro en tienda: {str(e)}"
+
+    @staticmethod
     def obtener_rutas_por_comuna(fecha_objetivo):
         """
         Obtiene pedidos agrupados por comuna para planificar rutas
@@ -1016,6 +1080,7 @@ class PedidosService:
             from models.pedido import Pedido
 
             # Obtener pedidos para la fecha objetivo (no despachados ni cancelados)
+            # Excluir retiro en tienda (se manejan por separado)
             inicio_dia = datetime.combine(fecha_objetivo, time.min)
             fin_dia = datetime.combine(fecha_objetivo, time.max)
 
@@ -1023,7 +1088,8 @@ class PedidosService:
                 and_(
                     Pedido.fecha_entrega >= inicio_dia,
                     Pedido.fecha_entrega <= fin_dia,
-                    Pedido.estado.notin_(['Despachados', 'Cancelado'])
+                    Pedido.estado.notin_(['Despachados', 'Cancelado']),
+                    or_(Pedido.retiro_en_tienda == False, Pedido.retiro_en_tienda.is_(None))  # Excluir retiro en tienda
                 )
             ).order_by(Pedido.es_urgente.desc(), Pedido.fecha_entrega.asc()).all()
 
@@ -1414,3 +1480,25 @@ class PedidosService:
 """
 
         return html
+
+    @staticmethod
+    def generar_pdf_desde_html(html):
+        """
+        Genera un PDF desde HTML usando WeasyPrint
+        
+        Args:
+            html: str - HTML a convertir
+            
+        Returns:
+            bytes: PDF en formato bytes
+        """
+        try:
+            from weasyprint import HTML
+            from io import BytesIO
+            
+            pdf_buffer = BytesIO()
+            HTML(string=html).write_pdf(pdf_buffer)
+            pdf_buffer.seek(0)
+            return pdf_buffer.getvalue()
+        except Exception as e:
+            raise Exception(f"Error al generar PDF: {str(e)}")

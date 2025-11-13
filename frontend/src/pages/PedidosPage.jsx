@@ -48,6 +48,16 @@ function PedidosPage() {
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [historialPedidos, setHistorialPedidos] = useState([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
+  
+  // Estados para modal de exportación
+  const [mostrarModalExportar, setMostrarModalExportar] = useState(false)
+  const [fechaInicioExportar, setFechaInicioExportar] = useState('')
+  const [fechaFinExportar, setFechaFinExportar] = useState('')
+  const [columnasExportar, setColumnasExportar] = useState([
+    'ID', 'Fecha Pedido', 'Fecha Entrega', 'Cliente', 'Teléfono', 
+    'Arreglo', 'Precio Ramo', 'Precio Envío', 'Precio Total', 
+    'Comuna', 'Estado', 'Estado Pago'
+  ])
   const [mostrarCrearCliente, setMostrarCrearCliente] = useState(false)
   const [nuevoClienteData, setNuevoClienteData] = useState({
     tipo_cliente: 'Nuevo',
@@ -92,7 +102,8 @@ function PedidosPage() {
     motivo: '',
     fecha_entrega: '',
     hora_entrega: '', // Hora opcional
-    plazo_pago_dias: 0
+    plazo_pago_dias: 0,
+    retiro_en_tienda: false
   })
   
   // Costo y margen en tiempo real según insumos y precio del ramo
@@ -870,8 +881,9 @@ function PedidosPage() {
         destinatario: formData.destinatario || null,
         mensaje: formData.mensaje || null,
         firma: formData.firma || null,
-        direccion_entrega: formData.direccion_entrega,
-        comuna: formData.comuna || null,
+        direccion_entrega: formData.retiro_en_tienda ? 'Retiro en Tienda' : formData.direccion_entrega,
+        comuna: formData.retiro_en_tienda ? null : (formData.comuna || null),
+        retiro_en_tienda: formData.retiro_en_tienda,
         motivo: formData.motivo || null,
         fecha_entrega: fechaEntregaCompleta,
         tiene_hora_especifica: !!(formData.hora_entrega && formData.hora_entrega.trim()),
@@ -1026,8 +1038,11 @@ function PedidosPage() {
         </div>
         <div className="flex gap-3">
           <button 
-            onClick={() => {
-              window.open(`${API_URL}/exportar/pedidos`, '_blank')
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('Abriendo modal de exportación...')
+              setMostrarModalExportar(true)
             }}
             className="px-5 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 shadow-sm hover:shadow-md transition-all duration-200 flex items-center font-medium"
           >
@@ -3433,6 +3448,36 @@ function PedidosPage() {
                         <p className="text-xs text-gray-500 mt-1">Deja vacío si no hay hora específica</p>
                       </div>
                     </div>
+                    <div className="mt-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.retiro_en_tienda}
+                          onChange={(e) => {
+                            setFormData({...formData, retiro_en_tienda: e.target.checked})
+                            if (e.target.checked) {
+                              // Si es retiro en tienda, limpiar dirección y comuna
+                              setFormData(prev => ({
+                                ...prev,
+                                retiro_en_tienda: true,
+                                direccion_entrega: 'Retiro en Tienda',
+                                comuna: '',
+                                precio_envio: 0
+                              }))
+                            }
+                          }}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          🏪 Retiro en Tienda
+                        </span>
+                      </label>
+                      {formData.retiro_en_tienda && (
+                        <p className="text-xs text-gray-500 mt-1 ml-6">
+                          El cliente retirará el pedido en la tienda. No se requiere dirección de entrega.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
@@ -3521,6 +3566,168 @@ function PedidosPage() {
                 disabled={loadingFormulario}
               >
                 {loadingFormulario ? 'Creando...' : 'Crear Pedido'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Exportación a Excel */}
+      {mostrarModalExportar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setMostrarModalExportar(false)
+          }
+        }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Download className="h-6 w-6 text-emerald-600" />
+                Exportar Pedidos a Excel
+              </h2>
+              <button
+                onClick={() => setMostrarModalExportar(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Filtros de Fecha */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros de Fecha</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha de Inicio
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaInicioExportar}
+                      onChange={(e) => setFechaInicioExportar(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha de Fin
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaFinExportar}
+                      onChange={(e) => setFechaFinExportar(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Deja vacío para exportar todos los pedidos
+                </p>
+              </div>
+
+              {/* Selección de Columnas */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Columnas a Exportar</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const todasLasColumnas = [
+                          'ID', 'Fecha Pedido', 'Fecha Entrega', 'Canal', 'N° Shopify',
+                          'Cliente', 'Teléfono', 'Email Cliente', 'Arreglo', 'Detalles',
+                          'Precio Ramo', 'Precio Envío', 'Precio Total', 'Destinatario',
+                          'Mensaje', 'Firma', 'Dirección', 'Comuna', 'Motivo', 'Estado',
+                          'Estado Pago', 'Método Pago', 'Documento Tributario', 'N° Documento',
+                          'Día Entrega', 'Tipo Pedido', 'Es Evento', 'Tipo Evento'
+                        ]
+                        setColumnasExportar(todasLasColumnas)
+                      }}
+                      className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    >
+                      Seleccionar Todas
+                    </button>
+                    <button
+                      onClick={() => setColumnasExportar([])}
+                      className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                    >
+                      Deseleccionar Todas
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-3 border border-gray-200 rounded-lg">
+                  {[
+                    'ID', 'Fecha Pedido', 'Fecha Entrega', 'Canal', 'N° Shopify',
+                    'Cliente', 'Teléfono', 'Email Cliente', 'Arreglo', 'Detalles',
+                    'Precio Ramo', 'Precio Envío', 'Precio Total', 'Destinatario',
+                    'Mensaje', 'Firma', 'Dirección', 'Comuna', 'Motivo', 'Estado',
+                    'Estado Pago', 'Método Pago', 'Documento Tributario', 'N° Documento',
+                    'Día Entrega', 'Tipo Pedido', 'Es Evento', 'Tipo Evento'
+                  ].map((columna) => (
+                    <label
+                      key={columna}
+                      className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={columnasExportar.includes(columna)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setColumnasExportar([...columnasExportar, columna])
+                          } else {
+                            setColumnasExportar(columnasExportar.filter(c => c !== columna))
+                          }
+                        }}
+                        className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-gray-700">{columna}</span>
+                    </label>
+                  ))}
+                </div>
+                {columnasExportar.length === 0 && (
+                  <p className="text-sm text-amber-600 mt-2">
+                    ⚠️ Debes seleccionar al menos una columna para exportar
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setMostrarModalExportar(false)}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (columnasExportar.length === 0) {
+                    alert('⚠️ Debes seleccionar al menos una columna para exportar')
+                    return
+                  }
+
+                  // Construir URL con parámetros
+                  const params = new URLSearchParams()
+                  if (fechaInicioExportar) {
+                    params.append('fecha_inicio', fechaInicioExportar)
+                  }
+                  if (fechaFinExportar) {
+                    params.append('fecha_fin', fechaFinExportar)
+                  }
+                  if (columnasExportar.length > 0) {
+                    params.append('columnas', columnasExportar.join(','))
+                  }
+
+                  const url = `${API_URL}/exportar/pedidos${params.toString() ? '?' + params.toString() : ''}`
+                  window.open(url, '_blank')
+                  setMostrarModalExportar(false)
+                }}
+                disabled={columnasExportar.length === 0}
+                className="px-5 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Download className="h-5 w-5" />
+                Exportar
               </button>
             </div>
           </div>

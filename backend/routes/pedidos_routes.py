@@ -400,6 +400,44 @@ def obtener_rutas():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/rutas/retiro-tienda', methods=['GET'], strict_slashes=False)
+def obtener_retiro_tienda():
+    """Obtiene pedidos con retiro en tienda para una fecha específica"""
+    try:
+        from datetime import datetime, timedelta
+
+        # Parámetros de filtro
+        filtro_fecha = request.args.get('fecha', 'hoy')
+
+        # Calcular fecha objetivo
+        hoy = datetime.now().date()
+        if filtro_fecha == 'hoy':
+            fecha_objetivo = hoy
+        elif filtro_fecha == 'manana':
+            fecha_objetivo = hoy + timedelta(days=1)
+        else:
+            try:
+                fecha_objetivo = datetime.strptime(filtro_fecha, '%Y-%m-%d').date()
+            except:
+                fecha_objetivo = hoy
+
+        # Delegar al servicio
+        success, pedidos, mensaje = PedidosService.obtener_pedidos_retiro_tienda(fecha_objetivo)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': pedidos,
+                'fecha': fecha_objetivo.isoformat(),
+                'total': len(pedidos)
+            })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/<int:pedido_id>/urgente', methods=['PATCH'])
 def marcar_urgente(pedido_id):
     """Marca o desmarca un pedido como urgente"""
@@ -454,10 +492,12 @@ def generar_documento_repartidor():
     """Genera documento imprimible para el repartidor"""
     try:
         from datetime import datetime, timedelta
+        from flask import send_file
+        from io import BytesIO
 
         # Parámetros
         filtro_fecha = request.args.get('fecha', 'hoy')
-        formato = request.args.get('formato', 'html')  # 'html' o 'json'
+        formato = request.args.get('formato', 'html')  # 'html', 'json' o 'pdf'
 
         # Calcular fecha objetivo
         hoy = datetime.now().date()
@@ -475,7 +515,19 @@ def generar_documento_repartidor():
         success, documento, mensaje = PedidosService.generar_documento_repartidor(fecha_objetivo)
 
         if success:
-            if formato == 'html':
+            if formato == 'pdf':
+                # Generar PDF
+                html = PedidosService.generar_html_documento_repartidor(documento, fecha_objetivo)
+                pdf_bytes = PedidosService.generar_pdf_desde_html(html)
+                
+                filename = f"ruta_repartidor_{fecha_objetivo.strftime('%Y%m%d')}.pdf"
+                return send_file(
+                    BytesIO(pdf_bytes),
+                    mimetype='application/pdf',
+                    as_attachment=True,
+                    download_name=filename
+                )
+            elif formato == 'html':
                 # Generar HTML imprimible
                 html = PedidosService.generar_html_documento_repartidor(documento, fecha_objetivo)
                 return html, 200, {'Content-Type': 'text/html; charset=utf-8'}

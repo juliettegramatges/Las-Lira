@@ -60,6 +60,9 @@ class Pedido(db.Model):
 
     # Prioridad de entrega
     es_urgente = db.Column(db.Boolean, default=False)  # Pedido marcado como urgente
+    
+    # Retiro en tienda
+    retiro_en_tienda = db.Column(db.Boolean, default=False)  # Si el pedido se retira en tienda
 
     # Información de Personalización
     colores_solicitados = db.Column(db.Text)  # JSON: ['Rojo', 'Blanco', 'Verde']

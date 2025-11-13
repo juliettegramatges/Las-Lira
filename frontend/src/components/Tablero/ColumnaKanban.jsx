@@ -10,6 +10,7 @@ const colorEstado = {
   'Despachados': 'bg-purple-50 border-purple-200',
   'Pedidos Semana': 'bg-blue-50 border-blue-200',
   'Eventos': 'bg-pink-50 border-pink-200',
+  'Retiro en Tienda': 'bg-cyan-50 border-cyan-200',
 }
 
 const colorBadge = {
@@ -20,6 +21,7 @@ const colorBadge = {
   'Despachados': 'bg-purple-100 text-purple-800',
   'Pedidos Semana': 'bg-blue-100 text-blue-800',
   'Eventos': 'bg-pink-100 text-pink-800',
+  'Retiro en Tienda': 'bg-cyan-100 text-cyan-800',
 }
 
 function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedido, mostrarCargarDespachados = false, onCargarDespachados, mostrarCargarMas = false, onCargarMas, semanasCargadas = 1 }) {

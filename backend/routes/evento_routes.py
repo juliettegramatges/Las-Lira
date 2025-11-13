@@ -43,6 +43,36 @@ def obtener_evento(evento_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@bp.route('/<evento_id>/cotizacion-pdf', methods=['GET'])
+def descargar_cotizacion_pdf(evento_id):
+    """Descarga la cotización del evento en formato PDF"""
+    try:
+        from flask import send_file
+        from io import BytesIO
+        
+        evento = EventosService.obtener_evento(evento_id)
+        if not evento:
+            return jsonify({'success': False, 'error': 'Evento no encontrado'}), 404
+
+        # Generar PDF
+        pdf_bytes = EventosService.generar_pdf_cotizacion(evento)
+        
+        filename = f"cotizacion_{evento_id}_{evento.nombre_evento or 'evento'}.pdf"
+        # Limpiar nombre de archivo de caracteres especiales
+        filename = "".join(c for c in filename if c.isalnum() or c in ('_', '-', '.'))
+        
+        return send_file(
+            BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @bp.route('/<evento_id>', methods=['PUT'])
 def actualizar_evento(evento_id):
     """Actualiza un evento existente"""

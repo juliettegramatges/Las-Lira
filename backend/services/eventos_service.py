@@ -499,3 +499,376 @@ class EventosService:
         """
         productos = ProductoEvento.query.filter_by(activo=True).all()
         return productos
+
+    @staticmethod
+    def generar_html_cotizacion(evento):
+        """
+        Genera HTML imprimible para la cotización del evento
+        
+        Args:
+            evento: Evento - objeto del evento con insumos cargados
+            
+        Returns:
+            str: HTML
+        """
+        from datetime import datetime
+        
+        # Formatear fecha
+        fecha_str = evento.fecha_evento.strftime('%d/%m/%Y') if evento.fecha_evento else 'Sin fecha'
+        hora_str = evento.hora_evento or 'Sin hora'
+        
+        # Calcular totales
+        costo_total = float(evento.costo_total or 0)
+        precio_propuesta = float(evento.precio_propuesta or 0)
+        margen = float(evento.margen_porcentaje or 30)
+        
+        html = f"""
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotización {evento.id} - {evento.nombre_evento}</title>
+    <style>
+        @media print {{
+            @page {{ margin: 1.5cm; }}
+            body {{ margin: 0; }}
+        }}
+        body {{
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+            font-size: 12px;
+            color: #333;
+        }}
+        .header {{
+            text-align: center;
+            border-bottom: 3px solid #e91e63;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }}
+        .header h1 {{
+            color: #e91e63;
+            margin: 0;
+            font-size: 28px;
+        }}
+        .header p {{
+            color: #666;
+            margin: 5px 0;
+        }}
+        .info-section {{
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #e91e63;
+        }}
+        .info-section h2 {{
+            color: #e91e63;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #e91e63;
+            padding-bottom: 5px;
+        }}
+        .info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }}
+        .info-item {{
+            margin-bottom: 10px;
+        }}
+        .info-item label {{
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 3px;
+            font-size: 11px;
+        }}
+        .info-item p {{
+            margin: 0;
+            color: #333;
+            font-size: 13px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+        }}
+        th {{
+            background: #e91e63;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 12px;
+        }}
+        td {{
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+            font-size: 11px;
+        }}
+        tr:nth-child(even) {{
+            background: #f9f9f9;
+        }}
+        .total-row {{
+            background: #fff5f5 !important;
+            font-weight: bold;
+            font-size: 13px;
+        }}
+        .financial-section {{
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffeef5 100%);
+            border-radius: 8px;
+            border: 2px solid #e91e63;
+        }}
+        .financial-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }}
+        .financial-item {{
+            text-align: center;
+        }}
+        .financial-item label {{
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+        }}
+        .financial-item .value {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #e91e63;
+        }}
+        .notes {{
+            margin-top: 25px;
+            padding: 15px;
+            background: #fff9e6;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }}
+        .notes h3 {{
+            margin-top: 0;
+            color: #856404;
+            font-size: 14px;
+        }}
+        .notes p {{
+            margin: 0;
+            color: #333;
+            font-size: 12px;
+            line-height: 1.6;
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌸 Las Lira - Cotización de Evento</h1>
+        <p>Cotización #{evento.id} | Fecha de emisión: {datetime.now().strftime('%d/%m/%Y')}</p>
+    </div>
+
+    <!-- Información del Cliente -->
+    <div class="info-section">
+        <h2>👤 Información del Cliente</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Nombre:</label>
+                <p>{evento.cliente_nombre or '-'}</p>
+            </div>
+            <div class="info-item">
+                <label>Teléfono:</label>
+                <p>{evento.cliente_telefono or '-'}</p>
+            </div>
+            <div class="info-item">
+                <label>Email:</label>
+                <p>{evento.cliente_email or '-'}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del Evento -->
+    <div class="info-section">
+        <h2>📅 Detalles del Evento</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Nombre del Evento:</label>
+                <p>{evento.nombre_evento or '-'}</p>
+            </div>
+            <div class="info-item">
+                <label>Tipo de Evento:</label>
+                <p>{evento.tipo_evento or '-'}</p>
+            </div>
+            <div class="info-item">
+                <label>Fecha:</label>
+                <p>{fecha_str}</p>
+            </div>
+            <div class="info-item">
+                <label>Hora:</label>
+                <p>{hora_str}</p>
+            </div>
+            <div class="info-item">
+                <label>Lugar:</label>
+                <p>{evento.lugar_evento or '-'}</p>
+            </div>
+            <div class="info-item">
+                <label>Cantidad de Personas:</label>
+                <p>{evento.cantidad_personas or '-'}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desglose de Insumos -->
+"""
+        
+        # Agregar tabla de insumos
+        if evento.insumos and len(evento.insumos) > 0:
+            html += """
+    <div class="info-section">
+        <h2>📦 Desglose de Insumos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th style="text-align: right;">Cantidad</th>
+                    <th style="text-align: right;">Costo Unit.</th>
+                    <th style="text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+            for insumo in evento.insumos:
+                tipo = insumo.tipo_insumo or 'otro'
+                descripcion = insumo.nombre_otro or f'Insumo {tipo}'
+                
+                # Intentar obtener descripción del insumo
+                if tipo == 'flor' and insumo.flor_id:
+                    flor = Flor.query.get(insumo.flor_id)
+                    if flor:
+                        descripcion = f"{flor.tipo} - {flor.color}"
+                elif tipo == 'contenedor' and insumo.contenedor_id:
+                    contenedor = Contenedor.query.get(insumo.contenedor_id)
+                    if contenedor:
+                        descripcion = f"{contenedor.tipo} - {contenedor.material}"
+                elif tipo == 'producto' and insumo.producto_id:
+                    producto = Producto.query.get(insumo.producto_id)
+                    if producto:
+                        descripcion = producto.nombre or producto.arreglo_pedido or f'Producto {insumo.producto_id}'
+                
+                cantidad = insumo.cantidad or 0
+                costo_unit = float(insumo.costo_unitario or 0)
+                total = cantidad * costo_unit
+                
+                html += f"""
+                <tr>
+                    <td>{tipo.replace('_', ' ').title()}</td>
+                    <td>{descripcion}</td>
+                    <td style="text-align: right;">{cantidad}</td>
+                    <td style="text-align: right;">${costo_unit:,.0f}</td>
+                    <td style="text-align: right;">${total:,.0f}</td>
+                </tr>
+"""
+            
+            html += f"""
+                <tr class="total-row">
+                    <td colspan="4" style="text-align: right; font-size: 14px;">TOTAL COSTO INSUMOS:</td>
+                    <td style="text-align: right; font-size: 16px;">${costo_total:,.0f}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+"""
+        
+        # Información financiera
+        html += f"""
+    <div class="financial-section">
+        <h2 style="margin-top: 0; color: #e91e63; border-bottom: 2px solid #e91e63; padding-bottom: 10px;">💰 Información Financiera</h2>
+        <div class="financial-grid">
+            <div class="financial-item">
+                <label>Costo Total</label>
+                <div class="value" style="color: #333;">${costo_total:,.0f}</div>
+            </div>
+            <div class="financial-item">
+                <label>Margen ({margen}%)</label>
+                <div class="value" style="color: #e91e63;">${precio_propuesta - costo_total:,.0f}</div>
+            </div>
+            <div class="financial-item">
+                <label>Precio Propuesta</label>
+                <div class="value" style="color: #e91e63;">${precio_propuesta:,.0f}</div>
+            </div>
+        </div>
+"""
+        
+        if evento.precio_final and evento.precio_final > 0:
+            precio_final = float(evento.precio_final)
+            anticipo = float(evento.anticipo or 0)
+            saldo = float(evento.saldo or 0)
+            
+            html += f"""
+        <div class="financial-grid" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e91e63;">
+            <div class="financial-item">
+                <label>Precio Final</label>
+                <div class="value" style="color: #28a745;">${precio_final:,.0f}</div>
+            </div>
+            <div class="financial-item">
+                <label>Anticipo</label>
+                <div class="value" style="color: #333;">${anticipo:,.0f}</div>
+            </div>
+            <div class="financial-item">
+                <label>Saldo Pendiente</label>
+                <div class="value" style="color: #ff9800;">${saldo:,.0f}</div>
+            </div>
+        </div>
+"""
+        
+        html += """
+    </div>
+"""
+        
+        # Notas
+        if evento.notas_cotizacion:
+            html += f"""
+    <div class="notes">
+        <h3>📝 Notas de Cotización</h3>
+        <p>{evento.notas_cotizacion}</p>
+    </div>
+"""
+        
+        html += """
+    <div style="margin-top: 40px; text-align: center; color: #999; font-size: 10px; border-top: 1px solid #ddd; padding-top: 20px;">
+        <p>Este documento es una cotización y no constituye una orden de compra hasta su confirmación.</p>
+        <p>Las Lira - Sistema de Gestión de Florería</p>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+
+    @staticmethod
+    def generar_pdf_cotizacion(evento):
+        """
+        Genera un PDF de la cotización del evento
+        
+        Args:
+            evento: Evento - objeto del evento con insumos cargados
+            
+        Returns:
+            bytes: PDF en formato bytes
+        """
+        try:
+            from weasyprint import HTML
+            from io import BytesIO
+            
+            html = EventosService.generar_html_cotizacion(evento)
+            pdf_buffer = BytesIO()
+            HTML(string=html).write_pdf(pdf_buffer)
+            pdf_buffer.seek(0)
+            return pdf_buffer.getvalue()
+        except Exception as e:
+            raise Exception(f"Error al generar PDF de cotización: {str(e)}")

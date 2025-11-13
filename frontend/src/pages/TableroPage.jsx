@@ -17,6 +17,7 @@ function TableroPage() {
     'Entregas Futuras': [],
     'En Proceso': [],
     'Listo para Despacho': [],
+    'Retiro en Tienda': [],
     'Despachados': []
   })
   const [loading, setLoading] = useState(true)
@@ -37,6 +38,7 @@ function TableroPage() {
     'Entregas Futuras',     // 🔮 Entrega más allá del próximo mes
     'En Proceso',           // 🔧 En preparación
     'Listo para Despacho',  // ✅ Listo para enviar
+    'Retiro en Tienda',     // 🏪 Retiro en tienda
     'Despachados'           // 📦 Ya entregado
   ]
   
