@@ -184,7 +184,7 @@ def confirmar_insumos_y_descontar(pedido_id):
                     
                     if stock_real_disponible < insumo.cantidad:
                         errores_stock.append(
-                            f'{flor.tipo} {flor.color}: Stock insuficiente '
+                            f'{flor.tipo} {flor.color}: Stock insuficiente '                            
                             f'(Disponible: {flor.cantidad_disponible}, En este pedido: {reservado_este_pedido}, '
                             f'Total disponible: {stock_real_disponible}, Requerido: {insumo.cantidad})'
                         )

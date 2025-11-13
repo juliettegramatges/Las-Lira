@@ -4,9 +4,10 @@ Rutas para gestión de inventario (flores y contenedores)
 
 from flask import Blueprint, request, jsonify
 from extensions import db
-from models.inventario import Flor, Contenedor, Bodega, Proveedor
+from models.inventario import Flor, Contenedor, Bodega, Proveedor, proveedor_flor, proveedor_contenedor
 from config.precios_sugeridos import obtener_precio_flor
 from config.stock_sugerido import obtener_stock_flor
+from datetime import date
 
 bp = Blueprint('inventario', __name__)
 
@@ -126,7 +127,10 @@ def listar_flores():
         if color:
             query = query.filter_by(color=color)
         if stock_bajo:
-            query = query.filter(Flor.cantidad_stock < 20)
+            # Filtrar flores donde cantidad_disponible <= stock_bajo
+            query = query.filter(
+                (Flor.cantidad_stock - Flor.cantidad_en_uso - Flor.cantidad_en_evento) <= Flor.stock_bajo
+            )
 
         flores = query.order_by(Flor.tipo, Flor.color).all()
 
@@ -168,11 +172,11 @@ def crear_flor():
             nombre=data.get('nombre') or f"{data['tipo']} {data.get('color', '')}".strip(),
             ubicacion=data.get('ubicacion', 'Taller'),
             foto_url=data.get('foto_url'),
-            proveedor_id=data.get('proveedor_id'),
             costo_unitario=data.get('costo_unitario', 0),
             cantidad_stock=data.get('cantidad_stock', 0),
             cantidad_en_uso=0,
             cantidad_en_evento=0,
+            stock_bajo=data.get('stock_bajo', 10),
             unidad=data.get('unidad', 'Tallos')
         )
 
@@ -184,7 +188,87 @@ def crear_flor():
             'data': nueva_flor.to_dict(),
             'message': f'Flor "{nueva_flor.nombre}" creada exitosamente'
         }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@bp.route('/flores/<flor_id>/reponer', methods=['POST'])
+def reponer_flor(flor_id):
+    """Reponer stock de una flor"""
+    try:
+        flor = Flor.query.get(flor_id)
+        if not flor:
+            return jsonify({'success': False, 'error': 'Flor no encontrada'}), 404
+        
+        data = request.json
+        cantidad = int(data.get('cantidad', 0))
+        proveedor_id = data.get('proveedor_id')
+        
+        if cantidad <= 0:
+            return jsonify({'success': False, 'error': 'La cantidad debe ser mayor a 0'}), 400
+        
+        # Actualizar stock
+        flor.cantidad_stock += cantidad
+        flor.fecha_actualizacion = date.today()
+        
+        # Asociar con proveedor si se proporciona (asociación automática)
+        if proveedor_id:
+            proveedor = Proveedor.query.get(proveedor_id)
+            if proveedor:
+                # Agregar la flor al proveedor (el backref actualiza automáticamente flor.proveedores)
+                if flor not in proveedor.flores:
+                    proveedor.flores.append(flor)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': flor.to_dict(),
+            'message': f'Stock de "{flor.nombre}" actualizado: +{cantidad} unidades (Total: {flor.cantidad_stock})'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/contenedores/<contenedor_id>/reponer', methods=['POST'])
+def reponer_contenedor(contenedor_id):
+    """Reponer stock de un contenedor"""
+    try:
+        contenedor = Contenedor.query.get(contenedor_id)
+        if not contenedor:
+            return jsonify({'success': False, 'error': 'Contenedor no encontrado'}), 404
+        
+        data = request.json
+        cantidad = int(data.get('cantidad', 0))
+        proveedor_id = data.get('proveedor_id')
+        
+        if cantidad <= 0:
+            return jsonify({'success': False, 'error': 'La cantidad debe ser mayor a 0'}), 400
+        
+        # Actualizar stock
+        contenedor.cantidad_stock += cantidad
+        contenedor.fecha_actualizacion = date.today()
+        
+        # Asociar con proveedor si se proporciona (asociación automática)
+        if proveedor_id:
+            proveedor = Proveedor.query.get(proveedor_id)
+            if proveedor:
+                # Agregar el contenedor al proveedor (el backref actualiza automáticamente contenedor.proveedores)
+                if contenedor not in proveedor.contenedores:
+                    proveedor.contenedores.append(contenedor)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': contenedor.to_dict(),
+            'message': f'Stock de "{contenedor.nombre}" actualizado: +{cantidad} unidades (Total: {contenedor.cantidad_stock})'
+        })
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -223,6 +307,8 @@ def actualizar_flor(flor_id):
             flor.cantidad_en_uso = int(data['cantidad_en_uso'])
         if 'cantidad_en_evento' in data:
             flor.cantidad_en_evento = int(data['cantidad_en_evento'])
+        if 'stock_bajo' in data:
+            flor.stock_bajo = int(data['stock_bajo'])
         if 'ubicacion' in data:
             flor.ubicacion = data['ubicacion']
         if 'costo_unitario' in data:
@@ -371,6 +457,7 @@ def crear_contenedor():
             cantidad_stock=data.get('cantidad_stock', 0),
             cantidad_en_uso=0,
             cantidad_en_evento=0,
+            stock_bajo=data.get('stock_bajo', 5),
             bodega_id=data.get('bodega_id')
         )
 
@@ -405,6 +492,8 @@ def actualizar_contenedor(contenedor_id):
             contenedor.cantidad_en_uso = int(data['cantidad_en_uso'])
         if 'cantidad_en_evento' in data:
             contenedor.cantidad_en_evento = int(data['cantidad_en_evento'])
+        if 'stock_bajo' in data:
+            contenedor.stock_bajo = int(data['stock_bajo'])
         if 'ubicacion' in data:
             contenedor.ubicacion = data['ubicacion']
         if 'costo' in data:
@@ -537,3 +626,268 @@ def resumen_inventario():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+
+
+# ===== PROVEEDORES =====
+
+@bp.route('/proveedores', methods=['GET'])
+def listar_proveedores():
+    """Listar todos los proveedores"""
+    try:
+        proveedores = Proveedor.query.filter_by(activo=True).order_by(Proveedor.nombre).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [p.to_dict() for p in proveedores],
+            'total': len(proveedores)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>', methods=['GET'])
+def obtener_proveedor(proveedor_id):
+    """Obtener un proveedor con sus insumos asociados"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        return jsonify({
+            'success': True,
+            'data': proveedor.to_dict_con_insumos()
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores', methods=['POST'])
+def crear_proveedor():
+    """Crear un nuevo proveedor"""
+    try:
+        data = request.json
+        
+        if not data.get('nombre'):
+            return jsonify({'success': False, 'error': 'Campo requerido: nombre'}), 400
+        
+        # Generar ID automático (PR + número secuencial)
+        ultimo_proveedor = Proveedor.query.order_by(Proveedor.id.desc()).first()
+        if ultimo_proveedor and ultimo_proveedor.id.startswith('PR'):
+            try:
+                ultimo_num = int(ultimo_proveedor.id[2:])
+                nuevo_id = f'PR{str(ultimo_num + 1).zfill(3)}'
+            except:
+                nuevo_id = f'PR{str(Proveedor.query.count() + 1).zfill(3)}'
+        else:
+            nuevo_id = f'PR{str(Proveedor.query.count() + 1).zfill(3)}'
+        
+        nuevo_proveedor = Proveedor(
+            id=nuevo_id,
+            nombre=data['nombre'],
+            contacto=data.get('contacto', ''),
+            telefono=data.get('telefono', ''),
+            empresa=data.get('empresa', ''),
+            email=data.get('email', ''),
+            especialidad=data.get('especialidad', ''),
+            dias_entrega=data.get('dias_entrega', ''),
+            notas=data.get('notas', ''),
+            activo=True
+        )
+        
+        db.session.add(nuevo_proveedor)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': nuevo_proveedor.to_dict(),
+            'message': f'Proveedor "{nuevo_proveedor.nombre}" creado exitosamente'
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>', methods=['PUT'])
+def actualizar_proveedor(proveedor_id):
+    """Actualizar un proveedor"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        data = request.json
+        
+        if 'nombre' in data:
+            proveedor.nombre = data['nombre']
+        if 'contacto' in data:
+            proveedor.contacto = data['contacto']
+        if 'telefono' in data:
+            proveedor.telefono = data['telefono']
+        if 'empresa' in data:
+            proveedor.empresa = data['empresa']
+        if 'email' in data:
+            proveedor.email = data['email']
+        if 'especialidad' in data:
+            proveedor.especialidad = data['especialidad']
+        if 'dias_entrega' in data:
+            proveedor.dias_entrega = data['dias_entrega']
+        if 'notas' in data:
+            proveedor.notas = data['notas']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': proveedor.to_dict(),
+            'message': 'Proveedor actualizado correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>', methods=['DELETE'])
+def eliminar_proveedor(proveedor_id):
+    """Eliminar un proveedor (soft delete)"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        nombre_proveedor = proveedor.nombre
+        
+        # Soft delete
+        proveedor.activo = False
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Proveedor "{nombre_proveedor}" eliminado exitosamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>/insumos/flores', methods=['POST'])
+def agregar_flor_a_proveedor(proveedor_id):
+    """Agregar una flor a un proveedor"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        data = request.json
+        flor_id = data.get('flor_id')
+        
+        if not flor_id:
+            return jsonify({'success': False, 'error': 'Campo requerido: flor_id'}), 400
+        
+        flor = Flor.query.get(flor_id)
+        if not flor:
+            return jsonify({'success': False, 'error': 'Flor no encontrada'}), 404
+        
+        if flor not in proveedor.flores:
+            proveedor.flores.append(flor)
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': proveedor.to_dict_con_insumos(),
+            'message': f'Flor "{flor.nombre}" agregada al proveedor'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>/insumos/flores/<flor_id>', methods=['DELETE'])
+def quitar_flor_de_proveedor(proveedor_id, flor_id):
+    """Quitar una flor de un proveedor"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        flor = Flor.query.get(flor_id)
+        if not flor:
+            return jsonify({'success': False, 'error': 'Flor no encontrada'}), 404
+        
+        if flor in proveedor.flores:
+            proveedor.flores.remove(flor)
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': proveedor.to_dict_con_insumos(),
+            'message': f'Flor "{flor.nombre}" removida del proveedor'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>/insumos/contenedores', methods=['POST'])
+def agregar_contenedor_a_proveedor(proveedor_id):
+    """Agregar un contenedor a un proveedor"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        data = request.json
+        contenedor_id = data.get('contenedor_id')
+        
+        if not contenedor_id:
+            return jsonify({'success': False, 'error': 'Campo requerido: contenedor_id'}), 400
+        
+        contenedor = Contenedor.query.get(contenedor_id)
+        if not contenedor:
+            return jsonify({'success': False, 'error': 'Contenedor no encontrado'}), 404
+        
+        if contenedor not in proveedor.contenedores:
+            proveedor.contenedores.append(contenedor)
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': proveedor.to_dict_con_insumos(),
+            'message': f'Contenedor "{contenedor.nombre}" agregado al proveedor'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/proveedores/<proveedor_id>/insumos/contenedores/<contenedor_id>', methods=['DELETE'])
+def quitar_contenedor_de_proveedor(proveedor_id, contenedor_id):
+    """Quitar un contenedor de un proveedor"""
+    try:
+        proveedor = Proveedor.query.get(proveedor_id)
+        if not proveedor:
+            return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
+        
+        contenedor = Contenedor.query.get(contenedor_id)
+        if not contenedor:
+            return jsonify({'success': False, 'error': 'Contenedor no encontrado'}), 404
+        
+        if contenedor in proveedor.contenedores:
+            proveedor.contenedores.remove(contenedor)
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': proveedor.to_dict_con_insumos(),
+            'message': f'Contenedor "{contenedor.nombre}" removido del proveedor'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500

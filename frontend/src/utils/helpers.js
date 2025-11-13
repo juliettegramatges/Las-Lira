@@ -9,12 +9,29 @@ import { es } from 'date-fns/locale'
  * Formatea una fecha a formato legible
  * @param {string|Date} fecha - Fecha a formatear
  * @param {string} formato - Formato deseado (default: 'dd MMM yyyy')
+ * @param {boolean} incluirHora - Si incluir hora cuando está disponible (default: false)
  * @returns {string} Fecha formateada o '-'
  */
-export const formatFecha = (fecha, formato = 'dd MMM yyyy') => {
+export const formatFecha = (fecha, formato = 'dd MMM yyyy', incluirHora = false) => {
   if (!fecha) return '-'
   try {
-    return format(new Date(fecha), formato, { locale: es })
+    const fechaObj = new Date(fecha)
+    if (isNaN(fechaObj.getTime())) return '-'
+    
+    // Si se solicita incluir hora y la fecha tiene hora específica
+    if (incluirHora && typeof fecha === 'string' && fecha.includes('T') && fecha.includes(':')) {
+      const horas = fechaObj.getHours()
+      const minutos = fechaObj.getMinutes()
+      
+      // Si es medianoche (00:00), puede ser que no haya hora específica
+      if (horas === 0 && minutos === 0) {
+        return format(fechaObj, formato === 'dd MMM yyyy' ? 'dd/MM/yyyy' : formato, { locale: es }) + ' - sin hora de llegada'
+      }
+      
+      return format(fechaObj, formato === 'dd MMM yyyy' ? 'dd/MM/yyyy HH:mm' : formato, { locale: es })
+    }
+    
+    return format(fechaObj, formato, { locale: es })
   } catch {
     return '-'
   }

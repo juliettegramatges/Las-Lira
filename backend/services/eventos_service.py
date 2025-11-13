@@ -6,6 +6,7 @@ Contiene toda la lógica de negocio relacionada con eventos y cotizaciones
 from extensions import db
 from models.evento import Evento, EventoInsumo, ProductoEvento
 from models.inventario import Flor, Contenedor
+from models.producto import Producto
 from datetime import datetime
 
 
@@ -65,23 +66,48 @@ class EventosService:
         try:
             nuevo_id = EventosService.generar_id_evento()
 
+            # Parsear fecha_evento de forma segura
+            fecha_evento = None
+            if data.get('fecha_evento'):
+                try:
+                    # Intentar parsear como ISO format
+                    if 'T' in data['fecha_evento']:
+                        fecha_evento = datetime.fromisoformat(data['fecha_evento'].replace('Z', '+00:00'))
+                    else:
+                        # Si es solo fecha (YYYY-MM-DD), agregar hora
+                        fecha_evento = datetime.fromisoformat(data['fecha_evento'] + 'T00:00:00')
+                except (ValueError, TypeError) as e:
+                    # Si falla, intentar otros formatos comunes
+                    try:
+                        from dateutil import parser
+                        fecha_evento = parser.parse(data['fecha_evento'])
+                    except:
+                        fecha_evento = None
+
             nuevo_evento = Evento(
                 id=nuevo_id,
-                cliente_nombre=data.get('cliente_nombre'),
-                cliente_telefono=data.get('cliente_telefono'),
-                cliente_email=data.get('cliente_email'),
-                nombre_evento=data.get('nombre_evento'),
-                tipo_evento=data.get('tipo_evento'),
-                fecha_evento=datetime.fromisoformat(data['fecha_evento']) if data.get('fecha_evento') else None,
-                hora_evento=data.get('hora_evento'),
-                lugar_evento=data.get('lugar_evento'),
-                cantidad_personas=data.get('cantidad_personas', 0),
+                cliente_nombre=data.get('cliente_nombre') or '',
+                cliente_telefono=data.get('cliente_telefono') or '',
+                cliente_email=data.get('cliente_email') or '',
+                nombre_evento=data.get('nombre_evento') or '',
+                tipo_evento=data.get('tipo_evento') or 'Boda',
+                fecha_evento=fecha_evento,
+                hora_evento=data.get('hora_evento') or '',
+                lugar_evento=data.get('lugar_evento') or '',
+                cantidad_personas=data.get('cantidad_personas', 0) or 0,
                 estado='Cotización',
-                margen_porcentaje=data.get('margen_porcentaje', 30),
-                notas_cotizacion=data.get('notas_cotizacion')
+                margen_porcentaje=data.get('margen_porcentaje', 30) or 30,
+                costo_total=data.get('costo_total', 0) or 0,
+                precio_propuesta=data.get('precio_propuesta', 0) or 0,
+                notas_cotizacion=data.get('notas_cotizacion') or ''
             )
 
             db.session.add(nuevo_evento)
+            db.session.flush()  # Para que el evento tenga ID antes de agregar insumos
+            
+            # No recalcular costos aquí porque aún no hay insumos
+            # Se recalculará después de agregar todos los insumos
+            
             db.session.commit()
 
             return True, nuevo_evento, 'Evento creado exitosamente'
@@ -175,7 +201,7 @@ class EventosService:
 
         Args:
             evento_id: ID del evento
-            data: dict con insumo_tipo, insumo_id, cantidad
+            data: dict con tipo_insumo (o insumo_tipo), cantidad, costo_unitario, y referencias específicas
 
         Returns:
             tuple: (success, evento/error, mensaje)
@@ -185,32 +211,37 @@ class EventosService:
             if not evento:
                 return False, None, 'Evento no encontrado'
 
-            # Obtener datos del insumo
-            insumo_tipo = data['insumo_tipo']
-            insumo_id = data['insumo_id']
-            cantidad = data['cantidad']
+            # Obtener tipo de insumo (acepta ambos nombres para compatibilidad)
+            tipo_insumo = data.get('tipo_insumo') or data.get('insumo_tipo')
+            if not tipo_insumo:
+                return False, None, 'Campo requerido: tipo_insumo'
 
-            # Calcular costo
-            if insumo_tipo == 'Flor':
-                flor = Flor.query.get(insumo_id)
-                if not flor:
-                    return False, None, 'Flor no encontrada'
-                costo_unitario = flor.costo_unitario
-            else:  # Contenedor
-                contenedor = Contenedor.query.get(insumo_id)
-                if not contenedor:
-                    return False, None, 'Contenedor no encontrado'
-                costo_unitario = contenedor.costo
+            cantidad = data.get('cantidad', 1)
+            costo_unitario = data.get('costo_unitario', 0)
+            notas = data.get('notas', '')
 
             # Crear insumo de evento
             insumo_evento = EventoInsumo(
                 evento_id=evento_id,
-                insumo_tipo=insumo_tipo,
-                insumo_id=insumo_id,
+                tipo_insumo=tipo_insumo,
                 cantidad=cantidad,
                 costo_unitario=costo_unitario,
-                costo_total=costo_unitario * cantidad
+                costo_total=costo_unitario * cantidad,
+                notas=notas
             )
+
+            # Asignar referencias según tipo
+            if tipo_insumo == 'flor' and data.get('flor_id'):
+                insumo_evento.flor_id = str(data['flor_id'])
+            elif tipo_insumo == 'contenedor' and data.get('contenedor_id'):
+                insumo_evento.contenedor_id = str(data['contenedor_id'])
+            elif tipo_insumo == 'producto' and data.get('producto_id'):
+                # Los productos tienen ID numérico
+                insumo_evento.producto_id = int(data['producto_id'])
+            elif tipo_insumo == 'producto_evento' and data.get('producto_evento_id'):
+                insumo_evento.producto_evento_id = int(data['producto_evento_id'])
+            elif tipo_insumo in ['mano_obra', 'transporte', 'otro'] and data.get('nombre_otro'):
+                insumo_evento.nombre_otro = data['nombre_otro']
 
             db.session.add(insumo_evento)
 
@@ -225,6 +256,50 @@ class EventosService:
         except Exception as e:
             db.session.rollback()
             return False, None, str(e)
+
+    @staticmethod
+    def eliminar_evento(evento_id):
+        """
+        Elimina un evento y todos sus insumos
+
+        Args:
+            evento_id: ID del evento
+
+        Returns:
+            tuple: (success, mensaje)
+        """
+        try:
+            evento = Evento.query.get(evento_id)
+            if not evento:
+                return False, 'Evento no encontrado'
+
+            # Eliminar todos los insumos del evento (cascade debería hacerlo automáticamente, pero lo hacemos explícito)
+            from models.evento import EventoInsumo
+            try:
+                # Intentar eliminar insumos explícitamente
+                insumos_eliminados = EventoInsumo.query.filter_by(evento_id=evento_id).delete(synchronize_session=False)
+                db.session.flush()  # Aplicar cambios de insumos antes de eliminar el evento
+            except Exception as e:
+                # Si falla, intentar eliminar uno por uno
+                print(f"⚠️ Error eliminando insumos en batch, intentando uno por uno: {str(e)}")
+                for insumo in evento.insumos:
+                    try:
+                        db.session.delete(insumo)
+                    except Exception as e2:
+                        print(f"⚠️ Error eliminando insumo {insumo.id}: {str(e2)}")
+                db.session.flush()
+
+            # Eliminar el evento
+            db.session.delete(evento)
+            db.session.commit()
+
+            return True, 'Evento eliminado exitosamente'
+
+        except Exception as e:
+            db.session.rollback()
+            import traceback
+            traceback.print_exc()
+            return False, str(e)
 
     @staticmethod
     def eliminar_insumo(evento_id, insumo_id):

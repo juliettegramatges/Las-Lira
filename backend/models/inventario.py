@@ -14,11 +14,12 @@ class Flor(db.Model):
     nombre = db.Column(db.String(100))  # Nombre completo (ej: "Rosa Roja")
     ubicacion = db.Column(db.String(100))  # Taller, Bodega 1, etc.
     foto_url = db.Column(db.String(500))  # URL o nombre de archivo de la foto
-    proveedor_id = db.Column(db.String(10), db.ForeignKey('proveedores.id'))
+    # proveedor_id removido - ahora se usa relación muchos-a-muchos
     costo_unitario = db.Column(db.Numeric(10, 2), default=0)
     cantidad_stock = db.Column(db.Integer, default=0, nullable=False)
     cantidad_en_uso = db.Column(db.Integer, default=0, nullable=False)  # Reservadas en pedidos confirmados
     cantidad_en_evento = db.Column(db.Integer, default=0, nullable=False)  # Reservadas en eventos
+    stock_bajo = db.Column(db.Integer, default=10, nullable=False)  # Umbral de stock bajo (modificable)
     # Las flores NO tienen bodega, se compran según necesidad
     unidad = db.Column(db.String(20), default='Tallos')
     fecha_actualizacion = db.Column(db.Date, default=date.today)
@@ -28,8 +29,7 @@ class Flor(db.Model):
         """Cantidad disponible = stock total - cantidad en uso - cantidad en evento"""
         return self.cantidad_stock - self.cantidad_en_uso - self.cantidad_en_evento
     
-    # Relaciones
-    proveedor = db.relationship('Proveedor', backref='flores', lazy=True)
+    # Relación muchos-a-muchos con proveedores (definida en Proveedor)
     
     def to_dict(self):
         return {
@@ -39,15 +39,15 @@ class Flor(db.Model):
             'nombre': self.nombre or f"{self.tipo} {self.color}".strip(),
             'ubicacion': self.ubicacion,
             'foto_url': self.foto_url,
-            'proveedor_id': self.proveedor_id,
-            'proveedor_nombre': self.proveedor.nombre if self.proveedor else None,
             'costo_unitario': float(self.costo_unitario) if self.costo_unitario else 0,
             'cantidad_stock': self.cantidad_stock,
             'cantidad_en_uso': self.cantidad_en_uso,
             'cantidad_en_evento': self.cantidad_en_evento,
             'cantidad_disponible': self.cantidad_disponible,
+            'stock_bajo': self.stock_bajo,
             'unidad': self.unidad,
-            'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None
+            'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
+            'proveedores': [{'id': p.id, 'nombre': p.nombre, 'empresa': p.empresa} for p in self.proveedores] if hasattr(self, 'proveedores') else []
         }
     
     def __repr__(self):
@@ -70,6 +70,7 @@ class Contenedor(db.Model):
     cantidad_stock = db.Column(db.Integer, default=0, nullable=False)  # Renombrado de stock
     cantidad_en_uso = db.Column(db.Integer, default=0, nullable=False)  # Reservados en pedidos confirmados
     cantidad_en_evento = db.Column(db.Integer, default=0, nullable=False)  # Reservados en eventos
+    stock_bajo = db.Column(db.Integer, default=5, nullable=False)  # Umbral de stock bajo (modificable)
     bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'))  # Ahora opcional
     fecha_actualizacion = db.Column(db.Date, default=date.today)
     
@@ -109,9 +110,11 @@ class Contenedor(db.Model):
             'cantidad_en_uso': self.cantidad_en_uso,
             'cantidad_en_evento': self.cantidad_en_evento,
             'cantidad_disponible': self.cantidad_disponible,
+            'stock_bajo': self.stock_bajo,
             'bodega_id': self.bodega_id,
             'bodega_nombre': self.bodega.nombre if self.bodega else None,
-            'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None
+            'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
+            'proveedores': [{'id': p.id, 'nombre': p.nombre, 'empresa': p.empresa} for p in self.proveedores] if hasattr(self, 'proveedores') else []
         }
     
     def __repr__(self):
@@ -142,6 +145,18 @@ class Bodega(db.Model):
         return f'<Bodega {self.nombre}>'
 
 
+# Tabla de relación muchos-a-muchos entre Proveedor y Flor
+proveedor_flor = db.Table('proveedor_flor',
+    db.Column('proveedor_id', db.String(10), db.ForeignKey('proveedores.id'), primary_key=True),
+    db.Column('flor_id', db.String(10), db.ForeignKey('flores.id'), primary_key=True)
+)
+
+# Tabla de relación muchos-a-muchos entre Proveedor y Contenedor
+proveedor_contenedor = db.Table('proveedor_contenedor',
+    db.Column('proveedor_id', db.String(10), db.ForeignKey('proveedores.id'), primary_key=True),
+    db.Column('contenedor_id', db.String(10), db.ForeignKey('contenedores.id'), primary_key=True)
+)
+
 class Proveedor(db.Model):
     __tablename__ = 'proveedores'
     
@@ -149,11 +164,16 @@ class Proveedor(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     contacto = db.Column(db.String(100))
     telefono = db.Column(db.String(20))
+    empresa = db.Column(db.String(100))  # 🆕 Campo empresa
     email = db.Column(db.String(100))
     especialidad = db.Column(db.Text)
     dias_entrega = db.Column(db.String(200))
     notas = db.Column(db.Text)
     activo = db.Column(db.Boolean, default=True)
+    
+    # Relaciones muchos-a-muchos
+    flores = db.relationship('Flor', secondary=proveedor_flor, backref=db.backref('proveedores', lazy='dynamic'), lazy='dynamic')
+    contenedores = db.relationship('Contenedor', secondary=proveedor_contenedor, backref=db.backref('proveedores', lazy='dynamic'), lazy='dynamic')
     
     def to_dict(self):
         return {
@@ -161,12 +181,22 @@ class Proveedor(db.Model):
             'nombre': self.nombre,
             'contacto': self.contacto,
             'telefono': self.telefono,
+            'empresa': self.empresa,
             'email': self.email,
             'especialidad': self.especialidad,
             'dias_entrega': self.dias_entrega,
             'notas': self.notas,
-            'activo': self.activo
+            'activo': self.activo,
+            'total_flores': self.flores.count() if hasattr(self.flores, 'count') else len(list(self.flores)),
+            'total_contenedores': self.contenedores.count() if hasattr(self.contenedores, 'count') else len(list(self.contenedores))
         }
+    
+    def to_dict_con_insumos(self):
+        """Versión con lista de insumos asociados"""
+        dict_base = self.to_dict()
+        dict_base['flores'] = [{'id': f.id, 'nombre': f.nombre} for f in self.flores]
+        dict_base['contenedores'] = [{'id': c.id, 'nombre': c.nombre} for c in self.contenedores]
+        return dict_base
     
     def __repr__(self):
         return f'<Proveedor {self.nombre}>'

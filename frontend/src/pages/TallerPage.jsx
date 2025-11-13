@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Wrench, Package, CheckCircle, AlertCircle, Edit, Image as ImageIcon, Plus, Trash2, X } from 'lucide-react'
 import { pedidoInsumosAPI, inventarioAPI, productosAPI, API_URL } from '../services/api'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { formatFecha } from '../utils/helpers'
 
 function TallerPage() {
   const [pedidos, setPedidos] = useState([])
@@ -364,7 +363,7 @@ function TallerPage() {
                 {/* Fecha de entrega */}
                 {pedido.fecha_entrega && (
                   <p className="text-sm text-gray-600 mb-3">
-                    📅 {format(new Date(pedido.fecha_entrega), "d 'de' MMMM", { locale: es })}
+                    📅 {formatFecha(pedido.fecha_entrega, "d 'de' MMMM")}
                   </p>
                 )}
 
@@ -521,8 +520,7 @@ function TallerPage() {
                               </td>
                               <td className="px-4 py-3">
                                 <input
-                                  type="number"
-                                  min="0"
+                                  type="text"
                                   value={insumo.cantidad}
                                   onChange={(e) => handleCantidadChange(insumo.id, e.target.value)}
                                   className="w-20 px-2 py-1 border border-gray-300 rounded text-right font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -738,8 +736,7 @@ function TallerPage() {
                   Cantidad
                 </label>
                 <input
-                  type="number"
-                  min="1"
+                  type="text"
                   value={nuevoInsumo.cantidad}
                   onChange={(e) => setNuevoInsumo({ ...nuevoInsumo, cantidad: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"

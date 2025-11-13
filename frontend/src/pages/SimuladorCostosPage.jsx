@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { Calculator, RefreshCw, TrendingUp, Package, DollarSign, Plus, Trash2 } from 'lucide-react'
-
-const API_URL = 'http://localhost:5001/api'
+import { API_URL } from '../services/api'
 
 function SimuladorCostosPage() {
   const [productos, setProductos] = useState([])
@@ -341,8 +340,7 @@ function SimuladorCostosPage() {
                                     Cantidad
                                   </label>
                                   <input
-                                    type="number"
-                                    min="0"
+                                    type="text"
                                     value={flor.cantidad}
                                     onChange={(e) => handleCantidadChange(color.id, flor.id, e.target.value)}
                                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"

@@ -3,31 +3,7 @@ import axios from 'axios'
 import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { API_URL } from '../services/api'
 import { limpiarHTML } from '../utils/helpers'
-
-// Colores comunes para productos
-const COLORES_PRODUCTOS = [
-  'Rojo',
-  'Rosado',
-  'Blanco',
-  'Amarillo',
-  'Naranja',
-  'Morado',
-  'Lila',
-  'Azul',
-  'Verde',
-  'Fucsia',
-  'Coral',
-  'Crema',
-  'Burdeo',
-  'Multicolor',
-  'Natural',
-  'Blancos',
-  'Rojos',
-  'Rosados',
-  'Verdes',
-  'Azules',
-  'Naranjos'
-]
+import { COLORES_PRODUCTOS } from '../utils/constants'
 
 function ProductosPage() {
   const [productos, setProductos] = useState([])
@@ -1303,8 +1279,7 @@ function ProductosPage() {
                               <div className="flex items-center gap-2">
                                 <label className="text-sm text-gray-600">Cantidad:</label>
                                 <input
-                                  type="number"
-                                  min="1"
+                                  type="text"
                                   value={insumo.cantidad}
                                   onChange={(e) => handleActualizarCantidadInsumo(index, parseInt(e.target.value))}
                                   className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -1672,8 +1647,7 @@ function ProductosPage() {
                                       
                                       {/* Cantidad */}
                                       <input
-                                        type="number"
-                                        min="0"
+                                        type="text"
                                         value={flor.cantidad || ''}
                                         onChange={(e) => handleCantidadChange(color.id, florIndex, e.target.value)}
                                         className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -1820,7 +1794,7 @@ function ProductosPage() {
                           <div className="flex items-center gap-2">
                             <span className="text-gray-600">$</span>
                             <input
-                              type="number"
+                              type="text"
                               value={precioVenta}
                               onChange={(e) => setPrecioVentaEditado(parseInt(e.target.value) || 0)}
                               className="flex-1 px-3 py-2 border-2 border-gray-300 focus:border-green-500 rounded-lg text-lg font-bold text-green-700 text-right focus:outline-none"
@@ -1936,9 +1910,7 @@ function ProductosPage() {
                     Precio (CLP)
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    step="100"
+                    type="text"
                     value={nuevoProducto.precio}
                     onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2058,9 +2030,7 @@ function ProductosPage() {
                     Precio (CLP)
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    step="100"
+                    type="text"
                     value={productoEditando.precio}
                     onChange={(e) => setProductoEditando({ ...productoEditando, precio: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -9,36 +9,11 @@ import {
 } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../services/api'
+import { formatMoneda } from '../utils/helpers'
+import { COLORS_CHART, MESES, generarOpcionesAnios } from '../utils/constants'
 
-const COLORS = ['#EC4899', '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444']
-
-// Función helper para generar opciones de años dinámicamente
-const generarOpcionesAnios = () => {
-  const añoActual = new Date().getFullYear()
-  const años = []
-  // Desde 2022 hasta 2 años en el futuro
-  for (let año = 2022; año <= añoActual + 2; año++) {
-    años.push(año)
-  }
-  return años
-}
-
+const COLORS = COLORS_CHART
 const AÑOS_DISPONIBLES = generarOpcionesAnios()
-
-const MESES = [
-  { valor: 1, nombre: 'Enero' },
-  { valor: 2, nombre: 'Febrero' },
-  { valor: 3, nombre: 'Marzo' },
-  { valor: 4, nombre: 'Abril' },
-  { valor: 5, nombre: 'Mayo' },
-  { valor: 6, nombre: 'Junio' },
-  { valor: 7, nombre: 'Julio' },
-  { valor: 8, nombre: 'Agosto' },
-  { valor: 9, nombre: 'Septiembre' },
-  { valor: 10, nombre: 'Octubre' },
-  { valor: 11, nombre: 'Noviembre' },
-  { valor: 12, nombre: 'Diciembre' }
-]
 
 function ReportesPage() {
   const [loading, setLoading] = useState(true)
@@ -269,13 +244,8 @@ function ReportesPage() {
     }
   }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0
-    }).format(value)
-  }
+  // formatMoneda ya está importado de helpers como formatCurrency
+  const formatCurrency = formatMoneda
 
   if (loading) {
     return (

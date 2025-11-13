@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Flower, Package, AlertCircle, Search, Plus, Save, X, Trash2 } from 'lucide-react'
+import { Flower, Package, AlertCircle, Search, Plus, Save, X, Trash2, Building2, Phone, Mail, ShoppingCart } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../services/api'
 
@@ -25,19 +25,28 @@ const COLORES_FLORES = [
 function InsumosPage() {
   const [flores, setFlores] = useState([])
   const [contenedores, setContenedores] = useState([])
+  const [proveedores, setProveedores] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [vistaActiva, setVistaActiva] = useState('flores')
   const [soloEnUso, setSoloEnUso] = useState(false)  // 🆕 Filtro para ver solo insumos en uso
+  const [soloStockBajo, setSoloStockBajo] = useState(false)  // 🆕 Filtro para ver solo insumos con stock bajo
   const [guardando, setGuardando] = useState({})
   const [modalFlorAbierto, setModalFlorAbierto] = useState(false)
   const [modalContenedorAbierto, setModalContenedorAbierto] = useState(false)
+  const [modalProveedorAbierto, setModalProveedorAbierto] = useState(false)
+  const [proveedorEditando, setProveedorEditando] = useState(null)
+  const [modalAsociarInsumos, setModalAsociarInsumos] = useState(null)  // ID del proveedor
+  const [proveedorDetalle, setProveedorDetalle] = useState(null)  // Proveedor para ver detalles
+  const [modalReponerAbierto, setModalReponerAbierto] = useState(false)
+  const [lineasReposicion, setLineasReposicion] = useState([])  // Array de {tipo, insumo_id, cantidad, proveedor_id}
   const [nuevaFlor, setNuevaFlor] = useState({
     tipo: '',
     color: '',
     costo_unitario: 0,
     ubicacion: 'Taller',
-    cantidad_stock: 0
+    cantidad_stock: 0,
+    stock_bajo: 10
   })
   const [nuevoContenedor, setNuevoContenedor] = useState({
     tipo: '',
@@ -46,7 +55,18 @@ function InsumosPage() {
     color: '',
     costo: 0,
     ubicacion: 'Bodega 1',
-    cantidad_stock: 0
+    cantidad_stock: 0,
+    stock_bajo: 5
+  })
+  const [nuevoProveedor, setNuevoProveedor] = useState({
+    nombre: '',
+    contacto: '',
+    telefono: '',
+    empresa: '',
+    email: '',
+    especialidad: '',
+    dias_entrega: '',
+    notas: ''
   })
 
   useEffect(() => {
@@ -56,9 +76,10 @@ function InsumosPage() {
   const cargarInsumos = async () => {
     try {
       setLoading(true)
-      const [floresResponse, contenedoresResponse] = await Promise.all([
+      const [floresResponse, contenedoresResponse, proveedoresResponse] = await Promise.all([
         axios.get(`${API_URL}/inventario/flores`),
-        axios.get(`${API_URL}/inventario/contenedores`)
+        axios.get(`${API_URL}/inventario/contenedores`),
+        axios.get(`${API_URL}/inventario/proveedores`)
       ])
       
       if (floresResponse.data.success) {
@@ -67,6 +88,10 @@ function InsumosPage() {
       
       if (contenedoresResponse.data.success) {
         setContenedores(contenedoresResponse.data.data)
+      }
+      
+      if (proveedoresResponse.data.success) {
+        setProveedores(proveedoresResponse.data.data)
       }
     } catch (error) {
       console.error('Error al cargar insumos:', error)
@@ -91,19 +116,26 @@ function InsumosPage() {
         valorFinal = valor
       } else if (campo === 'costo_unitario') {
         valorFinal = parseFloat(valor) || 0
+      } else if (campo === 'stock_bajo') {
+        valorFinal = parseInt(valor) || 10
       } else {
         valorFinal = parseInt(valor) || 0
       }
       
+      console.log(`📤 Enviando actualización de ${campo} para flor ${id}:`, valorFinal)
       const response = await axios.patch(`${API_URL}/inventario/flores/${id}`, {
         [campo]: valorFinal
       })
       
+      console.log('📥 Respuesta del servidor:', response.data)
       if (response.data.success) {
         // Actualizar con la respuesta del servidor
         setFlores(prev => prev.map(f => 
           f.id === id ? response.data.data : f
         ))
+        console.log('✅ Flor actualizada correctamente, nuevo stock_bajo:', response.data.data?.stock_bajo)
+      } else {
+        console.error('❌ Error en respuesta:', response.data)
       }
     } catch (error) {
       console.error('Error al actualizar flor:', error)
@@ -130,19 +162,26 @@ function InsumosPage() {
         valorFinal = valor
       } else if (campo === 'costo') {
         valorFinal = parseFloat(valor) || 0
+      } else if (campo === 'stock_bajo') {
+        valorFinal = parseInt(valor) || 5
       } else {
         valorFinal = parseInt(valor) || 0
       }
 
+      console.log(`📤 Enviando actualización de ${campo} para contenedor ${id}:`, valorFinal)
       const response = await axios.patch(`${API_URL}/inventario/contenedores/${id}`, {
         [campo]: valorFinal
       })
 
+      console.log('📥 Respuesta del servidor:', response.data)
       if (response.data.success) {
         // Actualizar con la respuesta del servidor
         setContenedores(prev => prev.map(c =>
           c.id === id ? response.data.data : c
         ))
+        console.log('✅ Contenedor actualizado correctamente, nuevo stock_bajo:', response.data.data?.stock_bajo)
+      } else {
+        console.error('❌ Error en respuesta:', response.data)
       }
     } catch (error) {
       console.error('Error al actualizar contenedor:', error)
@@ -171,7 +210,8 @@ function InsumosPage() {
           color: '',
           costo_unitario: 0,
           ubicacion: 'Taller',
-          cantidad_stock: 0
+          cantidad_stock: 0,
+          stock_bajo: 10
         })
         alert(response.data.message || 'Flor creada exitosamente')
       }
@@ -200,7 +240,8 @@ function InsumosPage() {
           color: '',
           costo: 0,
           ubicacion: 'Bodega 1',
-          cantidad_stock: 0
+          cantidad_stock: 0,
+          stock_bajo: 5
         })
         alert(response.data.message || 'Contenedor creado exitosamente')
       }
@@ -250,6 +291,242 @@ function InsumosPage() {
     }
   }
 
+  // ===== FUNCIONES PARA PROVEEDORES =====
+  
+  const crearProveedor = async () => {
+    try {
+      if (!nuevoProveedor.nombre.trim()) {
+        alert('El nombre del proveedor es obligatorio')
+        return
+      }
+
+      const response = await axios.post(`${API_URL}/inventario/proveedores`, nuevoProveedor)
+
+      if (response.data.success) {
+        setProveedores(prev => [...prev, response.data.data])
+        setModalProveedorAbierto(false)
+        setNuevoProveedor({
+          nombre: '',
+          contacto: '',
+          telefono: '',
+          empresa: '',
+          email: '',
+          especialidad: '',
+          dias_entrega: '',
+          notas: ''
+        })
+        alert(response.data.message || 'Proveedor creado exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al crear proveedor:', error)
+      alert(error.response?.data?.error || 'Error al crear proveedor')
+    }
+  }
+
+  const editarProveedor = async (proveedorId) => {
+    try {
+      const proveedor = proveedores.find(p => p.id === proveedorId)
+      if (!proveedor) return
+
+      setProveedorEditando(proveedor)
+      setNuevoProveedor({
+        nombre: proveedor.nombre || '',
+        contacto: proveedor.contacto || '',
+        telefono: proveedor.telefono || '',
+        empresa: proveedor.empresa || '',
+        email: proveedor.email || '',
+        especialidad: proveedor.especialidad || '',
+        dias_entrega: proveedor.dias_entrega || '',
+        notas: proveedor.notas || ''
+      })
+      setModalProveedorAbierto(true)
+    } catch (error) {
+      console.error('Error al cargar proveedor:', error)
+    }
+  }
+
+  const actualizarProveedor = async () => {
+    try {
+      if (!nuevoProveedor.nombre.trim()) {
+        alert('El nombre del proveedor es obligatorio')
+        return
+      }
+
+      const response = await axios.put(`${API_URL}/inventario/proveedores/${proveedorEditando.id}`, nuevoProveedor)
+
+      if (response.data.success) {
+        setProveedores(prev => prev.map(p => 
+          p.id === proveedorEditando.id ? response.data.data : p
+        ))
+        setModalProveedorAbierto(false)
+        setProveedorEditando(null)
+        setNuevoProveedor({
+          nombre: '',
+          contacto: '',
+          telefono: '',
+          empresa: '',
+          email: '',
+          especialidad: '',
+          dias_entrega: '',
+          notas: ''
+        })
+        alert(response.data.message || 'Proveedor actualizado exitosamente')
+        cargarInsumos()  // Recargar para actualizar asociaciones
+      }
+    } catch (error) {
+      console.error('Error al actualizar proveedor:', error)
+      alert(error.response?.data?.error || 'Error al actualizar proveedor')
+    }
+  }
+
+  const eliminarProveedor = async (proveedorId, nombre) => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar el proveedor "${nombre}"?\n\nEsta acción no se puede deshacer.`
+    )
+
+    if (!confirmar) return
+
+    try {
+      const response = await axios.delete(`${API_URL}/inventario/proveedores/${proveedorId}`)
+
+      if (response.data.success) {
+        setProveedores(prev => prev.filter(p => p.id !== proveedorId))
+        alert(response.data.message || 'Proveedor eliminado exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al eliminar proveedor:', error)
+      alert(error.response?.data?.error || 'Error al eliminar proveedor')
+    }
+  }
+
+  const abrirModalAsociarInsumos = async (proveedorId) => {
+    try {
+      const response = await axios.get(`${API_URL}/inventario/proveedores/${proveedorId}`)
+      if (response.data.success) {
+        setModalAsociarInsumos(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error al cargar proveedor:', error)
+      alert('Error al cargar información del proveedor')
+    }
+  }
+
+  const verDetalleProveedor = async (proveedorId) => {
+    try {
+      const response = await axios.get(`${API_URL}/inventario/proveedores/${proveedorId}`)
+      if (response.data.success) {
+        setProveedorDetalle(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error al cargar detalle del proveedor:', error)
+      alert('Error al cargar información del proveedor')
+    }
+  }
+
+  const asociarInsumo = async (proveedorId, tipo, insumoId) => {
+    try {
+      const endpoint = tipo === 'flor' 
+        ? `${API_URL}/inventario/proveedores/${proveedorId}/insumos/flores`
+        : `${API_URL}/inventario/proveedores/${proveedorId}/insumos/contenedores`
+      
+      const data = tipo === 'flor' 
+        ? { flor_id: insumoId }
+        : { contenedor_id: insumoId }
+
+      const response = await axios.post(endpoint, data)
+
+      if (response.data.success) {
+        setModalAsociarInsumos(response.data.data)
+        cargarInsumos()  // Recargar para actualizar las asociaciones en insumos
+        alert(response.data.message || 'Insumo asociado exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al asociar insumo:', error)
+      alert(error.response?.data?.error || 'Error al asociar insumo')
+    }
+  }
+
+  const desasociarInsumo = async (proveedorId, tipo, insumoId) => {
+    try {
+      const endpoint = tipo === 'flor'
+        ? `${API_URL}/inventario/proveedores/${proveedorId}/insumos/flores/${insumoId}`
+        : `${API_URL}/inventario/proveedores/${proveedorId}/insumos/contenedores/${insumoId}`
+
+      const response = await axios.delete(endpoint)
+
+      if (response.data.success) {
+        setModalAsociarInsumos(response.data.data)
+        cargarInsumos()  // Recargar para actualizar las asociaciones en insumos
+        alert(response.data.message || 'Insumo desasociado exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al desasociar insumo:', error)
+      alert(error.response?.data?.error || 'Error al desasociar insumo')
+    }
+  }
+
+  // ===== FUNCIONES PARA REPOSICIÓN =====
+  
+  const agregarLineaReposicion = () => {
+    setLineasReposicion([...lineasReposicion, {
+      tipo: 'flor',
+      insumo_id: '',
+      cantidad: '',
+      proveedor_id: ''
+    }])
+  }
+
+  const eliminarLineaReposicion = (index) => {
+    setLineasReposicion(lineasReposicion.filter((_, i) => i !== index))
+  }
+
+  const actualizarLineaReposicion = (index, campo, valor) => {
+    const nuevasLineas = [...lineasReposicion]
+    nuevasLineas[index] = { ...nuevasLineas[index], [campo]: valor }
+    setLineasReposicion(nuevasLineas)
+  }
+
+  const procesarReposicion = async () => {
+    try {
+      // Validar que todas las líneas tengan datos
+      const lineasInvalidas = lineasReposicion.filter(linea => 
+        !linea.insumo_id || !linea.cantidad || parseInt(linea.cantidad) <= 0 || !linea.proveedor_id
+      )
+
+      if (lineasInvalidas.length > 0) {
+        alert('Por favor completa todos los campos de cada línea (insumo, cantidad > 0, y proveedor)')
+        return
+      }
+
+      // Enviar cada reposición
+      const reposiciones = []
+      for (const linea of lineasReposicion) {
+        const endpoint = linea.tipo === 'flor'
+          ? `${API_URL}/inventario/flores/${linea.insumo_id}/reponer`
+          : `${API_URL}/inventario/contenedores/${linea.insumo_id}/reponer`
+        
+        const response = await axios.post(endpoint, {
+          cantidad: parseInt(linea.cantidad),
+          proveedor_id: linea.proveedor_id
+        })
+
+        if (response.data.success) {
+          reposiciones.push(response.data.data)
+        } else {
+          throw new Error(response.data.error || 'Error al reponer insumo')
+        }
+      }
+
+      alert(`✅ Reposición completada: ${reposiciones.length} insumo(s) actualizado(s)`)
+      setModalReponerAbierto(false)
+      setLineasReposicion([])
+      cargarInsumos()  // Recargar para ver los cambios
+    } catch (error) {
+      console.error('Error al procesar reposición:', error)
+      alert(error.response?.data?.error || 'Error al procesar la reposición')
+    }
+  }
+
   const floresFiltradas = flores.filter(f => {
     // Filtro por búsqueda
     const coincideBusqueda = f.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -258,7 +535,11 @@ function InsumosPage() {
     // Filtro por "en uso"
     const cumpleFiltroEnUso = !soloEnUso || (f.cantidad_en_uso && f.cantidad_en_uso > 0)
 
-    return coincideBusqueda && cumpleFiltroEnUso
+    // Filtro por "stock bajo"
+    const tieneStockBajo = f.cantidad_disponible <= (f.stock_bajo || 10)
+    const cumpleFiltroStockBajo = !soloStockBajo || tieneStockBajo
+
+    return coincideBusqueda && cumpleFiltroEnUso && cumpleFiltroStockBajo
   })
 
   const contenedoresFiltrados = contenedores.filter(c => {
@@ -269,7 +550,11 @@ function InsumosPage() {
     // Filtro por "en uso"
     const cumpleFiltroEnUso = !soloEnUso || (c.cantidad_en_uso && c.cantidad_en_uso > 0)
 
-    return coincideBusqueda && cumpleFiltroEnUso
+    // Filtro por "stock bajo"
+    const tieneStockBajo = c.cantidad_disponible <= (c.stock_bajo || 5)
+    const cumpleFiltroStockBajo = !soloStockBajo || tieneStockBajo
+
+    return coincideBusqueda && cumpleFiltroEnUso && cumpleFiltroStockBajo
   })
 
   const getStockColor = (disponible, total) => {
@@ -359,8 +644,8 @@ function InsumosPage() {
             <div>
               <p className="text-sm text-gray-600">Stock Bajo</p>
               <p className="text-2xl font-bold text-orange-600">
-                {flores.filter(f => f.cantidad_disponible < 10).length + 
-                 contenedores.filter(c => c.cantidad_disponible < 5).length}
+                {flores.filter(f => f.cantidad_disponible <= (f.stock_bajo || 10)).length + 
+                 contenedores.filter(c => c.cantidad_disponible <= (c.stock_bajo || 5)).length}
               </p>
             </div>
             <AlertCircle className="h-8 w-8 text-orange-600" />
@@ -396,23 +681,41 @@ function InsumosPage() {
               />
             </div>
 
-            {/* 🆕 Botón de filtro "Solo en Uso" */}
-            <button
-              onClick={() => setSoloEnUso(!soloEnUso)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-                soloEnUso
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Package className="h-4 w-4" />
-              Solo en Uso
-              {soloEnUso && (
-                <span className="bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
-                  {floresFiltradas.length + contenedoresFiltrados.length}
-                </span>
-              )}
-            </button>
+            {/* 🆕 Botones de filtro */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSoloEnUso(!soloEnUso)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                  soloEnUso
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Package className="h-4 w-4" />
+                Solo en Uso
+                {soloEnUso && (
+                  <span className="bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
+                    {floresFiltradas.length + contenedoresFiltrados.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setSoloStockBajo(!soloStockBajo)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                  soloStockBajo
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <AlertCircle className="h-4 w-4" />
+                Stock Bajo
+                {soloStockBajo && (
+                  <span className="bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
+                    {floresFiltradas.length + contenedoresFiltrados.length}
+                  </span>
+                )}
+              </button>
+            </div>
 
             <div className="flex gap-2">
               <button
@@ -437,6 +740,17 @@ function InsumosPage() {
                 <Package className="inline h-4 w-4 mr-2" />
                 Contenedores ({contenedores.length})
               </button>
+              <button
+                onClick={() => setVistaActiva('proveedores')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  vistaActiva === 'proveedores'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Building2 className="inline h-4 w-4 mr-2" />
+                Proveedores ({proveedores.length})
+              </button>
 
               {vistaActiva === 'flores' && (
                 <button
@@ -457,6 +771,47 @@ function InsumosPage() {
                   Nuevo Contenedor
                 </button>
               )}
+
+              {vistaActiva === 'proveedores' && (
+                <button
+                  onClick={() => {
+                    setProveedorEditando(null)
+                    setNuevoProveedor({
+                      nombre: '',
+                      contacto: '',
+                      telefono: '',
+                      empresa: '',
+                      email: '',
+                      especialidad: '',
+                      dias_entrega: '',
+                      notas: ''
+                    })
+                    setModalProveedorAbierto(true)
+                  }}
+                  className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nuevo Proveedor
+                </button>
+              )}
+
+              {(vistaActiva === 'flores' || vistaActiva === 'contenedores') && (
+                <button
+                  onClick={() => {
+                    setLineasReposicion([{
+                      tipo: vistaActiva === 'flores' ? 'flor' : 'contenedor',
+                      insumo_id: '',
+                      cantidad: '',
+                      proveedor_id: ''
+                    }])
+                    setModalReponerAbierto(true)
+                  }}
+                  className="px-4 py-2 rounded-lg font-medium bg-orange-600 text-white hover:bg-orange-700 transition-colors flex items-center gap-2"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  Reponer Stock
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -471,10 +826,12 @@ function InsumosPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-purple-900 uppercase tracking-wider">Color</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-purple-900 uppercase tracking-wider">Costo/u</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-purple-900 uppercase tracking-wider">Sector</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-purple-900 uppercase tracking-wider">Proveedores</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">Stock Total</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">En Uso</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">En Evento</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">Disponible</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">Stock Bajo</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-purple-900 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
@@ -511,9 +868,7 @@ function InsumosPage() {
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-gray-500">$</span>
                         <input
-                          type="number"
-                          min="0"
-                          step="100"
+                          type="text"
                           value={flor.costo_unitario || 0}
                           onChange={(e) => actualizarFlor(flor.id, 'costo_unitario', e.target.value)}
                           className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -529,10 +884,43 @@ function InsumosPage() {
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 max-w-[200px] overflow-x-auto">
+                        {(flor.proveedores || []).length > 0 ? (
+                          <>
+                            {(flor.proveedores || []).slice(0, 2).map(prov => (
+                              <button
+                                key={prov.id}
+                                onClick={() => verDetalleProveedor(prov.id)}
+                                className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 hover:text-green-800 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                                title={`Ver detalles de ${prov.nombre}`}
+                              >
+                                {prov.nombre.length > 12 ? `${prov.nombre.substring(0, 10)}...` : prov.nombre}
+                              </button>
+                            ))}
+                            {(flor.proveedores || []).length > 2 && (
+                              <button
+                                onClick={() => {
+                                  // Mostrar todos los proveedores en el modal
+                                  if (flor.proveedores && flor.proveedores.length > 0) {
+                                    verDetalleProveedor(flor.proveedores[0].id)
+                                  }
+                                }}
+                                className="px-1.5 py-0.5 bg-green-200 text-green-800 text-xs rounded-full hover:bg-green-300 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 font-semibold"
+                                title={`Ver ${(flor.proveedores || []).length} proveedores`}
+                              >
+                                +{(flor.proveedores || []).length - 2}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin proveedor</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         value={flor.cantidad_stock || 0}
                         onChange={(e) => actualizarFlor(flor.id, 'cantidad_stock', e.target.value)}
                         className="w-20 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -540,8 +928,7 @@ function InsumosPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         value={flor.cantidad_en_uso || 0}
                         onChange={(e) => actualizarFlor(flor.id, 'cantidad_en_uso', e.target.value)}
                         className="w-20 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
@@ -549,20 +936,40 @@ function InsumosPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         value={flor.cantidad_en_evento || 0}
                         onChange={(e) => actualizarFlor(flor.id, 'cantidad_en_evento', e.target.value)}
                         className="w-20 px-2 py-1 text-sm text-center border border-purple-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 bg-purple-50"
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-sm font-semibold ${getStockColor(flor.cantidad_disponible, flor.cantidad_stock)}`}>
+                      <span className={`text-sm font-semibold ${getStockColor(flor.cantidad_disponible, flor.cantidad_stock)} ${flor.cantidad_disponible <= (flor.stock_bajo || 10) ? 'text-red-600 font-bold' : ''}`}>
                         {flor.cantidad_disponible || 0}
                       </span>
                       {guardando[`flor-${flor.id}`] && (
                         <span className="ml-2 text-xs text-gray-500">💾</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="text"
+                        value={flor.stock_bajo !== undefined && flor.stock_bajo !== null ? flor.stock_bajo : ''}
+                        onChange={(e) => {
+                          const valor = e.target.value
+                          setFlores(prev => prev.map(f => 
+                            f.id === flor.id ? { ...f, stock_bajo: valor === '' ? '' : parseInt(valor) || 0 } : f
+                          ))
+                        }}
+                        onBlur={(e) => {
+                          const valor = e.target.value
+                          const valorFinal = valor === '' ? 10 : parseInt(valor) || 10
+                          console.log('💾 Guardando stock_bajo para flor', flor.id, 'valor:', valorFinal)
+                          actualizarFlor(flor.id, 'stock_bajo', valorFinal)
+                        }}
+                        className="w-16 px-2 py-1 text-sm text-center border border-orange-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50"
+                        title="Umbral de stock bajo (modificable)"
+                        placeholder="10"
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
@@ -578,7 +985,7 @@ function InsumosPage() {
                 })}
                 {floresFiltradas.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan="11" className="px-4 py-8 text-center text-gray-500">
                       No se encontraron flores
                     </td>
                   </tr>
@@ -598,10 +1005,12 @@ function InsumosPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Tipo</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Costo</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Sector</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Proveedores</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">Stock Total</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">En Uso</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">En Evento</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">Disponible</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">Stock Bajo</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-blue-900 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
@@ -629,9 +1038,7 @@ function InsumosPage() {
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-gray-500">$</span>
                         <input
-                          type="number"
-                          min="0"
-                          step="100"
+                          type="text"
                           value={contenedor.costo || 0}
                           onChange={(e) => actualizarContenedor(contenedor.id, 'costo', e.target.value)}
                           className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -647,10 +1054,43 @@ function InsumosPage() {
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 max-w-[200px] overflow-x-auto">
+                        {(contenedor.proveedores || []).length > 0 ? (
+                          <>
+                            {(contenedor.proveedores || []).slice(0, 2).map(prov => (
+                              <button
+                                key={prov.id}
+                                onClick={() => verDetalleProveedor(prov.id)}
+                                className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 hover:text-green-800 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                                title={`Ver detalles de ${prov.nombre}`}
+                              >
+                                {prov.nombre.length > 12 ? `${prov.nombre.substring(0, 10)}...` : prov.nombre}
+                              </button>
+                            ))}
+                            {(contenedor.proveedores || []).length > 2 && (
+                              <button
+                                onClick={() => {
+                                  // Mostrar todos los proveedores en el modal
+                                  if (contenedor.proveedores && contenedor.proveedores.length > 0) {
+                                    verDetalleProveedor(contenedor.proveedores[0].id)
+                                  }
+                                }}
+                                className="px-1.5 py-0.5 bg-green-200 text-green-800 text-xs rounded-full hover:bg-green-300 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 font-semibold"
+                                title={`Ver ${(contenedor.proveedores || []).length} proveedores`}
+                              >
+                                +{(contenedor.proveedores || []).length - 2}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin proveedor</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         value={contenedor.cantidad_stock || 0}
                         onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_stock', e.target.value)}
                         className="w-20 px-2 py-1 text-sm text-center border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -658,8 +1098,7 @@ function InsumosPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         value={contenedor.cantidad_en_uso || 0}
                         onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_en_uso', e.target.value)}
                         className="w-20 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
@@ -667,20 +1106,40 @@ function InsumosPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
                         value={contenedor.cantidad_en_evento || 0}
                         onChange={(e) => actualizarContenedor(contenedor.id, 'cantidad_en_evento', e.target.value)}
                         className="w-20 px-2 py-1 text-sm text-center border border-purple-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 bg-purple-50"
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-sm font-semibold ${getStockColor(contenedor.cantidad_disponible, contenedor.cantidad_stock)}`}>
+                      <span className={`text-sm font-semibold ${getStockColor(contenedor.cantidad_disponible, contenedor.cantidad_stock)} ${contenedor.cantidad_disponible <= (contenedor.stock_bajo || 5) ? 'text-red-600 font-bold' : ''}`}>
                         {contenedor.cantidad_disponible || 0}
                       </span>
                       {guardando[`contenedor-${contenedor.id}`] && (
                         <span className="ml-2 text-xs text-gray-500">💾</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="text"
+                        value={contenedor.stock_bajo !== undefined && contenedor.stock_bajo !== null ? contenedor.stock_bajo : ''}
+                        onChange={(e) => {
+                          const valor = e.target.value
+                          setContenedores(prev => prev.map(c => 
+                            c.id === contenedor.id ? { ...c, stock_bajo: valor === '' ? '' : parseInt(valor) || 0 } : c
+                          ))
+                        }}
+                        onBlur={(e) => {
+                          const valor = e.target.value
+                          const valorFinal = valor === '' ? 5 : parseInt(valor) || 5
+                          console.log('💾 Guardando stock_bajo para contenedor', contenedor.id, 'valor:', valorFinal)
+                          actualizarContenedor(contenedor.id, 'stock_bajo', valorFinal)
+                        }}
+                        className="w-16 px-2 py-1 text-sm text-center border border-orange-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50"
+                        title="Umbral de stock bajo (modificable)"
+                        placeholder="5"
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
@@ -696,8 +1155,113 @@ function InsumosPage() {
                 })}
                 {contenedoresFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan="11" className="px-4 py-8 text-center text-gray-500">
                       No se encontraron contenedores
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tabla de Proveedores */}
+        {vistaActiva === 'proveedores' && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-green-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-green-900 uppercase tracking-wider">Nombre</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-green-900 uppercase tracking-wider">Empresa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-green-900 uppercase tracking-wider">Contacto</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-green-900 uppercase tracking-wider">Teléfono</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-green-900 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-green-900 uppercase tracking-wider">Flores</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-green-900 uppercase tracking-wider">Contenedores</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-green-900 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {proveedores.filter(p => 
+                  p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+                  (p.empresa && p.empresa.toLowerCase().includes(busqueda.toLowerCase()))
+                ).map((proveedor) => (
+                  <tr
+                    key={proveedor.id}
+                    className="hover:bg-green-50 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-gray-900">{proveedor.nombre}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-700">{proveedor.empresa || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-gray-700">{proveedor.contacto || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <Phone className="h-3 w-3 text-gray-400" />
+                        <span className="text-sm text-gray-700">{proveedor.telefono || '-'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {proveedor.email ? (
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm text-gray-700">{proveedor.email}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                        {proveedor.total_flores || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                        {proveedor.total_contenedores || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 justify-center">
+                        <button
+                          onClick={() => abrirModalAsociarInsumos(proveedor.id)}
+                          className="px-2 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors text-xs"
+                          title="Asociar insumos"
+                        >
+                          <Package className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => editarProveedor(proveedor.id)}
+                          className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100 transition-colors text-xs"
+                          title="Editar proveedor"
+                        >
+                          <Save className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => eliminarProveedor(proveedor.id, proveedor.nombre)}
+                          className="px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors"
+                          title="Eliminar proveedor"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {proveedores.filter(p => 
+                  p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+                  (p.empresa && p.empresa.toLowerCase().includes(busqueda.toLowerCase()))
+                ).length === 0 && (
+                  <tr>
+                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                      No se encontraron proveedores
                     </td>
                   </tr>
                 )}
@@ -787,9 +1351,7 @@ function InsumosPage() {
                   Costo Unitario (CLP)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="100"
+                  type="text"
                   value={nuevaFlor.costo_unitario}
                   onChange={(e) => setNuevaFlor({ ...nuevaFlor, costo_unitario: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -814,11 +1376,23 @@ function InsumosPage() {
                   Stock Inicial
                 </label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
                   value={nuevaFlor.cantidad_stock}
                   onChange={(e) => setNuevaFlor({ ...nuevaFlor, cantidad_stock: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Umbral Stock Bajo
+                </label>
+                <input
+                  type="text"
+                  value={nuevaFlor.stock_bajo}
+                  onChange={(e) => setNuevaFlor({ ...nuevaFlor, stock_bajo: parseInt(e.target.value) || 10 })}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50"
+                  placeholder="Cantidad mínima antes de alerta (default: 10)"
                 />
               </div>
             </div>
@@ -917,9 +1491,7 @@ function InsumosPage() {
                   Costo (CLP)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="100"
+                  type="text"
                   value={nuevoContenedor.costo}
                   onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, costo: parseFloat(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -944,11 +1516,23 @@ function InsumosPage() {
                   Stock Inicial
                 </label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
                   value={nuevoContenedor.cantidad_stock}
                   onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, cantidad_stock: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Umbral Stock Bajo
+                </label>
+                <input
+                  type="text"
+                  value={nuevoContenedor.stock_bajo}
+                  onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, stock_bajo: parseInt(e.target.value) || 5 })}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50"
+                  placeholder="Cantidad mínima antes de alerta (default: 5)"
                 />
               </div>
             </div>
@@ -966,6 +1550,600 @@ function InsumosPage() {
               >
                 <Save className="h-4 w-4" />
                 Crear Contenedor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Proveedor */}
+      {modalProveedorAbierto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-6 w-6 text-green-600" />
+                {proveedorEditando ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+              </h2>
+              <button
+                onClick={() => {
+                  setModalProveedorAbierto(false)
+                  setProveedorEditando(null)
+                  setNuevoProveedor({
+                    nombre: '',
+                    contacto: '',
+                    telefono: '',
+                    empresa: '',
+                    email: '',
+                    especialidad: '',
+                    dias_entrega: '',
+                    notas: ''
+                  })
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.nombre}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, nombre: e.target.value })}
+                  placeholder="Nombre del proveedor"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Empresa
+                </label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.empresa}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, empresa: e.target.value })}
+                  placeholder="Nombre de la empresa"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contacto
+                </label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.contacto}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, contacto: e.target.value })}
+                  placeholder="Nombre de contacto"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Teléfono
+                </label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.telefono}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, telefono: e.target.value })}
+                  placeholder="+56 9 1234 5678"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={nuevoProveedor.email}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, email: e.target.value })}
+                  placeholder="proveedor@empresa.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Especialidad
+                </label>
+                <textarea
+                  value={nuevoProveedor.especialidad}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, especialidad: e.target.value })}
+                  placeholder="Ej: Flores importadas, contenedores de vidrio..."
+                  rows="2"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Días de Entrega
+                </label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.dias_entrega}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, dias_entrega: e.target.value })}
+                  placeholder="Ej: Lunes a Viernes, 2-3 días hábiles"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notas
+                </label>
+                <textarea
+                  value={nuevoProveedor.notas}
+                  onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, notas: e.target.value })}
+                  placeholder="Notas adicionales..."
+                  rows="2"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setModalProveedorAbierto(false)
+                  setProveedorEditando(null)
+                  setNuevoProveedor({
+                    nombre: '',
+                    contacto: '',
+                    telefono: '',
+                    empresa: '',
+                    email: '',
+                    especialidad: '',
+                    dias_entrega: '',
+                    notas: ''
+                  })
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={proveedorEditando ? actualizarProveedor : crearProveedor}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                {proveedorEditando ? 'Actualizar' : 'Crear'} Proveedor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Asociar Insumos */}
+      {modalAsociarInsumos && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-6 w-6 text-green-600" />
+                Asociar Insumos - {modalAsociarInsumos.nombre}
+              </h2>
+              <button
+                onClick={() => setModalAsociarInsumos(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Empresa:</span> {modalAsociarInsumos.empresa || '-'}
+                </div>
+                <div>
+                  <span className="font-medium">Teléfono:</span> {modalAsociarInsumos.telefono || '-'}
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium">Contacto:</span> {modalAsociarInsumos.contacto || '-'}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Flores Asociadas */}
+              <div>
+                <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center gap-2">
+                  <Flower className="h-5 w-5" />
+                  Flores Asociadas ({modalAsociarInsumos.flores?.length || 0})
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {modalAsociarInsumos.flores?.map(flor => (
+                    <div key={flor.id} className="flex items-center justify-between p-2 bg-purple-50 rounded">
+                      <span className="text-sm">{flor.nombre}</span>
+                      <button
+                        onClick={() => desasociarInsumo(modalAsociarInsumos.id, 'flor', flor.id)}
+                        className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {(!modalAsociarInsumos.flores || modalAsociarInsumos.flores.length === 0) && (
+                    <p className="text-sm text-gray-400 text-center py-4">No hay flores asociadas</p>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        asociarInsumo(modalAsociarInsumos.id, 'flor', e.target.value)
+                        e.target.value = ''
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Agregar flor...</option>
+                    {flores.filter(f => !modalAsociarInsumos.flores?.some(af => af.id === f.id)).map(flor => (
+                      <option key={flor.id} value={flor.id}>{flor.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Contenedores Asociados */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Contenedores Asociados ({modalAsociarInsumos.contenedores?.length || 0})
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {modalAsociarInsumos.contenedores?.map(contenedor => (
+                    <div key={contenedor.id} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                      <span className="text-sm">{contenedor.nombre}</span>
+                      <button
+                        onClick={() => desasociarInsumo(modalAsociarInsumos.id, 'contenedor', contenedor.id)}
+                        className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {(!modalAsociarInsumos.contenedores || modalAsociarInsumos.contenedores.length === 0) && (
+                    <p className="text-sm text-gray-400 text-center py-4">No hay contenedores asociados</p>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        asociarInsumo(modalAsociarInsumos.id, 'contenedor', e.target.value)
+                        e.target.value = ''
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Agregar contenedor...</option>
+                    {contenedores.filter(c => !modalAsociarInsumos.contenedores?.some(ac => ac.id === c.id)).map(contenedor => (
+                      <option key={contenedor.id} value={contenedor.id}>{contenedor.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setModalAsociarInsumos(null)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalle Proveedor */}
+      {proveedorDetalle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-6 w-6 text-green-600" />
+                {proveedorDetalle.nombre}
+              </h2>
+              <button
+                onClick={() => setProveedorDetalle(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Información de Contacto</h3>
+                <div className="space-y-2 text-sm">
+                  {proveedorDetalle.empresa && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-600">Empresa:</span>
+                      <span className="font-medium">{proveedorDetalle.empresa}</span>
+                    </div>
+                  )}
+                  {proveedorDetalle.contacto && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">Contacto:</span>
+                      <span className="font-medium">{proveedorDetalle.contacto}</span>
+                    </div>
+                  )}
+                  {proveedorDetalle.telefono && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-600">Teléfono:</span>
+                      <a href={`tel:${proveedorDetalle.telefono}`} className="font-medium text-blue-600 hover:underline">
+                        {proveedorDetalle.telefono}
+                      </a>
+                    </div>
+                  )}
+                  {proveedorDetalle.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-600">Email:</span>
+                      <a href={`mailto:${proveedorDetalle.email}`} className="font-medium text-blue-600 hover:underline">
+                        {proveedorDetalle.email}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Información Adicional</h3>
+                <div className="space-y-2 text-sm">
+                  {proveedorDetalle.especialidad && (
+                    <div>
+                      <span className="text-gray-600 font-medium">Especialidad:</span>
+                      <p className="text-gray-800 mt-1">{proveedorDetalle.especialidad}</p>
+                    </div>
+                  )}
+                  {proveedorDetalle.dias_entrega && (
+                    <div>
+                      <span className="text-gray-600 font-medium">Días de Entrega:</span>
+                      <p className="text-gray-800 mt-1">{proveedorDetalle.dias_entrega}</p>
+                    </div>
+                  )}
+                  {proveedorDetalle.notas && (
+                    <div>
+                      <span className="text-gray-600 font-medium">Notas:</span>
+                      <p className="text-gray-800 mt-1">{proveedorDetalle.notas}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Flores Asociadas */}
+              <div>
+                <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center gap-2">
+                  <Flower className="h-5 w-5" />
+                  Flores Asociadas ({proveedorDetalle.flores?.length || 0})
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto border border-purple-200 rounded-lg p-3 bg-purple-50">
+                  {proveedorDetalle.flores && proveedorDetalle.flores.length > 0 ? (
+                    proveedorDetalle.flores.map(flor => (
+                      <div key={flor.id} className="flex items-center gap-2 p-2 bg-white rounded hover:bg-purple-100 transition-colors">
+                        <Flower className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm text-gray-800">{flor.nombre}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-4">No hay flores asociadas</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Contenedores Asociados */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Contenedores Asociados ({proveedorDetalle.contenedores?.length || 0})
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto border border-blue-200 rounded-lg p-3 bg-blue-50">
+                  {proveedorDetalle.contenedores && proveedorDetalle.contenedores.length > 0 ? (
+                    proveedorDetalle.contenedores.map(contenedor => (
+                      <div key={contenedor.id} className="flex items-center gap-2 p-2 bg-white rounded hover:bg-blue-100 transition-colors">
+                        <Package className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm text-gray-800">{contenedor.nombre}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-4">No hay contenedores asociados</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setProveedorDetalle(null)
+                  abrirModalAsociarInsumos(proveedorDetalle.id)
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Package className="h-4 w-4" />
+                Asociar Insumos
+              </button>
+              <button
+                onClick={() => {
+                  setProveedorDetalle(null)
+                  editarProveedor(proveedorDetalle.id)
+                }}
+                className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Editar Proveedor
+              </button>
+              <button
+                onClick={() => setProveedorDetalle(null)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Reponer Stock */}
+      {modalReponerAbierto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <ShoppingCart className="h-6 w-6 text-orange-600" />
+                Reponer Stock
+              </h2>
+              <button
+                onClick={() => {
+                  setModalReponerAbierto(false)
+                  setLineasReposicion([])
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Registra los insumos recibidos. El stock se actualizará automáticamente.
+              </p>
+
+              <div className="space-y-3">
+                {lineasReposicion.map((linea, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-gray-700">Línea #{index + 1}</span>
+                      {lineasReposicion.length > 1 && (
+                        <button
+                          onClick={() => eliminarLineaReposicion(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Tipo
+                        </label>
+                        <select
+                          value={linea.tipo}
+                          onChange={(e) => actualizarLineaReposicion(index, 'tipo', e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          <option value="flor">Flor</option>
+                          <option value="contenedor">Contenedor</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Insumo <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={linea.insumo_id}
+                          onChange={(e) => actualizarLineaReposicion(index, 'insumo_id', e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          <option value="">Seleccionar...</option>
+                          {linea.tipo === 'flor' ? (
+                            flores.map(flor => (
+                              <option key={flor.id} value={flor.id}>
+                                {flor.nombre} (Stock: {flor.cantidad_stock || 0})
+                              </option>
+                            ))
+                          ) : (
+                            contenedores.map(contenedor => (
+                              <option key={contenedor.id} value={contenedor.id}>
+                                {contenedor.nombre} (Stock: {contenedor.cantidad_stock || 0})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Cantidad <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={linea.cantidad}
+                          onChange={(e) => actualizarLineaReposicion(index, 'cantidad', e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Proveedor <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={linea.proveedor_id}
+                          onChange={(e) => actualizarLineaReposicion(index, 'proveedor_id', e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          <option value="">Seleccionar proveedor...</option>
+                          {proveedores.map(prov => (
+                            <option key={prov.id} value={prov.id}>
+                              {prov.nombre} {prov.empresa ? `(${prov.empresa})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={agregarLineaReposicion}
+                className="mt-3 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm"
+              >
+                <Plus className="h-4 w-4" />
+                Agregar otra línea
+              </button>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setModalReponerAbierto(false)
+                  setLineasReposicion([])
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={procesarReposicion}
+                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Procesar Reposición
               </button>
             </div>
           </div>

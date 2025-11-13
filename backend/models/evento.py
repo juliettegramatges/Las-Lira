@@ -122,7 +122,7 @@ class EventoInsumo(db.Model):
     # Referencias (solo una será válida según tipo_insumo)
     flor_id = db.Column(db.String(20), db.ForeignKey('flores.id'), nullable=True)
     contenedor_id = db.Column(db.String(20), db.ForeignKey('contenedores.id'), nullable=True)
-    producto_id = db.Column(db.String(20), db.ForeignKey('productos.id'), nullable=True)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=True)
     producto_evento_id = db.Column(db.Integer, db.ForeignKey('productos_evento.id'), nullable=True)
     
     # Para insumos "otros" (velas, manteles, etc sin referencia)

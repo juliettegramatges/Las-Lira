@@ -3,6 +3,7 @@ import axios from 'axios'
 import { DollarSign, FileText, AlertCircle, CheckCircle, X, Package, User, MapPin, Calendar, Phone, Mail } from 'lucide-react'
 import { API_URL } from '../services/api'
 import { formatFecha } from '../utils/helpers'
+import { ESTADOS_PAGO, METODOS_PAGO, DOCUMENTOS_TRIBUTARIOS } from '../utils/constants'
 
 const CobranzaPage = () => {
   const [loading, setLoading] = useState(true)
@@ -28,29 +29,8 @@ const CobranzaPage = () => {
   const [paginaDocumentos, setPaginaDocumentos] = useState(1)
   const itemsPorPagina = 10
   
-  // Catálogos de opciones estandarizadas (3 ETAPAS)
-  
-  // ETAPA 1: ¿Está pagado?
-  const ESTADOS_PAGO = ['No Pagado', 'Pagado']
-  
-  // ETAPA 2: ¿Cómo pagó? (solo si está pagado)
-  const METODOS_PAGO = [
-    'Tr. BICE',
-    'Tr. Santander',
-    'Tr. Itaú',
-    'Pago con tarjeta',
-    'Efectivo',
-    'Otro',
-  ]
-  
-  // ETAPA 3: Documento
-  const DOCUMENTOS = [
-    'Hacer boleta',
-    'Hacer factura',
-    'Boleta emitida',
-    'Factura emitida',
-    'No requiere',
-  ]
+  // Usar constantes compartidas
+  const DOCUMENTOS = DOCUMENTOS_TRIBUTARIOS
 
   useEffect(() => {
     cargarResumen()
@@ -192,11 +172,7 @@ const CobranzaPage = () => {
     return diferencia
   }
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return null
-    const date = new Date(fecha)
-    return date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
+  // formatFecha ya está importado de helpers
 
   if (loading) {
     return <div className="p-6">Cargando...</div>

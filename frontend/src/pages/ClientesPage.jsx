@@ -2,18 +2,8 @@ import { useState, useEffect } from 'react'
 import { User, Search, Plus, Edit2, Trash2, X, Phone, Mail, MapPin, DollarSign, ShoppingBag, Download, Calendar, Package, Tag } from 'lucide-react'
 import axios from 'axios'
 import { API_URL } from '../services/api'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import EtiquetaCliente from '../components/EtiquetaCliente'
-
-const formatFecha = (fecha) => {
-  if (!fecha) return '-'
-  try {
-    return format(new Date(fecha), 'dd MMM yyyy', { locale: es })
-  } catch {
-    return '-'
-  }
-}
+import { formatFecha } from '../utils/helpers'
 
 function ClientesPage() {
   const [clientes, setClientes] = useState([])

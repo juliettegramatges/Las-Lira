@@ -50,6 +50,7 @@ def listar_productos():
                 'nombre': nombre,
                 'descripcion': descripcion,
                 'precio': precio,
+                'costo_estimado': precio,  # Agregar costo_estimado para compatibilidad con eventos
                 'categoria': categoria,
                 'tipo': tipo,
                 'imagen_principal': imagen_url,
@@ -84,6 +85,7 @@ def listar_productos():
                 'descripcion': descripcion or '',
                 'precio': precio_venta,
                 'precio_venta': precio_venta,
+                'costo_estimado': precio_venta,  # Agregar costo_estimado para compatibilidad con eventos
                 'categoria': 'Productos Las Lira',
                 'tipo': tipo_arreglo or 'Arreglo Floral',
                 'tamano': tamano or '',
@@ -104,7 +106,7 @@ def listar_productos():
 
         return jsonify({
             'success': True,
-            'productos': productos_con_imagenes,
+            'data': productos_con_imagenes,  # Cambiar 'productos' a 'data' para consistencia con otros endpoints
             'total': len(productos_con_imagenes)
         })
 
