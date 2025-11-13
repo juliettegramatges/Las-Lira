@@ -115,7 +115,7 @@ const CobranzaPage = () => {
         // Recargar resumen para actualizar las listas
         await cargarResumen()
         // Si se actualizó el documento a emitido, cerrar el modal
-        if (datos.documento_tributario && datos.documento_tributario in ['Boleta emitida', 'Factura emitida']) {
+        if (datos.documento_tributario && ['Boleta emitida', 'Factura emitida'].includes(datos.documento_tributario)) {
           setEditandoPedido(null)
         }
       }
@@ -123,6 +123,24 @@ const CobranzaPage = () => {
       console.error('Error al actualizar:', err)
       alert('❌ Error al actualizar cobranza')
     }
+  }
+
+  const guardarTodosLosCambios = async () => {
+    if (!editandoPedido) return
+    
+    const datosActualizar = {
+      estado_pago: editandoPedido.estado_pago,
+      metodo_pago: editandoPedido.metodo_pago || null,
+      documento_tributario: editandoPedido.documento_tributario || 'Hacer boleta',
+      numero_documento: editandoPedido.numero_documento || null
+    }
+    
+    // Agregar notas si hay cambios
+    if (editandoPedido.cobranza !== undefined) {
+      datosActualizar.cobranza = editandoPedido.cobranza || null
+    }
+    
+    await actualizarCobranza(editandoPedido.id, datosActualizar)
   }
 
   const cargarInfoCliente = async (clienteId) => {
@@ -538,7 +556,7 @@ const CobranzaPage = () => {
                   {ESTADOS_PAGO.map(estado => (
                     <button
                       key={estado}
-                      onClick={() => actualizarCobranza(editandoPedido.id, { estado_pago: estado })}
+                      onClick={() => setEditandoPedido({...editandoPedido, estado_pago: estado})}
                       className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                         editandoPedido.estado_pago === estado
                           ? estado === 'Pagado'
@@ -567,7 +585,7 @@ const CobranzaPage = () => {
                 </label>
                 <select
                   value={editandoPedido.metodo_pago || ''}
-                  onChange={(e) => actualizarCobranza(editandoPedido.id, { metodo_pago: e.target.value })}
+                  onChange={(e) => setEditandoPedido({...editandoPedido, metodo_pago: e.target.value})}
                   disabled={editandoPedido.estado_pago !== 'Pagado'}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
@@ -587,7 +605,7 @@ const CobranzaPage = () => {
                 {/* Tipo de Documento */}
                 <select
                   value={editandoPedido.documento_tributario || 'Hacer boleta'}
-                  onChange={(e) => actualizarCobranza(editandoPedido.id, { documento_tributario: e.target.value })}
+                  onChange={(e) => setEditandoPedido({...editandoPedido, documento_tributario: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
                 >
                   {DOCUMENTOS.map(doc => (
@@ -604,23 +622,15 @@ const CobranzaPage = () => {
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Número de Documento
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editandoPedido.numero_documento || ''}
-                        onChange={(e) => {
-                          setEditandoPedido({...editandoPedido, numero_documento: e.target.value})
-                        }}
-                        placeholder="Ej: 10301"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        onClick={() => actualizarCobranza(editandoPedido.id, { numero_documento: editandoPedido.numero_documento })}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                      >
-                        💾 Guardar
-                      </button>
-                    </div>
+                    <input
+                      type="text"
+                      value={editandoPedido.numero_documento || ''}
+                      onChange={(e) => {
+                        setEditandoPedido({...editandoPedido, numero_documento: e.target.value})
+                      }}
+                      placeholder="Ej: 10301"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 )}
               </div>
@@ -635,18 +645,18 @@ const CobranzaPage = () => {
                   onChange={(e) => setEditandoPedido({ ...editandoPedido, cobranza: e.target.value })}
                   placeholder="Notas, referencias de pago, comentarios..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 mb-2"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
                 />
-                <button
-                  onClick={() => actualizarCobranza(editandoPedido.id, { notas: editandoPedido.cobranza })}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-medium"
-                >
-                  💾 Guardar Notas
-                </button>
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={guardarTodosLosCambios}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+              >
+                💾 Actualizar
+              </button>
               <button
                 onClick={() => setEditandoPedido(null)}
                 className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"

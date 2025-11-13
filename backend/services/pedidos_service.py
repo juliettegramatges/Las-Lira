@@ -792,6 +792,9 @@ class PedidosService:
                 pedido.monto_pagado = data['monto_pago']
             if 'fecha_pago' in data:
                 pedido.fecha_pago = datetime.fromisoformat(data['fecha_pago'])
+            if 'cobranza' in data or 'notas' in data:
+                # Aceptar tanto 'cobranza' como 'notas' para compatibilidad
+                pedido.cobranza = data.get('cobranza') or data.get('notas') or None
             
             # Lógica automática: Si está pagado con BICE, automáticamente marcar documento como "No requiere"
             # Esto se aplica tanto si se actualiza el método de pago como si ya estaba pagado con BICE
