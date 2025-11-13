@@ -453,9 +453,18 @@ def obtener_historial_pedidos(cliente_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<int:cliente_id>/etiquetas', methods=['POST'])
+@bp.route('/<cliente_id>/etiquetas', methods=['POST', 'OPTIONS'])
 def agregar_etiqueta_cliente(cliente_id):
     """Agregar una etiqueta a un cliente"""
+    if request.method == 'OPTIONS':
+        # Responder al preflight request
+        response = jsonify({'success': True})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3001')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response, 200
+    
     try:
         data = request.get_json()
         etiqueta_id = data.get('etiqueta_id')
@@ -502,9 +511,18 @@ def agregar_etiqueta_cliente(cliente_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<int:cliente_id>/etiquetas/<int:etiqueta_id>', methods=['DELETE'])
+@bp.route('/<cliente_id>/etiquetas/<int:etiqueta_id>', methods=['DELETE', 'OPTIONS'])
 def eliminar_etiqueta_cliente(cliente_id, etiqueta_id):
     """Eliminar una etiqueta de un cliente"""
+    if request.method == 'OPTIONS':
+        # Responder al preflight request
+        response = jsonify({'success': True})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3001')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response, 200
+    
     try:
         # Verificar que el cliente existe
         cliente = Cliente.query.get(cliente_id)

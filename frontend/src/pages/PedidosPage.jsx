@@ -1247,7 +1247,9 @@ function PedidosPage() {
                       <div className="text-[10px] text-gray-400">{pedido.cliente_telefono}</div>
                     </td>
                     <td className="px-2 py-1.5">
-                      <div className="text-xs text-gray-900 truncate max-w-[150px]">{pedido.arreglo_pedido || 'Sin especificar'}</div>
+                      <div className="text-xs text-gray-900 truncate max-w-[150px]">
+                        {pedido.arreglo_pedido || pedido.producto_nombre || 'Sin especificar'}
+                      </div>
                       {pedido.destinatario && (
                         <div className="text-[10px] text-gray-500 truncate max-w-[150px]">Para: {pedido.destinatario}</div>
                       )}
@@ -1716,7 +1718,7 @@ function PedidosPage() {
                           />
                         ) : (
                           <p className="text-base font-medium text-gray-900 bg-gray-50 p-3 rounded border border-gray-200">
-                            {pedidoDetalle.arreglo_pedido || 'Sin especificar'}
+                            {pedidoDetalle.arreglo_pedido || pedidoDetalle.producto_nombre || 'Sin especificar'}
                           </p>
                         )}
                       </div>
@@ -2273,7 +2275,7 @@ function PedidosPage() {
                                     </span>
                                   </div>
                                   <p className="text-xs text-gray-600 truncate mb-1">
-                                    {ped.arreglo_pedido || 'Sin descripción'}
+                                    {ped.arreglo_pedido || ped.producto_nombre || 'Sin descripción'}
                                   </p>
                                   <div className="flex justify-between items-center text-xs">
                                     <span className="text-gray-500">
@@ -2634,7 +2636,7 @@ function PedidosPage() {
                         {!cargandoHistorial && historialPedidos.length > 0 && (
                           <div className="space-y-2 max-h-96 overflow-y-auto">
                             {historialPedidos.map((pedido) => {
-                              const resumen = `#${pedido.id} • ${new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}\n${pedido.arreglo_pedido || 'Sin arreglo'}\nMotivo: ${pedido.motivo || '-'} • Comuna: ${pedido.comuna || '-'}\nTotal: $${(pedido.precio_total || 0).toLocaleString('es-CL')} • Estado: ${pedido.estado}`
+                              const resumen = `#${pedido.id} • ${new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}\n${pedido.arreglo_pedido || pedido.producto_nombre || 'Sin arreglo'}\nMotivo: ${pedido.motivo || '-'} • Comuna: ${pedido.comuna || '-'}\nTotal: $${(pedido.precio_total || 0).toLocaleString('es-CL')} • Estado: ${pedido.estado}`
                               const thumb = pedido.foto_enviado_url || pedido.producto_imagen || null
                               return (
                                 <div key={pedido.id} className="bg-white p-3 rounded-lg shadow-sm text-xs border border-indigo-100" title={resumen}>
@@ -2658,7 +2660,7 @@ function PedidosPage() {
                                           {pedido.estado}
                                         </span>
                                       </div>
-                                      <p className="text-gray-700 font-medium truncate">{pedido.arreglo_pedido}</p>
+                                      <p className="text-gray-700 font-medium truncate">{pedido.arreglo_pedido || pedido.producto_nombre || 'Sin especificar'}</p>
                                       <div className="flex justify-between items-center mt-1 text-gray-500">
                                         <span>{new Date(pedido.fecha_pedido).toLocaleDateString('es-CL')}</span>
                                         <span className="font-semibold text-primary-600">${(pedido.precio_total || 0).toLocaleString('es-CL')}</span>

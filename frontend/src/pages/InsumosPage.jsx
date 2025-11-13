@@ -30,6 +30,7 @@ function InsumosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [vistaActiva, setVistaActiva] = useState('flores')
   const [soloEnUso, setSoloEnUso] = useState(false)  // 🆕 Filtro para ver solo insumos en uso
+  const [soloEnEvento, setSoloEnEvento] = useState(false)  // 🆕 Filtro para ver solo insumos en evento
   const [soloStockBajo, setSoloStockBajo] = useState(false)  // 🆕 Filtro para ver solo insumos con stock bajo
   const [guardando, setGuardando] = useState({})
   const [modalFlorAbierto, setModalFlorAbierto] = useState(false)
@@ -535,11 +536,14 @@ function InsumosPage() {
     // Filtro por "en uso"
     const cumpleFiltroEnUso = !soloEnUso || (f.cantidad_en_uso && f.cantidad_en_uso > 0)
 
+    // Filtro por "en evento"
+    const cumpleFiltroEnEvento = !soloEnEvento || (f.cantidad_en_evento && f.cantidad_en_evento > 0)
+
     // Filtro por "stock bajo"
     const tieneStockBajo = f.cantidad_disponible <= (f.stock_bajo || 10)
     const cumpleFiltroStockBajo = !soloStockBajo || tieneStockBajo
 
-    return coincideBusqueda && cumpleFiltroEnUso && cumpleFiltroStockBajo
+    return coincideBusqueda && cumpleFiltroEnUso && cumpleFiltroEnEvento && cumpleFiltroStockBajo
   })
 
   const contenedoresFiltrados = contenedores.filter(c => {
@@ -550,11 +554,14 @@ function InsumosPage() {
     // Filtro por "en uso"
     const cumpleFiltroEnUso = !soloEnUso || (c.cantidad_en_uso && c.cantidad_en_uso > 0)
 
+    // Filtro por "en evento"
+    const cumpleFiltroEnEvento = !soloEnEvento || (c.cantidad_en_evento && c.cantidad_en_evento > 0)
+
     // Filtro por "stock bajo"
     const tieneStockBajo = c.cantidad_disponible <= (c.stock_bajo || 5)
     const cumpleFiltroStockBajo = !soloStockBajo || tieneStockBajo
 
-    return coincideBusqueda && cumpleFiltroEnUso && cumpleFiltroStockBajo
+    return coincideBusqueda && cumpleFiltroEnUso && cumpleFiltroEnEvento && cumpleFiltroStockBajo
   })
 
   const getStockColor = (disponible, total) => {
@@ -694,7 +701,19 @@ function InsumosPage() {
               >
                 <Package className="h-3.5 w-3.5" />
                 En Uso
-                {soloEnUso && <span className="text-xs">({floresFiltradas.length + contenedoresFiltrados.length})</span>}
+                {soloEnUso && <span className="text-xs">({flores.filter(f => f.cantidad_en_uso && f.cantidad_en_uso > 0).length + contenedores.filter(c => c.cantidad_en_uso && c.cantidad_en_uso > 0).length})</span>}
+              </button>
+              <button
+                onClick={() => setSoloEnEvento(!soloEnEvento)}
+                className={`px-3 py-1.5 text-sm rounded-md font-medium transition-all flex items-center gap-1.5 ${
+                  soloEnEvento
+                    ? 'bg-pink-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <Flower className="h-3.5 w-3.5" />
+                En Evento
+                {soloEnEvento && <span className="text-xs">({flores.filter(f => f.cantidad_en_evento && f.cantidad_en_evento > 0).length + contenedores.filter(c => c.cantidad_en_evento && c.cantidad_en_evento > 0).length})</span>}
               </button>
               <button
                 onClick={() => setSoloStockBajo(!soloStockBajo)}
@@ -706,7 +725,7 @@ function InsumosPage() {
               >
                 <AlertCircle className="h-3.5 w-3.5" />
                 Bajo
-                {soloStockBajo && <span className="text-xs">({floresFiltradas.length + contenedoresFiltrados.length})</span>}
+                {soloStockBajo && <span className="text-xs">({flores.filter(f => f.cantidad_disponible <= (f.stock_bajo || 10)).length + contenedores.filter(c => c.cantidad_disponible <= (c.stock_bajo || 5)).length})</span>}
               </button>
             </div>
 

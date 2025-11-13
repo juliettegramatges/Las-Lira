@@ -1036,7 +1036,11 @@ function ClientesPage() {
                                           })
                                           alert('✅ Etiqueta agregada')
                                           setCategoriaEtiquetaVisible(null)
-                                          verDetalles(clienteDetalle.id)
+                                          // Recargar detalles del cliente
+                                          const response = await axios.get(`${API_URL}/clientes/${clienteDetalle.id}`)
+                                          if (response.data.success) {
+                                            setClienteDetalle(response.data.data)
+                                          }
                                         } catch (error) {
                                           console.error('Error:', error)
                                           alert('❌ Error: ' + (error.response?.data?.error || error.message))
@@ -1086,7 +1090,11 @@ function ClientesPage() {
                                       try {
                                         await axios.delete(`${API_URL}/clientes/${clienteDetalle.id}/etiquetas/${etiqueta.id}`)
                                         alert('✅ Etiqueta eliminada')
-                                        verDetalles(clienteDetalle.id)
+                                        // Recargar detalles del cliente
+                                        const response = await axios.get(`${API_URL}/clientes/${clienteDetalle.id}`)
+                                        if (response.data.success) {
+                                          setClienteDetalle(response.data.data)
+                                        }
                                       } catch (error) {
                                         console.error('Error:', error)
                                         alert('❌ Error: ' + (error.response?.data?.error || error.message))
@@ -1224,7 +1232,7 @@ function ClientesPage() {
                             </div>
                             <p className="text-sm text-gray-700 flex items-center gap-2">
                               <Package className="h-4 w-4 text-gray-400" />
-                              {pedido.arreglo_pedido || 'Sin descripción'}
+                              {pedido.arreglo_pedido || pedido.producto_nombre || 'Sin descripción'}
                             </p>
                             {pedido.fecha_entrega && (
                               <p className="text-xs text-gray-500 mt-1">

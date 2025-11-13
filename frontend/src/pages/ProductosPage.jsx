@@ -68,7 +68,10 @@ function ProductosPage() {
       const response = await axios.get(`${API_URL}/productos/`)
       
       if (response.data.success) {
-        const productosData = response.data.productos || []
+        // El backend devuelve los productos directamente en el array o en response.data.data
+        const productosData = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data.data || response.data.productos || [])
         
         // Aplicar filtro de búsqueda si existe
         let productosFiltrados = productosData
