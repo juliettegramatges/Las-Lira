@@ -212,6 +212,19 @@ class PedidosService:
             # Normalizar teléfono
             telefono_normalizado = normalizar_telefono(data['cliente_telefono'])
 
+            # Lógica para pedidos de Shopify: automáticamente pagados y solo necesitan boleta
+            canal_lower = (data.get('canal') or '').lower()
+            tiene_shopify_order = bool(data.get('shopify_order_number'))
+            es_shopify = canal_lower == 'shopify' or tiene_shopify_order
+            
+            # Si es de Shopify, marcar como pagado automáticamente
+            if es_shopify:
+                estado_pago_shopify = 'Pagado'
+                documento_shopify = 'Hacer boleta'
+            else:
+                estado_pago_shopify = data.get('estado_pago', 'No Pagado')
+                documento_shopify = data.get('documento_tributario', 'Hacer boleta')
+
             # Crear pedido
             pedido = Pedido(
                 canal=data['canal'],
@@ -235,7 +248,10 @@ class PedidosService:
                 fecha_maxima_pago=fecha_maxima_pago,
                 fecha_entrega=fecha_entrega,
                 estado=clasificacion['estado'],
-                dia_entrega=clasificacion['dia_entrega']
+                dia_entrega=clasificacion['dia_entrega'],
+                # Para pedidos de Shopify: automáticamente pagados
+                estado_pago=estado_pago_shopify,
+                documento_tributario=documento_shopify
             )
 
             db.session.add(pedido)
