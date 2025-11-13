@@ -29,7 +29,7 @@ function Layout() {
   
   const allNavigation = [
     { name: 'Tablero', path: '/tablero', icon: LayoutDashboard, color: 'text-blue-600', roles: ['admin', 'secretaria', 'taller'] },
-    { name: 'Pedidos', path: '/pedidos', icon: ShoppingBag, color: 'text-green-600', roles: ['admin'] },
+    { name: 'Pedidos', path: '/pedidos', icon: ShoppingBag, color: 'text-green-600', roles: ['admin', 'secretaria'] },
     { name: 'Taller', path: '/taller', icon: Wrench, color: 'text-orange-600', roles: ['admin', 'taller'] },
     { name: 'Eventos', path: '/eventos', icon: Calendar, color: 'text-purple-600', roles: ['admin'] },
     { name: 'Clientes', path: '/clientes', icon: Users, color: 'text-indigo-600', roles: ['admin', 'secretaria'] },

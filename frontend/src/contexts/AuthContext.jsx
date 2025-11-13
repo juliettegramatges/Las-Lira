@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     
     // Definir permisos por rol
     const permisos = {
-      secretaria: ['tablero', 'cobranza', 'clientes', 'productos'],
+      secretaria: ['tablero', 'cobranza', 'clientes', 'productos', 'pedidos'],
       taller: ['tablero', 'taller', 'productos']
     }
     

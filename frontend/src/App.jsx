@@ -76,18 +76,20 @@ function AppRoutes() {
             } 
           />
         )}
+        {canAccess('pedidos') && (
+          <Route 
+            path="pedidos" 
+            element={
+              <ProtectedRoute>
+                <PedidosPage />
+              </ProtectedRoute>
+            } 
+          />
+        )}
         
         {/* Rutas solo para admin */}
         {user?.rol === 'admin' && (
           <>
-            <Route 
-              path="pedidos" 
-              element={
-                <ProtectedRoute>
-                  <PedidosPage />
-                </ProtectedRoute>
-              } 
-            />
             <Route 
               path="eventos" 
               element={

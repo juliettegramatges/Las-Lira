@@ -669,10 +669,37 @@ class PedidosService:
 
             # Reclasificar si cambia la fecha de entrega
             if 'fecha_entrega' in data:
-                fecha_entrega = datetime.fromisoformat(data['fecha_entrega'].replace('Z', '+00:00'))
-                clasificacion = clasificar_pedido(fecha_entrega)
-                pedido.estado = clasificacion['estado']
-                pedido.dia_entrega = clasificacion['dia_entrega']
+                try:
+                    # Si viene como string ISO, parsearlo
+                    if isinstance(data['fecha_entrega'], str):
+                        fecha_entrega = datetime.fromisoformat(data['fecha_entrega'].replace('Z', '+00:00'))
+                    else:
+                        fecha_entrega = data['fecha_entrega']
+                    
+                    # Si también viene hora_entrega, combinarla con la fecha
+                    if 'hora_entrega' in data and data['hora_entrega']:
+                        try:
+                            from datetime import time
+                            hora_parts = data['hora_entrega'].split(':')
+                            if len(hora_parts) >= 2:
+                                hora = int(hora_parts[0])
+                                minuto = int(hora_parts[1])
+                                fecha_entrega = fecha_entrega.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+                        except (ValueError, AttributeError) as e:
+                            print(f'[WARNING] Error al parsear hora_entrega: {e}')
+                    
+                    pedido.fecha_entrega = fecha_entrega
+                    clasificacion = clasificar_pedido(fecha_entrega)
+                    pedido.estado = clasificacion['estado']
+                    pedido.dia_entrega = clasificacion['dia_entrega']
+                except Exception as e:
+                    print(f'[ERROR] Error al actualizar fecha_entrega: {e}')
+                    # Si hay error, intentar asignar directamente
+                    if isinstance(data['fecha_entrega'], str):
+                        try:
+                            pedido.fecha_entrega = datetime.fromisoformat(data['fecha_entrega'].replace('Z', '+00:00'))
+                        except:
+                            pass
 
             db.session.commit()
 

@@ -178,7 +178,31 @@ function PedidosPage() {
   
   const handleAbrirPedido = (pedido) => {
     setPedidoDetalle(pedido)
-    setPedidoEditado({...pedido})
+    
+    // Extraer fecha y hora de la fecha_entrega para edición
+    let fechaEdit = ''
+    let horaEdit = ''
+    if (pedido.fecha_entrega) {
+      try {
+        const fechaObj = new Date(pedido.fecha_entrega)
+        fechaEdit = fechaObj.toISOString().split('T')[0] // YYYY-MM-DD
+        const horas = fechaObj.getHours().toString().padStart(2, '0')
+        const minutos = fechaObj.getMinutes().toString().padStart(2, '0')
+        horaEdit = `${horas}:${minutos}`
+        // Si es 00:00, dejar vacío (sin hora específica)
+        if (horaEdit === '00:00') {
+          horaEdit = ''
+        }
+      } catch (e) {
+        console.error('Error al parsear fecha_entrega:', e)
+      }
+    }
+    
+    setPedidoEditado({
+      ...pedido,
+      fecha_entrega_edit: fechaEdit,
+      hora_entrega_edit: horaEdit
+    })
     setModoEdicion(true) // Abrir directamente en modo edición
     setClienteDetalle(null)
     setHistorialCliente([])
@@ -211,8 +235,31 @@ function PedidosPage() {
   }
   
   const handleActivarEdicion = () => {
+    // Extraer fecha y hora de la fecha_entrega para edición
+    let fechaEdit = ''
+    let horaEdit = ''
+    if (pedidoDetalle.fecha_entrega) {
+      try {
+        const fechaObj = new Date(pedidoDetalle.fecha_entrega)
+        fechaEdit = fechaObj.toISOString().split('T')[0] // YYYY-MM-DD
+        const horas = fechaObj.getHours().toString().padStart(2, '0')
+        const minutos = fechaObj.getMinutes().toString().padStart(2, '0')
+        horaEdit = `${horas}:${minutos}`
+        // Si es 00:00, dejar vacío (sin hora específica)
+        if (horaEdit === '00:00') {
+          horaEdit = ''
+        }
+      } catch (e) {
+        console.error('Error al parsear fecha_entrega:', e)
+      }
+    }
+    
     setModoEdicion(true)
-    setPedidoEditado({...pedidoDetalle})
+    setPedidoEditado({
+      ...pedidoDetalle,
+      fecha_entrega_edit: fechaEdit,
+      hora_entrega_edit: horaEdit
+    })
   }
   
   const handleCancelarEdicion = () => {
@@ -229,12 +276,58 @@ function PedidosPage() {
   
   const handleGuardarEdicion = async () => {
     try {
-      const response = await pedidosAPI.actualizar(pedidoDetalle.id, pedidoEditado)
+      // Preparar datos para enviar
+      const datosActualizacion = { ...pedidoEditado }
+      
+      // Procesar fecha y hora de entrega
+      if (datosActualizacion.fecha_entrega_edit) {
+        let fechaEntregaCompleta
+        if (datosActualizacion.hora_entrega_edit && datosActualizacion.hora_entrega_edit.trim()) {
+          // Combinar fecha + hora
+          fechaEntregaCompleta = new Date(`${datosActualizacion.fecha_entrega_edit}T${datosActualizacion.hora_entrega_edit}`).toISOString()
+        } else {
+          // Solo fecha (a las 00:00)
+          fechaEntregaCompleta = new Date(`${datosActualizacion.fecha_entrega_edit}T00:00:00`).toISOString()
+        }
+        datosActualizacion.fecha_entrega = fechaEntregaCompleta
+        if (datosActualizacion.hora_entrega_edit) {
+          datosActualizacion.hora_entrega = datosActualizacion.hora_entrega_edit
+        }
+      }
+      
+      // Eliminar campos temporales de edición
+      delete datosActualizacion.fecha_entrega_edit
+      delete datosActualizacion.hora_entrega_edit
+      
+      const response = await pedidosAPI.actualizar(pedidoDetalle.id, datosActualizacion)
       
       if (response.data.success) {
         alert('✅ Pedido actualizado correctamente')
         setPedidoDetalle(response.data.data)
-        setPedidoEditado(response.data.data)
+        
+        // Re-extraer fecha y hora para el estado de edición
+        let fechaEdit = ''
+        let horaEdit = ''
+        if (response.data.data.fecha_entrega) {
+          try {
+            const fechaObj = new Date(response.data.data.fecha_entrega)
+            fechaEdit = fechaObj.toISOString().split('T')[0]
+            const horas = fechaObj.getHours().toString().padStart(2, '0')
+            const minutos = fechaObj.getMinutes().toString().padStart(2, '0')
+            horaEdit = `${horas}:${minutos}`
+            if (horaEdit === '00:00') {
+              horaEdit = ''
+            }
+          } catch (e) {
+            console.error('Error al parsear fecha_entrega:', e)
+          }
+        }
+        
+        setPedidoEditado({
+          ...response.data.data,
+          fecha_entrega_edit: fechaEdit,
+          hora_entrega_edit: horaEdit
+        })
         setModoEdicion(false)
         
         // Recargar la lista de pedidos
@@ -246,7 +339,8 @@ function PedidosPage() {
       }
     } catch (error) {
       console.error('Error al guardar pedido:', error)
-      alert('❌ Error al guardar los cambios')
+      console.error('Error details:', error.response?.data)
+      alert('❌ Error al guardar los cambios: ' + (error.response?.data?.error || error.message))
     }
   }
   
@@ -2077,9 +2171,28 @@ function PedidosPage() {
                           <p className="text-xs text-gray-500 font-semibold uppercase mb-1 flex items-center">
                             <Calendar className="h-3 w-3 mr-1" /> Fecha Entrega
                           </p>
-                          <p className="text-sm font-bold text-gray-900 bg-pink-50 p-2 rounded border border-pink-300">
-                            {formatFecha(pedidoDetalle.fecha_entrega)}
-                          </p>
+                          {modoEdicion ? (
+                            <div className="space-y-2">
+                              <input
+                                type="date"
+                                value={pedidoEditado.fecha_entrega_edit || ''}
+                                onChange={(e) => handleCampoEdicion('fecha_entrega_edit', e.target.value)}
+                                className="w-full px-3 py-2 text-sm font-bold text-gray-900 bg-white rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                              />
+                              <input
+                                type="time"
+                                value={pedidoEditado.hora_entrega_edit || ''}
+                                onChange={(e) => handleCampoEdicion('hora_entrega_edit', e.target.value)}
+                                placeholder="Sin hora específica"
+                                className="w-full px-3 py-2 text-sm text-gray-700 bg-white rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                              />
+                              <p className="text-xs text-gray-500">Deja la hora vacía si no hay hora específica</p>
+                            </div>
+                          ) : (
+                            <p className="text-sm font-bold text-gray-900 bg-pink-50 p-2 rounded border border-pink-300">
+                              {formatFecha(pedidoDetalle.fecha_entrega)}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
