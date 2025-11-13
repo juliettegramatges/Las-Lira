@@ -2,85 +2,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Search, Filter, Plus, Edit, Edit2, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle, Camera, Upload, Loader2 } from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-
-const API_URL = 'http://localhost:5001/api'
-
-// Colores comunes para personalización
-const COLORES_DISPONIBLES = [
-  'Blanco', 'Rojo', 'Rosado', 'Fucsia', 'Naranja', 'Amarillo',
-  'Verde', 'Azul', 'Morado', 'Lila', 'Celeste', 'Durazno',
-  'Salmón', 'Coral', 'Burdeo', 'Mixto', 'Pastel', 'Vibrantes'
-]
-
-// Motivos comunes de pedidos
-const MOTIVOS_PEDIDO = [
-  // Celebraciones personales
-  'Cumpleaños',
-  'Aniversario',
-  'Graduación',
-  'Primera Comunión',
-  'Bautizo',
-  'Confirmación',
-  
-  // Amor y romance
-  'San Valentín',
-  'Amor / Cariño',
-  'Pedida de Mano',
-  'Boda / Matrimonio',
-  'Aniversario de Matrimonio',
-  
-  // Días especiales
-  'Día de la Madre',
-  'Día del Padre',
-  'Día de la Mujer',
-  'Día del Profesor',
-  'Día de los Abuelos',
-  
-  // Nacimientos y bebés
-  'Nacimiento',
-  'Baby Shower',
-  'Recién Nacido',
-  
-  // Felicitaciones
-  'Felicitaciones',
-  'Éxito / Logro',
-  'Nuevo Trabajo',
-  'Nuevo Hogar',
-  'Jubilación',
-  
-  // Recuperación y ánimo
-  'Mejórate Pronto',
-  'Recuperación',
-  'Apoyo',
-  
-  // Agradecimiento
-  'Agradecimiento',
-  'Disculpas',
-  
-  // Ceremonial
-  'Difunto',
-  'Condolencias',
-  'Funeral',
-  'Velorio',
-  'Misa',
-  
-  // Fechas especiales
-  'Navidad',
-  'Año Nuevo',
-  'Fiestas Patrias',
-  'Pascua',
-  'Día de la Independencia',
-  
-  // Otros
-  'Decoración',
-  'Evento Corporativo',
-  'Regalo Corporativo',
-  'Solo porque sí',
-  'Sin motivo específico',
-  'Otro'
-]
+import { API_URL } from '../services/api'
+import { formatFecha } from '../utils/helpers'
+import { COLORES_DISPONIBLES, MOTIVOS_PEDIDO } from '../utils/constants'
 
 function PedidosPage() {
   const location = useLocation()
@@ -410,7 +334,7 @@ function PedidosPage() {
       // Cargar productos
       const prodResponse = await axios.get(`${API_URL}/productos/`)
       if (prodResponse.data.success) {
-        setProductos(prodResponse.data.productos || [])
+        setProductos(prodResponse.data.data || [])
       }
       
       // Cargar flores
@@ -1070,22 +994,7 @@ function PedidosPage() {
     'Cancelado': 'bg-red-200 text-red-900',
   }
   
-  const formatFecha = (fechaStr) => {
-    try {
-      const fecha = new Date(fechaStr)
-      const horas = fecha.getHours()
-      const minutos = fecha.getMinutes()
-
-      // Si es medianoche (00:00), significa que no hay hora específica
-      if (horas === 0 && minutos === 0) {
-        return format(fecha, "dd/MM/yyyy", { locale: es }) + " - sin hora de llegada"
-      }
-
-      return format(fecha, "dd/MM/yyyy HH:mm", { locale: es })
-    } catch {
-      return fechaStr
-    }
-  }
+  // formatFecha ya está importado de helpers
   
   // Calcular total en tiempo real
   const totalPedido = useMemo(() => {
@@ -2145,7 +2054,7 @@ function PedidosPage() {
                           <div className="flex items-center gap-1">
                             <span className="text-base font-bold text-gray-900">$</span>
                             <input
-                              type="number"
+                              type="text"
                               value={pedidoEditado.precio_ramo || 0}
                               onChange={(e) => handleCampoEdicion('precio_ramo', parseInt(e.target.value) || 0)}
                               className="w-32 text-base font-bold text-gray-900 bg-white p-2 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none text-right"
@@ -2163,7 +2072,7 @@ function PedidosPage() {
                           <div className="flex items-center gap-1">
                             <span className="text-base font-bold text-gray-900">$</span>
                             <input
-                              type="number"
+                              type="text"
                               value={pedidoEditado.precio_envio || 0}
                               onChange={(e) => handleCampoEdicion('precio_envio', parseInt(e.target.value) || 0)}
                               className="w-32 text-base font-bold text-gray-900 bg-white p-2 rounded border border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none text-right"
@@ -2908,8 +2817,7 @@ function PedidosPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
                           value={formData.plazo_pago_dias}
                           onChange={(e) => setFormData({...formData, plazo_pago_dias: parseInt(e.target.value) || 0})}
                           disabled={!plazoPagoManual}
@@ -3237,8 +3145,7 @@ function PedidosPage() {
                                   </td>
                                   <td className="px-3 py-2 text-center">
                                     <input
-                                      type="number"
-                                      min="1"
+                                      type="text"
                                       value={insumo.cantidad}
                                       onChange={(e) => handleCantidadInsumo(index, e.target.value)}
                                       className="w-16 text-center border border-gray-300 rounded px-2 py-1"
@@ -3558,10 +3465,8 @@ function PedidosPage() {
                       <div className="relative">
                         <span className="absolute left-3 top-3 text-gray-500 font-bold">$</span>
                         <input
-                          type="number"
+                          type="text"
                           required
-                          min="0"
-                          step="1000"
                           value={formData.precio_ramo}
                           onChange={(e) => setFormData({...formData, precio_ramo: parseFloat(e.target.value) || 0})}
                           className="w-full pl-8 pr-4 py-2 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold"
@@ -3576,9 +3481,7 @@ function PedidosPage() {
                       <div className="relative">
                         <span className="absolute left-3 top-3 text-gray-500 font-bold">$</span>
                         <input
-                          type="number"
-                          min="0"
-                          step="1000"
+                          type="text"
                           value={formData.precio_envio}
                           onChange={(e) => setFormData({...formData, precio_envio: parseFloat(e.target.value) || 0})}
                           className="w-full pl-8 pr-4 py-2 border-2 border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-semibold"

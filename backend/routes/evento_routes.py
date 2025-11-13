@@ -38,6 +38,55 @@ def obtener_evento(evento_id):
             'data': evento_dict
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<evento_id>', methods=['PUT'])
+def actualizar_evento(evento_id):
+    """Actualiza un evento existente"""
+    try:
+        data = request.get_json()
+
+        # Delegar al servicio
+        success, resultado, mensaje = EventosService.actualizar_evento(evento_id, data)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': resultado.to_dict(),
+                'message': mensaje
+            })
+        else:
+            return jsonify({'success': False, 'error': mensaje}), 404 if 'no encontrado' in mensaje else 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<evento_id>', methods=['DELETE'])
+def eliminar_evento(evento_id):
+    """Elimina un evento y todos sus insumos"""
+    try:
+        print(f"🗑️ Eliminando evento: {evento_id}")
+        # Delegar al servicio
+        success, mensaje = EventosService.eliminar_evento(evento_id)
+
+        if success:
+            print(f"✅ Evento {evento_id} eliminado exitosamente")
+            return jsonify({
+                'success': True,
+                'message': mensaje
+            })
+        else:
+            print(f"❌ Error al eliminar evento {evento_id}: {mensaje}")
+            return jsonify({'success': False, 'error': mensaje}), 404 if 'no encontrado' in mensaje.lower() else 500
+
+    except Exception as e:
+        print(f"❌ Excepción al eliminar evento {evento_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -70,28 +119,6 @@ def crear_evento():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<evento_id>', methods=['PUT'])
-def actualizar_evento(evento_id):
-    """Actualiza un evento existente"""
-    try:
-        data = request.get_json()
-
-        # Delegar al servicio
-        success, resultado, mensaje = EventosService.actualizar_evento(evento_id, data)
-
-        if success:
-            return jsonify({
-                'success': True,
-                'data': resultado.to_dict(),
-                'message': mensaje
-            })
-        else:
-            return jsonify({'success': False, 'error': mensaje}), 404 if 'no encontrado' in mensaje else 500
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
 @bp.route('/<evento_id>/insumos', methods=['POST'])
 def agregar_insumo(evento_id):
     """Agrega un insumo al evento"""
@@ -99,13 +126,18 @@ def agregar_insumo(evento_id):
         data = request.get_json()
 
         # Validar campos requeridos
-        campos_requeridos = ['insumo_tipo', 'insumo_id', 'cantidad']
-        for campo in campos_requeridos:
-            if campo not in data:
-                return jsonify({
-                    'success': False,
-                    'error': f'Campo requerido: {campo}'
-                }), 400
+        tipo_insumo = data.get('tipo_insumo') or data.get('insumo_tipo')
+        if not tipo_insumo:
+            return jsonify({
+                'success': False,
+                'error': 'Campo requerido: tipo_insumo'
+            }), 400
+
+        if 'cantidad' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Campo requerido: cantidad'
+            }), 400
 
         # Delegar al servicio
         success, resultado, mensaje = EventosService.agregar_insumo(evento_id, data)
