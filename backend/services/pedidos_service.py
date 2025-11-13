@@ -782,6 +782,12 @@ class PedidosService:
                 pedido.documento_tributario = data['documento_tributario']
             if 'numero_documento' in data:
                 pedido.numero_documento = data['numero_documento']
+                # Si se agrega un número de documento, automáticamente marcar como emitido
+                if data['numero_documento'] and data['numero_documento'].strip():
+                    if pedido.documento_tributario == 'Hacer boleta':
+                        pedido.documento_tributario = 'Boleta emitida'
+                    elif pedido.documento_tributario == 'Hacer factura':
+                        pedido.documento_tributario = 'Factura emitida'
             if 'monto_pagado' in data:
                 pedido.monto_pagado = data['monto_pago']
             if 'fecha_pago' in data:
@@ -792,6 +798,13 @@ class PedidosService:
             if pedido.estado_pago == 'Pagado' and pedido.metodo_pago == 'Tr. BICE':
                 if pedido.documento_tributario in ['Hacer boleta', 'Hacer factura', 'Falta boleta o factura', None]:
                     pedido.documento_tributario = 'No requiere'
+            
+            # Lógica adicional: Si tiene número de documento pero el estado sigue siendo "Hacer boleta/factura", actualizar
+            if pedido.numero_documento and pedido.numero_documento.strip():
+                if pedido.documento_tributario == 'Hacer boleta':
+                    pedido.documento_tributario = 'Boleta emitida'
+                elif pedido.documento_tributario == 'Hacer factura':
+                    pedido.documento_tributario = 'Factura emitida'
 
             db.session.commit()
 
