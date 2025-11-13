@@ -741,6 +741,7 @@ class ReportesService:
     def obtener_colores_frecuentes(anio=None, mes=None):
         """
         Obtiene los colores más solicitados en pedidos personalizados
+        Normaliza nombres de colores para evitar duplicados
 
         Args:
             anio: año para filtrar (opcional)
@@ -749,6 +750,9 @@ class ReportesService:
         Returns:
             list: colores ordenados por frecuencia
         """
+        import json
+        import re
+        
         query = Pedido.query.filter(
             Pedido.colores_solicitados.isnot(None),
             Pedido.estado != 'Cancelado'
@@ -765,13 +769,77 @@ class ReportesService:
 
         pedidos = query.all()
 
+        # Mapeo de normalización de colores
+        def normalizar_color(color):
+            """Normaliza nombres de colores para evitar duplicados"""
+            if not color:
+                return None
+            
+            color = color.strip().lower()
+            
+            # Mapeo de variantes a nombre estándar
+            normalizaciones = {
+                'blanco': 'Blanco',
+                'blanca': 'Blanco',
+                'rosa': 'Rosa',
+                'rosado': 'Rosa',
+                'rosada': 'Rosa',
+                'azul': 'Azul',
+                'azule': 'Azul',
+                'rojo': 'Rojo',
+                'roja': 'Rojo',
+                'verde': 'Verde',
+                'amarillo': 'Amarillo',
+                'amarilla': 'Amarillo',
+                'morado': 'Morado',
+                'morada': 'Morado',
+                'lila': 'Lila',
+                'fucsia': 'Fucsia',
+                'coral': 'Coral',
+                'naranjo': 'Naranja',
+                'naranja': 'Naranja',
+                'colorido': 'Colorido',
+                'multicolor': 'Colorido',
+                'varios': 'Colorido'
+            }
+            
+            # Buscar normalización
+            for variante, estandar in normalizaciones.items():
+                if variante in color:
+                    return estandar
+            
+            # Si no hay normalización, capitalizar primera letra
+            return color.capitalize()
+
         conteo_colores = {}
         for pedido in pedidos:
             if pedido.colores_solicitados:
-                colores = [c.strip().title() for c in pedido.colores_solicitados.split(',')]
-                for color in colores:
-                    if color:
-                        conteo_colores[color] = conteo_colores.get(color, 0) + 1
+                try:
+                    # Intentar parsear como JSON
+                    if pedido.colores_solicitados.startswith('[') or pedido.colores_solicitados.startswith('"'):
+                        colores = json.loads(pedido.colores_solicitados)
+                        if isinstance(colores, str):
+                            colores = [colores]
+                    else:
+                        # Si no es JSON, tratar como string separado por comas
+                        colores = [c.strip() for c in pedido.colores_solicitados.split(',')]
+                    
+                    # Normalizar y contar
+                    for color_raw in colores:
+                        if color_raw:
+                            # Limpiar comillas y corchetes
+                            color_limpio = re.sub(r'[\[\]"\']', '', str(color_raw)).strip()
+                            if color_limpio:
+                                color_normalizado = normalizar_color(color_limpio)
+                                if color_normalizado:
+                                    conteo_colores[color_normalizado] = conteo_colores.get(color_normalizado, 0) + 1
+                except (json.JSONDecodeError, ValueError):
+                    # Si falla el parseo JSON, tratar como string simple
+                    color_limpio = re.sub(r'[\[\]"\']', '', pedido.colores_solicitados).strip()
+                    if color_limpio:
+                        color_normalizado = normalizar_color(color_limpio)
+                        if color_normalizado:
+                            conteo_colores[color_normalizado] = conteo_colores.get(color_normalizado, 0) + 1
 
         return sorted(
             [{'color': color, 'cantidad': cantidad} for color, cantidad in conteo_colores.items()],
