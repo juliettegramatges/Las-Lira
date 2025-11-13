@@ -1,17 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-
-const API_URL = 'http://localhost:5001/api'
-
-// Función para limpiar HTML de las descripciones
-const limpiarHTML = (html) => {
-  if (!html) return ''
-  // Crear un elemento temporal para extraer solo el texto
-  const temp = document.createElement('div')
-  temp.innerHTML = html
-  return temp.textContent || temp.innerText || ''
-}
+import { API_URL } from '../services/api'
+import { limpiarHTML } from '../utils/helpers'
 
 // Colores comunes para productos
 const COLORES_PRODUCTOS = [

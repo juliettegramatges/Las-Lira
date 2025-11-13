@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { MapPin, Clock, AlertCircle, Check, FileText, Truck, Calendar, Package, Phone, RefreshCw } from 'lucide-react'
 import Button from '../components/common/Button'
-
-const API_URL = 'http://localhost:5001/api'
+import { API_URL } from '../services/api'
 
 function RutasPage() {
   const [rutas, setRutas] = useState([])

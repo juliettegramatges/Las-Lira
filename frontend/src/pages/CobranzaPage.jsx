@@ -2,17 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { DollarSign, FileText, AlertCircle, CheckCircle, X, Package, User, MapPin, Calendar, Phone, Mail } from 'lucide-react'
 import { API_URL } from '../services/api'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-
-const formatFecha = (fecha) => {
-  if (!fecha) return '-'
-  try {
-    return format(new Date(fecha), 'dd MMM yyyy', { locale: es })
-  } catch {
-    return '-'
-  }
-}
+import { formatFecha } from '../utils/helpers'
 
 const CobranzaPage = () => {
   const [loading, setLoading] = useState(true)
