@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, Search, Plus, Edit2, Trash2, X, Phone, Mail, MapPin, DollarSign, ShoppingBag, Download, Calendar, Package, Tag } from 'lucide-react'
 import axios from 'axios'
-import { API_URL } from '../services/api'
+import { API_URL, clientesAPI } from '../services/api'
 import EtiquetaCliente from '../components/EtiquetaCliente'
 import { formatFecha } from '../utils/helpers'
 import { eventBus, EVENT_TYPES } from '../utils/eventBus'
@@ -184,10 +184,7 @@ function ClientesPage() {
     try {
       if (modoEdicion) {
         // Actualizar cliente existente
-        const response = await axios.put(
-          `${API_URL}/clientes/${clienteSeleccionado.id}`,
-          formData
-        )
+        const response = await clientesAPI.actualizar(clienteSeleccionado.id, formData)
         if (response.data.success) {
           alert('✅ Cliente actualizado exitosamente')
           setMostrarModal(false)
@@ -195,7 +192,7 @@ function ClientesPage() {
         }
       } else {
         // Crear nuevo cliente
-        const response = await axios.post(`${API_URL}/clientes`, formData)
+        const response = await clientesAPI.crear(formData)
         if (response.data.success) {
           alert('✅ Cliente creado exitosamente')
           setMostrarModal(false)
@@ -214,7 +211,7 @@ function ClientesPage() {
     }
     
     try {
-      const response = await axios.delete(`${API_URL}/clientes/${cliente.id}`)
+      const response = await clientesAPI.eliminar(cliente.id)
       if (response.data.success) {
         alert('✅ Cliente eliminado exitosamente')
         cargarClientes()

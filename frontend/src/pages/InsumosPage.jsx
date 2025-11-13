@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Flower, Package, AlertCircle, Search, Plus, Save, X, Trash2, Building2, Phone, Mail, ShoppingCart } from 'lucide-react'
 import axios from 'axios'
-import { API_URL } from '../services/api'
+import { API_URL, inventarioAPI } from '../services/api'
 
 // Colores comunes para flores
 const COLORES_FLORES = [
@@ -124,7 +124,7 @@ function InsumosPage() {
       }
       
       console.log(`📤 Enviando actualización de ${campo} para flor ${id}:`, valorFinal)
-      const response = await axios.patch(`${API_URL}/inventario/flores/${id}`, {
+      const response = await inventarioAPI.actualizarFlor(id, {
         [campo]: valorFinal
       })
       
@@ -170,7 +170,7 @@ function InsumosPage() {
       }
 
       console.log(`📤 Enviando actualización de ${campo} para contenedor ${id}:`, valorFinal)
-      const response = await axios.patch(`${API_URL}/inventario/contenedores/${id}`, {
+      const response = await inventarioAPI.actualizarContenedor(id, {
         [campo]: valorFinal
       })
 
@@ -201,7 +201,7 @@ function InsumosPage() {
         return
       }
 
-      const response = await axios.post(`${API_URL}/inventario/flores`, nuevaFlor)
+      const response = await inventarioAPI.crearFlor(nuevaFlor)
 
       if (response.data.success) {
         setFlores(prev => [...prev, response.data.data])
@@ -229,7 +229,7 @@ function InsumosPage() {
         return
       }
 
-      const response = await axios.post(`${API_URL}/inventario/contenedores`, nuevoContenedor)
+      const response = await inventarioAPI.crearContenedor(nuevoContenedor)
 
       if (response.data.success) {
         setContenedores(prev => [...prev, response.data.data])
@@ -260,7 +260,7 @@ function InsumosPage() {
     if (!confirmar) return
 
     try {
-      const response = await axios.delete(`${API_URL}/inventario/flores/${florId}`)
+      const response = await inventarioAPI.eliminarFlor(florId)
 
       if (response.data.success) {
         setFlores(prev => prev.filter(f => f.id !== florId))
@@ -280,7 +280,7 @@ function InsumosPage() {
     if (!confirmar) return
 
     try {
-      const response = await axios.delete(`${API_URL}/inventario/contenedores/${contenedorId}`)
+      const response = await inventarioAPI.eliminarContenedor(contenedorId)
 
       if (response.data.success) {
         setContenedores(prev => prev.filter(c => c.id !== contenedorId))
@@ -301,7 +301,7 @@ function InsumosPage() {
         return
       }
 
-      const response = await axios.post(`${API_URL}/inventario/proveedores`, nuevoProveedor)
+      const response = await inventarioAPI.crearProveedor(nuevoProveedor)
 
       if (response.data.success) {
         setProveedores(prev => [...prev, response.data.data])
@@ -353,7 +353,7 @@ function InsumosPage() {
         return
       }
 
-      const response = await axios.put(`${API_URL}/inventario/proveedores/${proveedorEditando.id}`, nuevoProveedor)
+      const response = await inventarioAPI.actualizarProveedor(proveedorEditando.id, nuevoProveedor)
 
       if (response.data.success) {
         setProveedores(prev => prev.map(p => 
@@ -388,7 +388,7 @@ function InsumosPage() {
     if (!confirmar) return
 
     try {
-      const response = await axios.delete(`${API_URL}/inventario/proveedores/${proveedorId}`)
+      const response = await inventarioAPI.eliminarProveedor(proveedorId)
 
       if (response.data.success) {
         setProveedores(prev => prev.filter(p => p.id !== proveedorId))

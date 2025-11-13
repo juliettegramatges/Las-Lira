@@ -19,15 +19,21 @@ def registrar_accion(accion, entidad, entidad_id=None, detalles=None):
     """
     try:
         user_id = session.get('user_id')
+        print(f'[AUDITORIA] Intentando registrar: accion={accion}, entidad={entidad}, entidad_id={entidad_id}, user_id={user_id}')
         if user_id:
-            AuditoriaService.registrar_accion(
+            resultado = AuditoriaService.registrar_accion(
                 usuario_id=user_id,
                 accion=accion,
                 entidad=entidad,
                 entidad_id=entidad_id,
                 detalles=detalles
             )
+            print(f'[AUDITORIA] Registro exitoso: {resultado}')
+        else:
+            print(f'[AUDITORIA] ADVERTENCIA: No hay user_id en la sesión. Sesión completa: {dict(session)}')
     except Exception as e:
         # No fallar si hay error en auditoría
-        print(f'Error al registrar acción de auditoría: {str(e)}')
+        import traceback
+        print(f'[AUDITORIA] Error al registrar acción de auditoría: {str(e)}')
+        traceback.print_exc()
 

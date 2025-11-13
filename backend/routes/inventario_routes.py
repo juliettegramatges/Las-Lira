@@ -7,6 +7,7 @@ from extensions import db
 from models.inventario import Flor, Contenedor, Bodega, Proveedor, proveedor_flor, proveedor_contenedor
 from config.precios_sugeridos import obtener_precio_flor
 from config.stock_sugerido import obtener_stock_flor
+from routes.auth_routes import require_auth
 from datetime import date
 
 bp = Blueprint('inventario', __name__)
@@ -144,6 +145,7 @@ def listar_flores():
 
 
 @bp.route('/flores', methods=['POST'])
+@require_auth
 def crear_flor():
     """Crear una nueva flor"""
     try:
@@ -291,6 +293,7 @@ def obtener_flor(flor_id):
 
 
 @bp.route('/flores/<flor_id>', methods=['PATCH'])
+@require_auth
 def actualizar_flor(flor_id):
     """Actualizar cualquier campo de una flor"""
     try:
@@ -368,6 +371,7 @@ def actualizar_stock_flor(flor_id):
 
 
 @bp.route('/flores/<flor_id>', methods=['DELETE'])
+@require_auth
 def eliminar_flor(flor_id):
     """Eliminar una flor del inventario"""
     try:
@@ -419,6 +423,7 @@ def listar_contenedores():
 
 
 @bp.route('/contenedores', methods=['POST'])
+@require_auth
 def crear_contenedor():
     """Crear un nuevo contenedor"""
     try:
@@ -476,6 +481,7 @@ def crear_contenedor():
 
 
 @bp.route('/contenedores/<contenedor_id>', methods=['PATCH'])
+@require_auth
 def actualizar_contenedor(contenedor_id):
     """Actualizar cualquier campo de un contenedor"""
     try:
@@ -551,6 +557,7 @@ def actualizar_stock_contenedor(contenedor_id):
 
 
 @bp.route('/contenedores/<contenedor_id>', methods=['DELETE'])
+@require_auth
 def eliminar_contenedor(contenedor_id):
     """Eliminar un contenedor del inventario"""
     try:
@@ -663,6 +670,7 @@ def obtener_proveedor(proveedor_id):
 
 
 @bp.route('/proveedores', methods=['POST'])
+@require_auth
 def crear_proveedor():
     """Crear un nuevo proveedor"""
     try:
@@ -710,6 +718,7 @@ def crear_proveedor():
 
 
 @bp.route('/proveedores/<proveedor_id>', methods=['PUT'])
+@require_auth
 def actualizar_proveedor(proveedor_id):
     """Actualizar un proveedor"""
     try:
@@ -750,6 +759,7 @@ def actualizar_proveedor(proveedor_id):
 
 
 @bp.route('/proveedores/<proveedor_id>', methods=['DELETE'])
+@require_auth
 def eliminar_proveedor(proveedor_id):
     """Eliminar un proveedor (soft delete)"""
     try:

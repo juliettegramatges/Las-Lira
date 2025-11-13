@@ -162,8 +162,38 @@ def confirmar_insumos_y_descontar(pedido_id):
         # Obtener insumos del pedido
         insumos = PedidoInsumo.query.filter_by(pedido_id=pedido_id, descontado_stock=False).all()
         
+        print(f'[DEBUG] Pedido {pedido_id}: {len(insumos)} insumos encontrados (descontado_stock=False)')
+        
+        # Permitir confirmar pedidos sin insumos (solo cambiar estado)
         if not insumos:
-            return jsonify({'error': 'No hay insumos para confirmar'}), 400
+            print(f'[DEBUG] Pedido {pedido_id}: No hay insumos, confirmando sin insumos. retiro_en_tienda={pedido.retiro_en_tienda}')
+            # Cambiar estado del pedido según retiro_en_tienda
+            if pedido.retiro_en_tienda:
+                pedido.estado = 'Retiro en Tienda'
+            else:
+                pedido.estado = 'Listo para Despacho'
+            
+            db.session.commit()
+            
+            # Registrar en auditoría
+            try:
+                from utils.auditoria_helper import registrar_accion
+                registrar_accion('confirmar_insumos', 'pedido', pedido_id, {
+                    'insumos_procesados': 0,
+                    'nuevo_estado': pedido.estado,
+                    'cliente': pedido.cliente_nombre,
+                    'sin_insumos': True
+                })
+            except Exception as e:
+                print(f'Error al registrar acción de auditoría: {e}')
+            
+            return jsonify({
+                'success': True,
+                'message': 'Pedido confirmado sin insumos',
+                'pedido_id': pedido_id,
+                'nuevo_estado': pedido.estado,
+                'insumos_procesados': 0
+            })
         
         # Actualizar cantidades si fueron modificadas
         for insumo in insumos:
@@ -252,7 +282,14 @@ def confirmar_insumos_y_descontar(pedido_id):
             insumo.descontado_stock = True
         
         # Cambiar estado del pedido
-        pedido.estado = 'Listo para Despacho'
+        # Si es retiro en tienda, va a "Retiro en Tienda", sino a "Listo para Despacho"
+        print(f'[DEBUG] Pedido {pedido_id}: Cambiando estado. retiro_en_tienda={pedido.retiro_en_tienda}, tipo={type(pedido.retiro_en_tienda)}')
+        if pedido.retiro_en_tienda:
+            pedido.estado = 'Retiro en Tienda'
+            print(f'[DEBUG] Pedido {pedido_id}: Estado cambiado a "Retiro en Tienda"')
+        else:
+            pedido.estado = 'Listo para Despacho'
+            print(f'[DEBUG] Pedido {pedido_id}: Estado cambiado a "Listo para Despacho"')
         
         db.session.commit()
         
@@ -631,7 +668,14 @@ def confirmar_insumos_detallados(pedido_id):
             return jsonify({'success': False, 'error': 'Errores de validación', 'detalles': errores}), 400
         
         # Cambiar estado del pedido
-        pedido.estado = 'Listo para Despacho'
+        # Si es retiro en tienda, va a "Retiro en Tienda", sino a "Listo para Despacho"
+        print(f'[DEBUG] Pedido {pedido_id} (detallado): Cambiando estado. retiro_en_tienda={pedido.retiro_en_tienda}, tipo={type(pedido.retiro_en_tienda)}')
+        if pedido.retiro_en_tienda:
+            pedido.estado = 'Retiro en Tienda'
+            print(f'[DEBUG] Pedido {pedido_id} (detallado): Estado cambiado a "Retiro en Tienda"')
+        else:
+            pedido.estado = 'Listo para Despacho'
+            print(f'[DEBUG] Pedido {pedido_id} (detallado): Estado cambiado a "Listo para Despacho"')
         
         db.session.commit()
         

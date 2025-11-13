@@ -4,10 +4,11 @@ Las rutas ahora delegan la lógica de negocio al PedidosService
 """
 
 import os
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from services.pedidos_service import PedidosService
 from extensions import db
 from utils.auditoria_helper import registrar_accion
+from routes.auth_routes import require_auth
 
 bp = Blueprint('pedidos', __name__)
 
@@ -83,6 +84,7 @@ def obtener_pedido(pedido_id):
 
 
 @bp.route('/', methods=['POST'], strict_slashes=False)
+@require_auth
 def crear_pedido():
     """Crear un nuevo pedido"""
     try:
@@ -170,6 +172,7 @@ def cancelar_pedido(pedido_id):
 
 
 @bp.route('/<pedido_id>', methods=['DELETE'])
+@require_auth
 def eliminar_pedido(pedido_id):
     """Elimina un pedido"""
     try:
@@ -191,6 +194,7 @@ def eliminar_pedido(pedido_id):
 
 
 @bp.route('/<int:pedido_id>', methods=['PUT'])
+@require_auth
 def actualizar_pedido(pedido_id):
     """Actualiza un pedido existente"""
     try:
@@ -200,6 +204,11 @@ def actualizar_pedido(pedido_id):
         success, resultado, mensaje = PedidosService.actualizar_pedido(pedido_id, data)
 
         if success:
+            # Registrar acción de auditoría
+            registrar_accion('actualizar', 'pedido', pedido_id, {
+                'cliente': resultado.cliente_nombre if resultado else None,
+                'campos_actualizados': list(data.keys()) if data else []
+            })
             return jsonify({
                 'success': True,
                 'data': resultado.to_dict(),

@@ -774,16 +774,13 @@ class PedidosService:
         # Agrupar por estado
         # NOTA: NO filtrar despachados aquí porque ya se filtró en la consulta SQL
         # según la fecha (los recientes sí se incluyen, los antiguos no)
-        # Separar pedidos con retiro en tienda en su propia columna
+        # NOTA: Los pedidos con retiro_en_tienda siguen el flujo normal hasta que se confirman insumos
+        # Solo se separan en "Retiro en Tienda" cuando su estado es "Retiro en Tienda"
         for pedido in pedidos:
-            # Si es retiro en tienda, ponerlo en su columna especial
-            if pedido.retiro_en_tienda:
-                tablero['Retiro en Tienda'].append(pedido.to_dict())
-            else:
-                estado = pedido.estado or 'Sin Estado'
-                if estado not in tablero:
-                    tablero[estado] = []
-                tablero[estado].append(pedido.to_dict())
+            estado = pedido.estado or 'Sin Estado'
+            if estado not in tablero:
+                tablero[estado] = []
+            tablero[estado].append(pedido.to_dict())
 
         # Ya no necesitamos filtrar despachados aquí porque la consulta SQL
         # ya los filtró correctamente según la fecha

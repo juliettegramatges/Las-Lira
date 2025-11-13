@@ -223,42 +223,50 @@ function TallerPage() {
       }
     }
     
-    if (!confirm(`¿Confirmar insumos y descontar stock para el pedido ${pedidoSeleccionado.id}?\n\nEsto moverá el pedido a "Listo para Despacho" y descontará el inventario.`)) {
+    // Determinar el estado destino según retiro_en_tienda
+    const estadoDestino = pedidoSeleccionado.retiro_en_tienda ? 'Retiro en Tienda' : 'Listo para Despacho'
+    const mensajeConfirmacion = insumos.length > 0
+      ? `¿Confirmar insumos y descontar stock para el pedido ${pedidoSeleccionado.id}?\n\nEsto moverá el pedido a "${estadoDestino}" y descontará el inventario.`
+      : `¿Confirmar el pedido ${pedidoSeleccionado.id} sin insumos?\n\nEsto moverá el pedido a "${estadoDestino}".`
+    
+    if (!confirm(mensajeConfirmacion)) {
       return
     }
 
     try {
       setConfirmando(true)
       
-      // PASO 1: Guardar los insumos actualizados (incluyendo nuevos y eliminados)
-      // Filtrar insumos incompletos: requieren insumo_id y cantidad > 0
-      const insumosParaGuardar = insumos
-        .map(i => {
-          const idSeleccionado = i.insumo_id || i.flor_id || i.contenedor_id
-          return {
-            insumo_tipo: i.insumo_tipo,
-            insumo_id: idSeleccionado,
-            cantidad: parseInt(i.cantidad) || 0,
-            costo_unitario: i.costo_unitario || 0
-          }
-        })
-        .filter(i => i.insumo_id && i.cantidad > 0)
+      // PASO 1: Guardar los insumos actualizados (incluyendo nuevos y eliminados) solo si hay insumos
+      if (insumos.length > 0) {
+        // Filtrar insumos incompletos: requieren insumo_id y cantidad > 0
+        const insumosParaGuardar = insumos
+          .map(i => {
+            const idSeleccionado = i.insumo_id || i.flor_id || i.contenedor_id
+            return {
+              insumo_tipo: i.insumo_tipo,
+              insumo_id: idSeleccionado,
+              cantidad: parseInt(i.cantidad) || 0,
+              costo_unitario: i.costo_unitario || 0
+            }
+          })
+          .filter(i => i.insumo_id && i.cantidad > 0)
 
-      if (insumosParaGuardar.length === 0) {
-        alert('❌ Agrega al menos un insumo válido antes de confirmar.')
-        setConfirmando(false)
-        return
+        if (insumosParaGuardar.length > 0) {
+          await pedidoInsumosAPI.guardarInsumos(pedidoSeleccionado.id, insumosParaGuardar)
+        }
       }
       
-      await pedidoInsumosAPI.guardarInsumos(pedidoSeleccionado.id, insumosParaGuardar)
-      
-      // PASO 2: Confirmar y descontar stock
+      // PASO 2: Confirmar y descontar stock (o solo cambiar estado si no hay insumos)
       const response = await pedidoInsumosAPI.confirmarYDescontar(
         pedidoSeleccionado.id,
         {}
       )
       
-      alert(`✅ ${response.data.message}\n\n${response.data.insumos_procesados} insumos procesados`)
+      const mensajeExito = insumos.length > 0
+        ? `✅ ${response.data.message}\n\n${response.data.insumos_procesados || 0} insumos procesados`
+        : `✅ Pedido confirmado y movido a "${estadoDestino}"`
+      
+      alert(mensajeExito)
       
       // Recargar lista y cerrar modal
       await cargarPedidosTaller()
@@ -266,9 +274,10 @@ function TallerPage() {
       setInsumos([])
     } catch (err) {
       console.error('Error al confirmar insumos:', err)
+      console.error('Response data:', err.response?.data)
       const errorMsg = err.response?.data?.detalles 
         ? `❌ Error:\n\n${err.response.data.detalles.join('\n')}`
-        : `❌ Error: ${err.response?.data?.error || err.message}`
+        : `❌ Error: ${err.response?.data?.error || err.response?.data?.message || err.message}`
       alert(errorMsg)
     } finally {
       setConfirmando(false)
@@ -616,34 +625,39 @@ function TallerPage() {
               >
                 Cerrar
               </button>
-              {insumos.length > 0 && (
-                <button
-                  onClick={handleConfirmarInsumos}
-                  disabled={confirmando || (() => {
-                    // Validar considerando lo reservado por ESTE pedido
-                    return insumos.some(insumo => {
-                      const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
-                      const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
+              <button
+                onClick={handleConfirmarInsumos}
+                disabled={confirmando || (() => {
+                  // Solo validar stock si hay insumos
+                  if (insumos.length === 0) return false
+                  
+                  // Validar considerando lo reservado por ESTE pedido
+                  return insumos.some(insumo => {
+                    const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
+                    const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
 
-                      // Usar cantidad_original (lo que está reservado) no cantidad (que puede estar modificada)
-                      const reservadoEnEstePedido = insumos
-                        .filter(i => i.insumo_tipo === insumo.insumo_tipo)
-                        .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
-                        .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+                    // Usar cantidad_original (lo que está reservado) no cantidad (que puede estar modificada)
+                    const reservadoEnEstePedido = insumos
+                      .filter(i => i.insumo_tipo === insumo.insumo_tipo)
+                      .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
+                      .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
 
-                      const stockDisponibleReal = insumoInventario
-                        ? (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
-                        : (insumo.stock_disponible || 0)
+                    const stockDisponibleReal = insumoInventario
+                      ? (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
+                      : (insumo.stock_disponible || 0)
 
-                      return insumo.cantidad > stockDisponibleReal
-                    })
-                  })()}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  {confirmando ? 'Confirmando...' : 'Confirmar y Descontar Stock'}
-                </button>
-              )}
+                    return insumo.cantidad > stockDisponibleReal
+                  })
+                })()}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {confirmando 
+                  ? 'Confirmando...' 
+                  : insumos.length > 0 
+                    ? 'Confirmar y Descontar Stock' 
+                    : 'Confirmar Pedido'}
+              </button>
             </div>
           </div>
         </div>

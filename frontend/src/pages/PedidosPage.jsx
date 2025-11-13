@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Search, Filter, Plus, Edit, Edit2, MapPin, Package, DollarSign, Calendar, User, MessageSquare, X, CheckCircle, Download, ShoppingBag, Palette, Ruler, Image as ImageIcon, Phone, Mail, Trash2, XCircle, Camera, Upload, Loader2 } from 'lucide-react'
-import { API_URL } from '../services/api'
+import { API_URL, pedidosAPI, clientesAPI, pedidoInsumosAPI } from '../services/api'
 import { formatFecha } from '../utils/helpers'
 import { COLORES_DISPONIBLES, MOTIVOS_PEDIDO } from '../utils/constants'
 import { eventBus, EVENT_TYPES } from '../utils/eventBus'
@@ -229,7 +229,7 @@ function PedidosPage() {
   
   const handleGuardarEdicion = async () => {
     try {
-      const response = await axios.put(`${API_URL}/pedidos/${pedidoDetalle.id}`, pedidoEditado)
+      const response = await pedidosAPI.actualizar(pedidoDetalle.id, pedidoEditado)
       
       if (response.data.success) {
         alert('✅ Pedido actualizado correctamente')
@@ -251,12 +251,17 @@ function PedidosPage() {
   }
   
   const handleCancelarPedido = async () => {
+    const motivo = prompt('Ingresa el motivo de la cancelación:')
+    if (!motivo || motivo.trim() === '') {
+      return
+    }
+    
     if (!confirm('⚠️ ¿Estás seguro de cancelar este pedido? Se cambiará su estado a "Cancelado".')) {
       return
     }
     
     try {
-      const response = await axios.patch(`${API_URL}/pedidos/${pedidoDetalle.id}/cancelar`)
+      const response = await pedidosAPI.cancelar(pedidoDetalle.id, motivo)
       
       if (response.data.success) {
         alert('✅ Pedido cancelado correctamente')
@@ -284,7 +289,7 @@ function PedidosPage() {
     }
     
     try {
-      const response = await axios.delete(`${API_URL}/pedidos/${pedidoDetalle.id}`)
+      const response = await pedidosAPI.eliminar(pedidoDetalle.id)
       
       if (response.data.success) {
         alert('✅ Pedido eliminado permanentemente')
@@ -692,7 +697,7 @@ function PedidosPage() {
         notas: nuevoClienteData.notas || null
       }
 
-      const response = await axios.post(`${API_URL}/clientes`, clienteData)
+      const response = await clientesAPI.crear(clienteData)
 
       if (response.data.success) {
         const nuevoCliente = response.data.data
@@ -906,7 +911,7 @@ function PedidosPage() {
         }))
       }
 
-      const response = await axios.post(`${API_URL}/pedidos`, pedidoData)
+      const response = await pedidosAPI.crear(pedidoData)
 
       if (response.data.success) {
         const nuevoPedidoId = response.data.data.id
@@ -915,9 +920,7 @@ function PedidosPage() {
         // Solo guardar insumos sueltos si existen (compatibilidad con flujo antiguo)
         if (insumosModificados.length > 0 && productosDelPedido.length === 0) {
           try {
-            await axios.post(`${API_URL}/pedidos/${nuevoPedidoId}/insumos`, {
-              insumos: insumosModificados
-            })
+            await pedidoInsumosAPI.guardarInsumos(nuevoPedidoId, insumosModificados)
           } catch (insumosErr) {
             console.error('Error al guardar insumos:', insumosErr)
             alert('⚠️ Pedido creado pero error al guardar insumos: ' + (insumosErr.response?.data?.error || insumosErr.message))
@@ -1393,7 +1396,7 @@ function PedidosPage() {
                               return
                             }
                             try {
-                              await axios.delete(`${API_URL}/pedidos/${pedido.id}`)
+                              await pedidosAPI.eliminar(pedido.id)
                               cargarPedidos()
                               alert('✅ Pedido eliminado exitosamente')
                             } catch (error) {

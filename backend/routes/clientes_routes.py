@@ -7,6 +7,7 @@ from extensions import db
 from models.cliente import Cliente
 from utils.telefono_helpers import normalizar_telefono
 from utils.auditoria_helper import registrar_accion
+from routes.auth_routes import require_auth
 from datetime import datetime
 from sqlalchemy import or_
 import unicodedata
@@ -123,6 +124,7 @@ def obtener_cliente(cliente_id):
 
 
 @bp.route('/', methods=['POST'])
+@require_auth
 def crear_cliente():
     """Crear un nuevo cliente"""
     try:
@@ -185,6 +187,7 @@ def crear_cliente():
 
 
 @bp.route('/<cliente_id>', methods=['PUT'])
+@require_auth
 def actualizar_cliente(cliente_id):
     """Actualizar información de un cliente"""
     try:
@@ -235,6 +238,7 @@ def actualizar_cliente(cliente_id):
 
 
 @bp.route('/<cliente_id>', methods=['DELETE'])
+@require_auth
 def eliminar_cliente(cliente_id):
     """Eliminar un cliente (soft delete - solo si no tiene pedidos)"""
     try:
