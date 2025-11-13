@@ -1111,7 +1111,7 @@ function PedidosPage() {
       </div>
       
       {/* Controles de Paginación */}
-      <div className="mb-6 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-xl border border-gray-200">
+      <div className="mb-6 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-2 rounded-xl border border-gray-200">
         <div className="text-sm text-gray-700 font-medium">
           Mostrando <span className="text-pink-600 font-bold">{((paginaActual - 1) * limitePorPagina) + 1}</span> a{' '}
           <span className="text-pink-600 font-bold">{Math.min(paginaActual * limitePorPagina, totalPedidos)}</span> de{' '}
@@ -1158,51 +1158,51 @@ function PedidosPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Foto
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight w-12">
+
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
                   ID / Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Arreglo / Para
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+                  Arreglo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Comuna / Dirección
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+                  Dirección
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Precio Ramo / Envío
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+                  Precio
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  💰 Cobranza
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+                  Pago
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
                   Motivo
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mensaje
+                <th className="px-2 py-1.5 text-center text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
+                  Msj
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 py-1.5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-tight">
                   Entrega
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
+                <th className="px-2 py-1.5 text-center text-[10px] font-semibold text-gray-500 uppercase tracking-tight w-16">
+
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="11" className="px-6 py-8 text-center text-sm text-gray-500">
+                  <td colSpan="11" className="px-3 py-4 text-center text-sm text-gray-500">
                     Cargando pedidos...
                   </td>
                 </tr>
               ) : pedidosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="px-6 py-8 text-center">
+                  <td colSpan="11" className="px-3 py-4 text-center">
                     {busqueda ? (
                       <>
                         <p className="text-gray-500 mb-2">🔍 No se encontraron pedidos</p>
@@ -1228,104 +1228,104 @@ function PedidosPage() {
                     className="hover:bg-primary-50 cursor-pointer transition-colors border-b border-gray-200"
                   >
                     {/* Foto en miniatura */}
-                    <td className="px-3 py-4">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
+                    <td className="px-2 py-1.5">
+                      <div className="w-10 h-10 rounded overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
                         {pedido.foto_enviado_url || pedido.producto_imagen ? (
-                          <img 
-                            src={pedido.foto_enviado_url || pedido.producto_imagen} 
+                          <img
+                            src={pedido.foto_enviado_url || pedido.producto_imagen}
                             alt={pedido.arreglo_pedido || 'Producto'}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-xl">🌸</span>
+                          <span className="text-lg">🌸</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{pedido.id}</div>
-                      <div className="text-sm text-gray-500">{pedido.cliente_nombre}</div>
-                      <div className="text-xs text-gray-400">{pedido.cliente_telefono}</div>
+                    <td className="px-2 py-1.5">
+                      <div className="text-xs font-medium text-gray-900">#{pedido.id}</div>
+                      <div className="text-xs text-gray-500 truncate max-w-[120px]">{pedido.cliente_nombre}</div>
+                      <div className="text-[10px] text-gray-400">{pedido.cliente_telefono}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{pedido.arreglo_pedido || 'Sin especificar'}</div>
+                    <td className="px-2 py-1.5">
+                      <div className="text-xs text-gray-900 truncate max-w-[150px]">{pedido.arreglo_pedido || 'Sin especificar'}</div>
                       {pedido.destinatario && (
-                        <div className="text-xs text-gray-500">Para: {pedido.destinatario}</div>
+                        <div className="text-[10px] text-gray-500 truncate max-w-[150px]">Para: {pedido.destinatario}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{pedido.comuna || 'Sin comuna'}</div>
-                      <div className="text-xs text-gray-500 max-w-xs truncate" title={pedido.direccion_entrega}>
+                    <td className="px-2 py-1.5">
+                      <div className="text-xs font-medium text-gray-900">{pedido.comuna || '-'}</div>
+                      <div className="text-[10px] text-gray-500 max-w-[150px] truncate" title={pedido.direccion_entrega}>
                         {pedido.direccion_entrega}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900">
+                    <td className="px-2 py-1.5">
+                      <div className="text-xs font-semibold text-gray-900">
                         ${pedido.precio_ramo?.toLocaleString('es-CL') || '0'}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        + ${pedido.precio_envio?.toLocaleString('es-CL') || '0'} envío
+                      <div className="text-[10px] text-gray-500">
+                        +${pedido.precio_envio?.toLocaleString('es-CL') || '0'}
                       </div>
-                      <div className="text-xs font-medium text-primary-600">
-                        Total: ${pedido.precio_total?.toLocaleString('es-CL') || '0'}
+                      <div className="text-[10px] font-medium text-primary-600">
+                        ${ pedido.precio_total?.toLocaleString('es-CL') || '0'}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-2 py-1.5">
                       {/* Estado de Pago */}
-                      <div className="flex items-center gap-1 mb-1">
+                      <div className="mb-0.5">
                         {pedido.estado_pago === 'Pagado' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                            ✅ Pagado
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                            ✅
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                            ❌ No Pagado
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800">
+                            ❌
                           </span>
                         )}
                       </div>
                       {/* Método de Pago */}
                       {pedido.metodo_pago && (
-                        <div className="text-xs text-gray-600">
-                          💳 {pedido.metodo_pago}
+                        <div className="text-[10px] text-gray-600 truncate max-w-[80px]">
+                          {pedido.metodo_pago}
                         </div>
                       )}
                       {/* Documento */}
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-[10px] text-gray-500 truncate max-w-[80px]">
                         {pedido.documento_tributario === 'Boleta emitida' && pedido.numero_documento ? (
-                          <span>🧾 Bol. N° {pedido.numero_documento}</span>
+                          <span>Bol. {pedido.numero_documento}</span>
                         ) : pedido.documento_tributario === 'Factura emitida' && pedido.numero_documento ? (
-                          <span>🧾 Fact. N° {pedido.numero_documento}</span>
+                          <span>Fact. {pedido.numero_documento}</span>
                         ) : (
-                          <span>🧾 {pedido.documento_tributario}</span>
+                          <span>{pedido.documento_tributario}</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-700">{pedido.motivo || '-'}</div>
+                    <td className="px-2 py-1.5">
+                      <div className="text-xs text-gray-700 truncate max-w-[100px]">{pedido.motivo || '-'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-2 py-1.5 whitespace-nowrap text-center">
                       {pedido.mensaje || pedido.destinatario || pedido.firma ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          💌 Sí
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">
+                          💌
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                          ✗ No
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600">
+                          ✗
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoColor[pedido.estado]}`}>
+                    <td className="px-2 py-1.5 whitespace-nowrap">
+                      <span className={`px-1.5 py-0.5 inline-flex text-[10px] leading-4 font-semibold rounded-full ${estadoColor[pedido.estado]}`}>
                         {pedido.estado}
                       </span>
                       {pedido.canal && (
-                        <div className="text-xs text-gray-500 mt-1">{pedido.canal}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5">{pedido.canal}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-500">
                       {pedido.fecha_entrega ? formatFecha(pedido.fecha_entrega) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-2 py-1.5 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -1334,7 +1334,7 @@ function PedidosPage() {
                           className="text-blue-600 hover:text-blue-900"
                           title="Editar pedido"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit2 className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={async (e) => {
@@ -1351,10 +1351,10 @@ function PedidosPage() {
                               alert('❌ Error al eliminar el pedido')
                             }
                           }}
-                          className="p-1 rounded-lg transition-all duration-200 hover:bg-red-50 text-red-600 hover:text-red-700"
+                          className="p-0.5 rounded transition-all duration-200 hover:bg-red-50 text-red-600 hover:text-red-700"
                           title="Eliminar pedido"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -2344,7 +2344,7 @@ function PedidosPage() {
             )}
             
             {/* Footer del Modal */}
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-between items-center rounded-b-2xl border-t border-gray-200">
+            <div className="sticky bottom-0 bg-gray-50 px-3 py-2 flex justify-between items-center rounded-b-2xl border-t border-gray-200">
               <div className="flex gap-3">
                 <button
                   onClick={handleCerrarModal}
@@ -2418,7 +2418,7 @@ function PedidosPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header - Fijo */}
-            <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+            <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between rounded-t-lg">
               <h2 className="text-2xl font-bold text-gray-900">Nuevo Pedido</h2>
               <button 
                 onClick={handleCerrarFormulario}
@@ -2535,7 +2535,7 @@ function PedidosPage() {
                                   e.stopPropagation()
                                   return false
                                 }}
-                                className="w-full text-left px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                className="w-full text-left px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
@@ -2560,7 +2560,7 @@ function PedidosPage() {
                               </div>
                             ))
                           ) : (
-                            <div className="px-4 py-3">
+                            <div className="px-3 py-2">
                               <p className="text-sm text-gray-600 mb-3">
                                 No se encontró ningún cliente con ese nombre
                               </p>
@@ -3503,7 +3503,7 @@ function PedidosPage() {
             </form>
             
             {/* Botones - Fijos en la parte inferior */}
-            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-3 py-2 flex justify-end gap-3 rounded-b-lg">
               <button
                 type="button"
                 onClick={() => setMostrarFormulario(false)}

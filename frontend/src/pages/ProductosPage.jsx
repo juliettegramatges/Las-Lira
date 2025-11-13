@@ -2123,7 +2123,7 @@ function ProductosPage() {
             <div className="flex gap-2 mb-6 border-b border-gray-200">
               <button
                 onClick={() => setTipoInsumoNuevo('Flor')}
-                className={`px-6 py-3 font-medium transition-colors relative ${
+                className={`px-3 py-2 font-medium transition-colors relative ${
                   tipoInsumoNuevo === 'Flor'
                     ? 'text-pink-600 border-b-2 border-pink-600'
                     : 'text-gray-500 hover:text-gray-700'
@@ -2136,7 +2136,7 @@ function ProductosPage() {
               </button>
               <button
                 onClick={() => setTipoInsumoNuevo('Contenedor')}
-                className={`px-6 py-3 font-medium transition-colors relative ${
+                className={`px-3 py-2 font-medium transition-colors relative ${
                   tipoInsumoNuevo === 'Contenedor'
                     ? 'text-blue-600 border-b-2 border-blue-600'
                     : 'text-gray-500 hover:text-gray-700'

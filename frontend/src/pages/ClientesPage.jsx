@@ -615,25 +615,25 @@ function ClientesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contacto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Etiquetas
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estadísticas
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Notas
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -645,7 +645,7 @@ function ClientesPage() {
                     onClick={() => handleAbrirDetalles(cliente)}
                     className="hover:bg-primary-50 cursor-pointer transition-colors"
                   >
-                    <td className="px-6 py-3 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-blue-600 font-semibold text-sm">
@@ -658,7 +658,7 @@ function ClientesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 py-2">
                       <div className="text-sm text-gray-900 flex items-center gap-1">
                         <Phone className="h-3.5 w-3.5 text-gray-400" />
                         {cliente.telefono}
@@ -670,12 +670,12 @@ function ClientesPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getTipoColor(cliente.tipo_cliente)}`}>
                         {cliente.tipo_cliente}
                       </span>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-1 max-w-xs">
                         {cliente.etiquetas && cliente.etiquetas.length > 0 ? (
                           cliente.etiquetas.slice(0, 2).map((etiqueta) => (
@@ -691,7 +691,7 @@ function ClientesPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 py-2">
                       <div className="text-sm text-gray-900 flex items-center gap-1">
                         <ShoppingBag className="h-3.5 w-3.5 text-gray-400" />
                         {cliente.total_pedidos} pedidos
@@ -701,12 +701,12 @@ function ClientesPage() {
                         ${cliente.total_gastado?.toLocaleString('es-CL') || 0}
                       </div>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-3 py-2">
                       <div className="text-xs text-gray-500 max-w-xs truncate">
                         {cliente.notas || '-'}
                       </div>
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -908,12 +908,12 @@ function ClientesPage() {
       
       {/* Modal de Detalles del Cliente */}
       {mostrarDetalles && clienteDetalle && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
           onClick={() => setMostrarDetalles(false)}
         >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto relative z-[10000]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -991,12 +991,76 @@ function ClientesPage() {
                   </div>
                   
                   {/* Etiquetas del Cliente */}
-                  {clienteDetalle.etiquetas && clienteDetalle.etiquetas.length > 0 && (
-                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase flex items-center">
                         <Tag className="h-5 w-5 mr-2 text-indigo-500" />
                         Etiquetas
                       </h3>
+                      <button
+                        onClick={() => setCategoriaEtiquetaVisible('agregar')}
+                        className="px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-xs font-medium hover:bg-indigo-600 transition-colors flex items-center gap-1"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Agregar
+                      </button>
+                    </div>
+
+                    {/* Selector de Etiquetas */}
+                    {categoriaEtiquetaVisible === 'agregar' && (
+                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-semibold text-gray-700">Selecciona una etiqueta:</h4>
+                          <button
+                            onClick={() => setCategoriaEtiquetaVisible(null)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                          {Object.entries(etiquetasDisponibles).map(([categoria, etiquetas]) => (
+                            <div key={categoria}>
+                              <p className="text-xs font-semibold text-gray-600 uppercase mb-2">{categoria}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {etiquetas.map((etiqueta) => {
+                                  const yaLaTiene = clienteDetalle.etiquetas?.some(e => e.id === etiqueta.id)
+                                  return (
+                                    <button
+                                      key={etiqueta.id}
+                                      disabled={yaLaTiene}
+                                      onClick={async () => {
+                                        try {
+                                          await axios.post(`${API_URL}/clientes/${clienteDetalle.id}/etiquetas`, {
+                                            etiqueta_id: etiqueta.id
+                                          })
+                                          alert('✅ Etiqueta agregada')
+                                          setCategoriaEtiquetaVisible(null)
+                                          verDetalles(clienteDetalle.id)
+                                        } catch (error) {
+                                          console.error('Error:', error)
+                                          alert('❌ Error: ' + (error.response?.data?.error || error.message))
+                                        }
+                                      }}
+                                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                        yaLaTiene
+                                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                          : 'bg-white border border-gray-300 text-gray-700 hover:border-indigo-500 hover:bg-indigo-50 cursor-pointer'
+                                      }`}
+                                      title={yaLaTiene ? 'Ya tiene esta etiqueta' : 'Clic para agregar'}
+                                    >
+                                      {etiqueta.nombre} {yaLaTiene && '✓'}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {clienteDetalle.etiquetas && clienteDetalle.etiquetas.length > 0 ? (
                       <div className="space-y-3">
                         {Object.entries(
                           clienteDetalle.etiquetas.reduce((acc, etiqueta) => {
@@ -1013,14 +1077,36 @@ function ClientesPage() {
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {etiquetas.map((etiqueta) => (
-                                <EtiquetaCliente key={etiqueta.id} etiqueta={etiqueta} />
+                                <div key={etiqueta.id} className="group relative">
+                                  <EtiquetaCliente etiqueta={etiqueta} />
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm(`¿Eliminar la etiqueta "${etiqueta.nombre}"?`)) return
+
+                                      try {
+                                        await axios.delete(`${API_URL}/clientes/${clienteDetalle.id}/etiquetas/${etiqueta.id}`)
+                                        alert('✅ Etiqueta eliminada')
+                                        verDetalles(clienteDetalle.id)
+                                      } catch (error) {
+                                        console.error('Error:', error)
+                                        alert('❌ Error: ' + (error.response?.data?.error || error.message))
+                                      }
+                                    }}
+                                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold hover:bg-red-600"
+                                    title="Eliminar etiqueta"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
                               ))}
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No hay etiquetas asignadas</p>
+                    )}
+                  </div>
                   
                   {/* Notas */}
                   {clienteDetalle.notas && (

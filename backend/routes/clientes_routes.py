@@ -296,11 +296,12 @@ def buscar_por_telefono():
 
 @bp.route('/buscar-por-nombre', methods=['GET'])
 def buscar_por_nombre():
-    """Buscar clientes por nombre (búsqueda inteligente)"""
+    """Buscar clientes por nombre (búsqueda inteligente y sensible)"""
     try:
         termino = request.args.get('nombre', '').strip()
 
-        if not termino or len(termino) < 2:
+        # Si no hay término o es muy corto, no buscar
+        if not termino:
             return jsonify({'success': True, 'clientes': []})
 
         def normalizar(texto: str) -> str:
@@ -315,43 +316,48 @@ def buscar_por_nombre():
 
         termino_norm = normalizar(termino)
 
-        # Traer un conjunto razonable y filtrar en Python para soporte sin acentos en SQLite
-        candidatos = Cliente.query.order_by(Cliente.total_pedidos.desc()).limit(1000).all()
+        # Buscar en TODOS los clientes, no solo los primeros 1000
+        # Esto asegura que clientes con pocos pedidos también aparezcan
+        todos_clientes = Cliente.query.all()
 
         resultados = []
-        for c in candidatos:
-            nombre_c = normalizar(c.nombre)
-            email_c = normalizar(getattr(c, 'email', '') or '')
-            tel_c = normalizar(getattr(c, 'telefono', '') or '')
 
-            if (
-                termino_norm in nombre_c or
-                termino_norm in email_c or
-                termino_norm in tel_c
-            ):
+        # Primera pasada: búsqueda flexible por palabras individuales
+        partes = termino_norm.split()
+
+        for c in todos_clientes:
+            # Combinar todos los campos de búsqueda
+            texto_completo = ' '.join([
+                normalizar(c.nombre or ''),
+                normalizar(getattr(c, 'email', '') or ''),
+                normalizar(getattr(c, 'telefono', '') or ''),
+            ])
+
+            # Si todas las palabras del término están presentes (en cualquier orden)
+            if all(parte in texto_completo for parte in partes):
                 resultados.append(c)
 
-        # Si no hay resultados, relajar: buscar por cada palabra
-        if not resultados:
-            partes = termino_norm.split()
-            for c in candidatos:
-                texto = ' '.join([
-                    normalizar(c.nombre),
-                    normalizar(getattr(c, 'email', '') or ''),
-                    normalizar(getattr(c, 'telefono', '') or ''),
-                ])
-                if all(p in texto for p in partes):
-                    resultados.append(c)
+        # Ordenar por relevancia: primero los que coinciden exactamente, luego por total_pedidos
+        def calcular_score(cliente):
+            nombre_norm = normalizar(cliente.nombre or '')
+            # Score más alto si el término completo está al inicio del nombre
+            if nombre_norm.startswith(termino_norm):
+                return (3, getattr(cliente, 'total_pedidos', 0))
+            # Score medio si el término completo está en algún lugar del nombre
+            elif termino_norm in nombre_norm:
+                return (2, getattr(cliente, 'total_pedidos', 0))
+            # Score bajo para el resto
+            else:
+                return (1, getattr(cliente, 'total_pedidos', 0))
 
-        # Limitar y ordenar por total de pedidos desc
-        resultados = sorted(resultados, key=lambda x: getattr(x, 'total_pedidos', 0), reverse=True)[:15]
+        resultados = sorted(resultados, key=calcular_score, reverse=True)[:100]
 
         return jsonify({
             'success': True,
             'clientes': [c.to_dict() for c in resultados],
             'total': len(resultados)
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -444,5 +450,83 @@ def obtener_historial_pedidos(cliente_id):
             }
         })
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:cliente_id>/etiquetas', methods=['POST'])
+def agregar_etiqueta_cliente(cliente_id):
+    """Agregar una etiqueta a un cliente"""
+    try:
+        data = request.get_json()
+        etiqueta_id = data.get('etiqueta_id')
+
+        if not etiqueta_id:
+            return jsonify({'success': False, 'error': 'etiqueta_id requerido'}), 400
+
+        # Verificar que el cliente existe
+        cliente = Cliente.query.get(cliente_id)
+        if not cliente:
+            return jsonify({'success': False, 'error': 'Cliente no encontrado'}), 404
+
+        # Verificar que la etiqueta existe
+        etiqueta_existe = db.session.execute(db.text('''
+            SELECT id FROM etiquetas_cliente WHERE id = :etiqueta_id AND activa = 1
+        '''), {'etiqueta_id': etiqueta_id}).fetchone()
+
+        if not etiqueta_existe:
+            return jsonify({'success': False, 'error': 'Etiqueta no encontrada'}), 404
+
+        # Verificar si ya tiene esta etiqueta
+        ya_tiene = db.session.execute(db.text('''
+            SELECT COUNT(*) FROM cliente_etiquetas
+            WHERE cliente_id = :cliente_id AND etiqueta_id = :etiqueta_id
+        '''), {'cliente_id': cliente_id, 'etiqueta_id': etiqueta_id}).scalar()
+
+        if ya_tiene > 0:
+            return jsonify({'success': False, 'error': 'El cliente ya tiene esta etiqueta'}), 400
+
+        # Agregar la etiqueta
+        db.session.execute(db.text('''
+            INSERT INTO cliente_etiquetas (cliente_id, etiqueta_id, fecha_asignacion)
+            VALUES (:cliente_id, :etiqueta_id, datetime('now'))
+        '''), {'cliente_id': cliente_id, 'etiqueta_id': etiqueta_id})
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Etiqueta agregada exitosamente'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/<int:cliente_id>/etiquetas/<int:etiqueta_id>', methods=['DELETE'])
+def eliminar_etiqueta_cliente(cliente_id, etiqueta_id):
+    """Eliminar una etiqueta de un cliente"""
+    try:
+        # Verificar que el cliente existe
+        cliente = Cliente.query.get(cliente_id)
+        if not cliente:
+            return jsonify({'success': False, 'error': 'Cliente no encontrado'}), 404
+
+        # Eliminar la relación
+        result = db.session.execute(db.text('''
+            DELETE FROM cliente_etiquetas
+            WHERE cliente_id = :cliente_id AND etiqueta_id = :etiqueta_id
+        '''), {'cliente_id': cliente_id, 'etiqueta_id': etiqueta_id})
+
+        db.session.commit()
+
+        if result.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Etiqueta no encontrada en este cliente'}), 404
+
+        return jsonify({
+            'success': True,
+            'message': 'Etiqueta eliminada exitosamente'
+        })
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 

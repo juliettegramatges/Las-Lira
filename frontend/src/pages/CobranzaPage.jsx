@@ -237,7 +237,7 @@ const CobranzaPage = () => {
         
         {/* BLOQUE 1: Pagos Pendientes */}
         <div className="bg-white rounded-lg shadow-md">
-          <div className="px-4 py-3 border-b border-gray-200 bg-red-50">
+          <div className="px-3 py-2 border-b border-gray-200 bg-red-50">
             <h2 className="text-lg font-bold text-red-700">🚨 Pagos Pendientes</h2>
             <p className="text-xs text-red-600">Mostrando {pedidosPagosActuales.length} de {pedidosSinPagar.length}</p>
           </div>
@@ -315,7 +315,7 @@ const CobranzaPage = () => {
           
           {/* Paginación Pagos */}
           {totalPaginasPagos > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-3 py-2 border-t border-gray-200 flex items-center justify-between">
               <button
                 onClick={() => setPaginaPagos(p => Math.max(1, p - 1))}
                 disabled={paginaPagos === 1}
@@ -339,7 +339,7 @@ const CobranzaPage = () => {
 
         {/* BLOQUE 2: Documentos Pendientes */}
         <div className="bg-white rounded-lg shadow-md">
-          <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50">
+          <div className="px-3 py-2 border-b border-gray-200 bg-yellow-50">
             <h2 className="text-lg font-bold text-yellow-700">📋 Documentos Pendientes</h2>
             <p className="text-xs text-yellow-600">Mostrando {pedidosDocumentosActuales.length} de {pedidosSinDocumentar.length}</p>
           </div>
@@ -407,7 +407,7 @@ const CobranzaPage = () => {
           
           {/* Paginación Documentos */}
           {totalPaginasDocumentos > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-3 py-2 border-t border-gray-200 flex items-center justify-between">
               <button
                 onClick={() => setPaginaDocumentos(p => Math.max(1, p - 1))}
                 disabled={paginaDocumentos === 1}
@@ -432,7 +432,7 @@ const CobranzaPage = () => {
 
       {/* PAGADOS (lista inferior con búsqueda) */}
       <div className="mt-8 bg-white rounded-lg shadow-md">
-        <div className="px-4 py-3 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="px-3 py-2 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-green-700">✅ Pagados</h2>
             <p className="text-xs text-gray-600">Máximo {limitePagados} por página</p>
@@ -493,7 +493,7 @@ const CobranzaPage = () => {
           )}
         </div>
         {totalPaginasPagados > 1 && (
-          <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+          <div className="px-3 py-2 border-t border-gray-200 flex items-center justify-between">
             <button
               onClick={() => setPaginaPagados(p => Math.max(1, p - 1))}
               disabled={paginaPagados === 1}

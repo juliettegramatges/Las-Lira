@@ -250,7 +250,7 @@ function SimuladorCostosPage() {
         <select
           value={productoSeleccionado?.id || ''}
           onChange={(e) => handleProductoChange(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-lg"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-lg"
         >
           <option value="">-- Selecciona un producto --</option>
           {productos.map(prod => (
@@ -393,7 +393,7 @@ function SimuladorCostosPage() {
                 <select
                   value={simulacion.contenedor?.contenedorId || ''}
                   onChange={(e) => handleContenedorChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Sin contenedor</option>
                   {contenedores

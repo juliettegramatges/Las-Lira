@@ -834,7 +834,7 @@ function EventosPage() {
         
         <button
           onClick={() => setMostrarFormulario(true)}
-          className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+          className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
         >
           <Plus className="h-5 w-5" />
           Nueva Cotización
@@ -904,7 +904,7 @@ function EventosPage() {
           <p className="text-gray-600 mb-6">Crea tu primera cotización para comenzar</p>
           <button
             onClick={() => setMostrarFormulario(true)}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2"
+            className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg font-semibold inline-flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             Nueva Cotización
@@ -915,22 +915,22 @@ function EventosPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Evento
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Fecha
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Precio
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -1100,7 +1100,7 @@ function EventosPage() {
                                 e.preventDefault()
                                 seleccionarCliente(cliente)
                               }}
-                              className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
                               <div className="font-medium text-gray-900">{cliente.nombre}</div>
                               <div className="text-sm text-gray-500">
@@ -1112,7 +1112,7 @@ function EventosPage() {
                             </div>
                           ))
                         ) : (
-                          <div className="px-4 py-3">
+                          <div className="px-3 py-2">
                             <p className="text-sm text-gray-600 mb-3">
                               No se encontró ningún cliente con ese nombre
                             </p>
@@ -1517,13 +1517,13 @@ function EventosPage() {
                 <button
                   type="button"
                   onClick={() => setMostrarFormulario(false)}
-                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+                  className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
                 >
                   Crear Cotización
                 </button>
@@ -1635,11 +1635,11 @@ function EventosPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Unit.</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -1666,29 +1666,29 @@ function EventosPage() {
                           
                           return (
                             <tr key={insumo.id || index} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2 whitespace-nowrap">
                                 <span className="text-sm text-gray-900 capitalize">{tipo.replace('_', ' ')}</span>
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <span className="text-sm text-gray-900">{descripcion || '-'}</span>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <td className="px-3 py-2 whitespace-nowrap text-right">
                                 <span className="text-sm text-gray-900">{insumo.cantidad || 0}</span>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <td className="px-3 py-2 whitespace-nowrap text-right">
                                 <span className="text-sm text-gray-900">${(insumo.costo_unitario || 0).toLocaleString('es-CL')}</span>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <td className="px-3 py-2 whitespace-nowrap text-right">
                                 <span className="text-sm font-semibold text-gray-900">${total.toLocaleString('es-CL')}</span>
                               </td>
                             </tr>
                           )
                         })}
                         <tr className="bg-gray-50 font-semibold">
-                          <td colSpan="4" className="px-4 py-3 text-right text-sm text-gray-700">
+                          <td colSpan="4" className="px-3 py-2 text-right text-sm text-gray-700">
                             TOTAL COSTO INSUMOS:
                           </td>
-                          <td className="px-4 py-3 text-right text-lg font-bold text-gray-900">
+                          <td className="px-3 py-2 text-right text-lg font-bold text-gray-900">
                             ${(eventoSeleccionado.costo_total || 0).toLocaleString('es-CL')}
                           </td>
                         </tr>

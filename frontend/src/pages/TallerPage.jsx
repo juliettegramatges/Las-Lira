@@ -438,25 +438,25 @@ function TallerPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Insumo
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Tipo
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                             Cantidad
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                             Stock Disp.
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                             Costo Unit.
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                             Total
                           </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                             Acciones
                           </th>
                         </tr>
@@ -483,7 +483,7 @@ function TallerPage() {
                           
                           return (
                             <tr key={insumo.id} className={!stockSuficiente ? 'bg-red-50' : ''}>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
                                   {insumo.insumo_foto ? (
                                     <img
@@ -509,7 +509,7 @@ function TallerPage() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <span className={`px-2 py-1 rounded text-xs font-medium ${
                                   insumo.insumo_tipo === 'Flor' 
                                     ? 'bg-green-100 text-green-700' 
@@ -518,7 +518,7 @@ function TallerPage() {
                                   {insumo.insumo_tipo}
                                 </span>
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <input
                                   type="text"
                                   value={insumo.cantidad}
@@ -526,7 +526,7 @@ function TallerPage() {
                                   className="w-20 px-2 py-1 border border-gray-300 rounded text-right font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                 />
                               </td>
-                              <td className={`px-4 py-3 text-right ${!stockSuficiente ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                              <td className={`px-3 py-2 text-right ${!stockSuficiente ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
                                 {stockDisponibleReal}
                                 {reservadoEnEstePedido > 0 && insumoInventario && (
                                   <span className="text-xs text-blue-600 block">
@@ -535,13 +535,13 @@ function TallerPage() {
                                 )}
                                 {!stockSuficiente && ' ⚠️'}
                               </td>
-                              <td className="px-4 py-3 text-right text-gray-600">
+                              <td className="px-3 py-2 text-right text-gray-600">
                                 ${insumo.costo_unitario.toLocaleString()}
                               </td>
-                              <td className="px-4 py-3 text-right font-medium text-gray-900">
+                              <td className="px-3 py-2 text-right font-medium text-gray-900">
                                 ${insumo.costo_total.toLocaleString()}
                               </td>
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 <button
                                   onClick={() => handleEliminarInsumo(insumo.id)}
                                   className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-all duration-200"
@@ -556,10 +556,10 @@ function TallerPage() {
                       </tbody>
                       <tfoot className="bg-gray-50">
                         <tr>
-                          <td colSpan="5" className="px-4 py-3 text-right font-semibold text-gray-700">
+                          <td colSpan="5" className="px-3 py-2 text-right font-semibold text-gray-700">
                             Total Insumos:
                           </td>
-                          <td className="px-4 py-3 text-right font-bold text-primary-600 text-lg">
+                          <td className="px-3 py-2 text-right font-bold text-primary-600 text-lg">
                             ${insumos.reduce((sum, i) => sum + i.costo_total, 0).toLocaleString()}
                           </td>
                           <td></td>

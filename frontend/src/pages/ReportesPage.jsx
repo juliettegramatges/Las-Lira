@@ -527,24 +527,24 @@ function ReportesPage() {
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Ranking</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Cliente</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Pedidos</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total Gastado</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Ranking</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Cliente</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Tipo</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Pedidos</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase">Total Gastado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {topClientes.map((cliente, index) => (
                 <tr key={cliente.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
                       index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-600' : 'bg-gray-300'
                     }`}>
                       {index + 1}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-semibold mr-3">
                         {cliente.nombre.charAt(0)}
@@ -555,7 +555,7 @@ function ReportesPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2">
                     <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
                       cliente.tipo_cliente === 'VIP' ? 'bg-purple-100 text-purple-700' :
                       cliente.tipo_cliente === 'Fiel' ? 'bg-blue-100 text-blue-700' :
@@ -564,8 +564,8 @@ function ReportesPage() {
                       {cliente.tipo_cliente}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-medium">{cliente.total_pedidos}</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-600">
+                  <td className="px-3 py-2 text-right font-medium">{cliente.total_pedidos}</td>
+                  <td className="px-3 py-2 text-right font-bold text-green-600">
                     {formatCurrency(cliente.total_gastado)}
                   </td>
                 </tr>
