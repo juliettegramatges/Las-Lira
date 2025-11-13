@@ -944,15 +944,26 @@ class PedidosService:
                     }
 
                 # Calcular hora de llegada
-                hora_llegada = pedido.fecha_entrega.strftime('%H:%M') if pedido.fecha_entrega.hour != 0 else 'Sin hora'
+                hora_llegada = pedido.fecha_entrega.strftime('%H:%M') if pedido.fecha_entrega and pedido.fecha_entrega.hour != 0 else 'Sin hora'
 
-                # Obtener foto de respaldo del primer producto (si existe)
+                # Obtener foto de respaldo del pedido
                 foto_respaldo = None
-                if pedido.productos:
-                    for producto in pedido.productos:
-                        if producto.foto_respaldo:
-                            foto_respaldo = producto.foto_respaldo
-                            break
+                # Primero intentar desde el pedido directamente
+                if hasattr(pedido, 'foto_enviado_url') and pedido.foto_enviado_url:
+                    foto_respaldo = pedido.foto_enviado_url
+                # Si no, buscar en los productos asociados usando query directa para evitar problemas de lazy loading
+                else:
+                    try:
+                        from models.pedido import PedidoProducto
+                        # Buscar productos del pedido usando query directa
+                        pedido_productos = PedidoProducto.query.filter_by(pedido_id=pedido.id).all()
+                        for pp in pedido_productos:
+                            if pp.foto_respaldo:
+                                foto_respaldo = pp.foto_respaldo
+                                break
+                    except Exception:
+                        # Si hay algún error, simplemente continuar sin foto
+                        pass
 
                 pedido_data = {
                     'id': pedido.id,
@@ -966,6 +977,7 @@ class PedidosService:
                     'estado': pedido.estado,
                     'destinatario': pedido.destinatario,
                     'mensaje': pedido.mensaje,
+                    'detalles_adicionales': pedido.detalles_adicionales,
                     'foto_respaldo': foto_respaldo
                 }
 
@@ -981,6 +993,11 @@ class PedidosService:
             return True, rutas_lista, f'{len(pedidos)} pedidos encontrados'
 
         except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            # Log el error completo para debugging
+            print(f"ERROR en obtener_rutas_por_comuna: {str(e)}")
+            print(f"Traceback completo:\n{error_trace}")
             return False, [], str(e)
 
     @staticmethod
@@ -1262,11 +1279,19 @@ class PedidosService:
                 <p>📍 {direccion}</p>
                 <p>📞 {telefono}</p>"""
 
-                if pedido['destinatario']:
-                    destinatario = pedido['destinatario']
-                    html += f"<p>👤 Para: {destinatario}</p>"
+                # Línea con destinatario, mensaje y detalles (si existen)
+                info_linea = []
+                if pedido.get('destinatario'):
+                    info_linea.append(f"👤 Para: {pedido['destinatario']}")
+                if pedido.get('mensaje'):
+                    info_linea.append(f"💬 {pedido['mensaje']}")
+                if pedido.get('detalles_adicionales'):
+                    info_linea.append(f"📝 {pedido['detalles_adicionales']}")
+                
+                if info_linea:
+                    html += f"<p>{' | '.join(info_linea)}</p>"
 
-                if pedido['arreglo']:
+                if pedido.get('arreglo'):
                     arreglo = pedido['arreglo']
                     html += f"<p>🌸 {arreglo}</p>"
 
