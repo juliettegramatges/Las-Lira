@@ -546,6 +546,8 @@ class ReportesService:
             Pedido.canal,
             func.count(Pedido.id).label('cantidad'),
             func.sum(Pedido.precio_ramo + Pedido.precio_envio).label('total')
+        ).filter(
+            Pedido.estado != 'Cancelado'
         ).group_by(Pedido.canal).all()
 
         return [
