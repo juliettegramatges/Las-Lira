@@ -492,14 +492,16 @@ class PedidosService:
 
             estado_anterior = pedido.estado
             pedido.estado = nuevo_estado
+            pedido.fecha_actualizacion = datetime.now()  # Actualizar timestamp
 
-            # Registrar en historial
+            # Registrar en historial (marcar como cambio manual)
             from models.pedido import HistorialEstado
             historial = HistorialEstado(
                 pedido_id=pedido_id,
                 estado_anterior=estado_anterior,
                 estado_nuevo=nuevo_estado,
-                fecha_cambio=datetime.now()
+                fecha_cambio=datetime.now(),
+                notas='Cambio manual desde tablero'
             )
             db.session.add(historial)
 
@@ -558,6 +560,11 @@ class PedidosService:
             if motivo_cancelacion:
                 pedido.detalles_adicionales = f"{pedido.detalles_adicionales or ''}\n[CANCELADO: {motivo_cancelacion}]"
 
+            # Actualizar estadísticas del cliente (recalcular desde pedidos activos)
+            if pedido.cliente_id:
+                from services.clientes_service import ClientesService
+                ClientesService.actualizar_estadisticas_cliente(pedido.cliente_id)
+            
             db.session.commit()
 
             mensajes = []
@@ -599,6 +606,10 @@ class PedidosService:
             # Liberar insumos reservados (insumos que no fueron descontados aún)
             PedidosService._liberar_insumos_pedido(pedido_id)
 
+            # Guardar información del cliente antes de eliminar
+            cliente_id = pedido.cliente_id
+            precio_total_pedido = (pedido.precio_ramo or 0) + (pedido.precio_envio or 0)
+
             # Eliminar historial de estados (debe hacerse antes de eliminar el pedido)
             from models.pedido import HistorialEstado
             HistorialEstado.query.filter_by(pedido_id=pedido_id).delete()
@@ -612,6 +623,12 @@ class PedidosService:
 
             # Eliminar pedido
             db.session.delete(pedido)
+            
+            # Actualizar estadísticas del cliente (recalcular desde pedidos activos)
+            if cliente_id:
+                from services.clientes_service import ClientesService
+                ClientesService.actualizar_estadisticas_cliente(cliente_id)
+            
             db.session.commit()
 
             return True, f'Pedido #{pedido_id} eliminado correctamente'
@@ -974,40 +991,61 @@ class PedidosService:
             # Excluir pedidos muy pasados (más de 30 días) para no clasificar pedidos antiguos
             # IMPORTANTE: Excluir estados de trabajo completado para que nunca se reclasifiquen automáticamente
             fecha_limite_pasada = datetime.now() - timedelta(days=30)
-            pedidos = Pedido.query.filter(
+            from sqlalchemy.orm import joinedload
+            pedidos = Pedido.query.options(
+                joinedload(Pedido.historial_estados)
+            ).filter(
                 Pedido.estado != 'Cancelado',
                 Pedido.estado != 'Entregado',
                 Pedido.estado != 'Despachados',  # NUNCA reclasificar despachados
-                Pedido.estado != 'Listo para Despacho',  # NUNCA reclasificar listos para despacho
                 Pedido.fecha_entrega.isnot(None),
                 Pedido.fecha_entrega >= fecha_limite_pasada
             ).all()
 
             actualizados = 0
 
+            # Estados de trabajo activo que NO deben ser sobrescritos automáticamente
+            # Estos estados representan trabajo en progreso y deben respetarse si fueron cambiados manualmente
+            estados_trabajo_activo = ['En Proceso', 'Listo para Despacho']
+            
             for pedido in pedidos:
                 if pedido.fecha_entrega:
                     clasificacion = clasificar_pedido(pedido.fecha_entrega)
                     nuevo_estado = clasificacion['estado']
                     estado_actual = pedido.estado
                     
+                    # Verificar si el cambio fue manual reciente (últimas 24 horas)
+                    cambio_manual_reciente = False
+                    if pedido.historial_estados:
+                        ultimo_cambio = max(pedido.historial_estados, key=lambda h: h.fecha_cambio)
+                        horas_desde_cambio = (datetime.now() - ultimo_cambio.fecha_cambio).total_seconds() / 3600
+                        # Si el cambio fue hace menos de 24 horas, considerarlo manual
+                        if horas_desde_cambio < 24:
+                            cambio_manual_reciente = True
+                    
                     # Lógica de actualización:
-                    # 1. Si el estado actual es reclasificable (Pedidos Semana, Entregas de Hoy, Entregas para Mañana), actualizar siempre
-                    # 2. Si el nuevo estado es urgente (Entregas de Hoy o Entregas para Mañana), actualizar siempre
-                    #    (esto mueve pedidos de "En Proceso" o "Listo para Despacho" a estados urgentes si corresponde)
-                    # 3. Si el estado actual es "En Proceso" o "Listo para Despacho" y el nuevo estado es "Pedidos Semana",
-                    #    NO actualizar (no retroceder el flujo de trabajo)
+                    # 1. Si el estado actual es reclasificable (Pedidos Semana, Entregas de Hoy, etc.), actualizar siempre
+                    # 2. Si el estado actual es de trabajo activo ("En Proceso", "Listo para Despacho", "Taller"):
+                    #    - NO actualizar si el cambio fue manual reciente (últimas 24 horas)
+                    #    - Solo actualizar si la fecha es HOY o MAÑANA (urgencia crítica)
+                    # 3. Nunca retroceder de estados de trabajo a estados planificables
                     debe_actualizar = False
                     
                     if estado_actual in estados_reclasificables:
                         # Siempre actualizar estados reclasificables
                         debe_actualizar = True
+                    elif estado_actual in estados_trabajo_activo:
+                        # Estados de trabajo activo: solo actualizar si:
+                        # - NO fue un cambio manual reciente (últimas 24h)
+                        # - Y la fecha es HOY o MAÑANA (urgencia crítica)
+                        if not cambio_manual_reciente and nuevo_estado in ['Entregas de Hoy', 'Entregas para Mañana']:
+                            debe_actualizar = True
+                        else:
+                            # No actualizar: respetar el estado de trabajo manual
+                            debe_actualizar = False
                     elif nuevo_estado in ['Entregas de Hoy', 'Entregas para Mañana']:
-                        # Si la fecha requiere urgencia, actualizar (incluso si está en "En Proceso" o "Listo para Despacho")
+                        # Si la fecha requiere urgencia y NO es un estado de trabajo, actualizar
                         debe_actualizar = True
-                    elif estado_actual in ['En Proceso', 'Listo para Despacho'] and nuevo_estado == 'Pedidos Semana':
-                        # No retroceder: si está en proceso y la fecha es futura, mantener el estado de trabajo
-                        debe_actualizar = False
                     
                     if debe_actualizar and (estado_actual != nuevo_estado or pedido.dia_entrega != clasificacion['dia_entrega']):
                         pedido.estado = nuevo_estado

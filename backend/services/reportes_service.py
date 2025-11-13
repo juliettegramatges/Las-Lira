@@ -280,6 +280,7 @@ class ReportesService:
     def obtener_top_clientes(limite=10):
         """
         Obtiene los mejores clientes por gasto total
+        Calcula el total basándose en pedidos activos (no cancelados ni eliminados)
 
         Args:
             limite: cantidad de clientes a retornar
@@ -287,21 +288,39 @@ class ReportesService:
         Returns:
             list: clientes ordenados por gasto total
         """
-        clientes = Cliente.query.filter(
-            Cliente.total_gastado > 0
+        # Calcular total_gastado real desde pedidos activos para cada cliente
+        from sqlalchemy import func
+        
+        # Obtener total gastado por cliente desde pedidos activos
+        gastos_reales = db.session.query(
+            Pedido.cliente_id,
+            func.sum(Pedido.precio_ramo + Pedido.precio_envio).label('total_real'),
+            func.count(Pedido.id).label('pedidos_real')
+        ).filter(
+            Pedido.cliente_id.isnot(None),
+            Pedido.estado != 'Cancelado'
+        ).group_by(Pedido.cliente_id).subquery()
+        
+        # Unir con clientes y ordenar por total real
+        clientes_con_gasto = db.session.query(
+            Cliente,
+            gastos_reales.c.total_real,
+            gastos_reales.c.pedidos_real
+        ).join(
+            gastos_reales, Cliente.id == gastos_reales.c.cliente_id
         ).order_by(
-            Cliente.total_gastado.desc()
+            gastos_reales.c.total_real.desc()
         ).limit(limite).all()
 
         return [
             {
                 'id': c.id,
                 'nombre': c.nombre,
-                'total_gastado': float(c.total_gastado or 0),
-                'total_pedidos': c.total_pedidos,
+                'total_gastado': float(total_real or 0),
+                'total_pedidos': int(pedidos_real or 0),
                 'tipo_cliente': c.tipo_cliente
             }
-            for c in clientes
+            for c, total_real, pedidos_real in clientes_con_gasto
         ]
 
     @staticmethod

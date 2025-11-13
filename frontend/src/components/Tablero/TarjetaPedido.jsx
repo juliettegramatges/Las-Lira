@@ -3,6 +3,7 @@ import { Calendar, MapPin, Phone, ShoppingBag, MessageSquare, Image as ImageIcon
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import axios from 'axios'
+import { useAuth } from '../../contexts/AuthContext'
 
 const API_URL = 'http://localhost:5001/api'
 
@@ -28,6 +29,7 @@ const pagoColor = {
 }
 
 function TarjetaPedido({ pedido, onRecargar, onAbrirPedido }) {
+  const { canSeePrices } = useAuth()
   const [mostrarModalFoto, setMostrarModalFoto] = useState(false)
   const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null)
@@ -294,11 +296,13 @@ function TarjetaPedido({ pedido, onRecargar, onAbrirPedido }) {
       )}
       
       {/* Precio */}
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <span className="text-sm font-semibold text-gray-900">
-          ${pedido.precio_total?.toLocaleString('es-CL')}
-        </span>
-      </div>
+      {canSeePrices() && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <span className="text-sm font-semibold text-gray-900">
+            ${pedido.precio_total?.toLocaleString('es-CL')}
+          </span>
+        </div>
+      )}
       
       {/* Notas (si existen) */}
       {pedido.notas && (

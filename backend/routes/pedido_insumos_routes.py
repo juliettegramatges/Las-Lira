@@ -109,6 +109,19 @@ def guardar_insumos_pedido(pedido_id):
         
         db.session.commit()
         
+        # Registrar en auditoría
+        try:
+            from utils.auditoria_helper import registrar_accion
+            from models.pedido import Pedido
+            pedido = Pedido.query.get(pedido_id)
+            if pedido:
+                registrar_accion('agregar_insumos', 'pedido', pedido_id, {
+                    'cantidad_insumos': len(insumos_data),
+                    'cliente': pedido.cliente_nombre
+                })
+        except Exception as e:
+            print(f'Error al registrar acción de auditoría: {e}')
+        
         return jsonify({
             'success': True,
             'message': f'{len(insumos_data)} insumos guardados correctamente'
@@ -242,6 +255,17 @@ def confirmar_insumos_y_descontar(pedido_id):
         pedido.estado = 'Listo para Despacho'
         
         db.session.commit()
+        
+        # Registrar en auditoría
+        try:
+            from utils.auditoria_helper import registrar_accion
+            registrar_accion('confirmar_insumos', 'pedido', pedido_id, {
+                'insumos_procesados': len(insumos),
+                'nuevo_estado': pedido.estado,
+                'cliente': pedido.cliente_nombre
+            })
+        except Exception as e:
+            print(f'Error al registrar acción de auditoría: {e}')
         
         return jsonify({
             'success': True,
@@ -387,6 +411,22 @@ def guardar_insumos_detallados(pedido_id):
             contenedor.cantidad_en_uso += cont_data.get('cantidad', 1)
         
         db.session.commit()
+        
+        # Registrar en auditoría
+        try:
+            from utils.auditoria_helper import registrar_accion
+            from models.pedido import Pedido
+            pedido = Pedido.query.get(pedido_id)
+            if pedido:
+                cantidad_flores = len(data.get('flores', []))
+                tiene_contenedor = bool(data.get('contenedor'))
+                registrar_accion('agregar_insumos', 'pedido', pedido_id, {
+                    'cantidad_flores': cantidad_flores,
+                    'tiene_contenedor': tiene_contenedor,
+                    'cliente': pedido.cliente_nombre
+                })
+        except Exception as e:
+            print(f'Error al registrar acción de auditoría: {e}')
         
         return jsonify({
             'success': True,
@@ -594,6 +634,17 @@ def confirmar_insumos_detallados(pedido_id):
         pedido.estado = 'Listo para Despacho'
         
         db.session.commit()
+        
+        # Registrar en auditoría
+        try:
+            from utils.auditoria_helper import registrar_accion
+            registrar_accion('confirmar_insumos', 'pedido', pedido_id, {
+                'nuevo_estado': pedido.estado,
+                'cliente': pedido.cliente_nombre,
+                'tipo': 'detallado'
+            })
+        except Exception as e:
+            print(f'Error al registrar acción de auditoría: {e}')
         
         return jsonify({
             'success': True,

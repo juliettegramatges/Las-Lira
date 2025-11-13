@@ -4,6 +4,7 @@ import axios from 'axios'
 import { API_URL } from '../services/api'
 import EtiquetaCliente from '../components/EtiquetaCliente'
 import { formatFecha } from '../utils/helpers'
+import { eventBus, EVENT_TYPES } from '../utils/eventBus'
 
 function ClientesPage() {
   const [clientes, setClientes] = useState([])
@@ -63,6 +64,15 @@ function ClientesPage() {
   
   useEffect(() => {
     cargarClientes()
+    
+    // Escuchar eventos de actualización
+    const unsubscribe = eventBus.on(EVENT_TYPES.CLIENTES, () => {
+      cargarClientes()
+    })
+    
+    return () => {
+      unsubscribe()
+    }
   }, [paginaActual, tipoFiltro, etiquetasFiltro])
 
   // Volver a cargar cuando cambia la búsqueda (con debounce) y resetear a página 1
@@ -208,6 +218,9 @@ function ClientesPage() {
       if (response.data.success) {
         alert('✅ Cliente eliminado exitosamente')
         cargarClientes()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.CLIENTES, { action: 'deleted', id: cliente.id })
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'client_deleted' })
       }
     } catch (error) {
       console.error('Error al eliminar cliente:', error)

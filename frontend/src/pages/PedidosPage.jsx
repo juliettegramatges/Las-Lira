@@ -5,6 +5,7 @@ import { Search, Filter, Plus, Edit, Edit2, MapPin, Package, DollarSign, Calenda
 import { API_URL } from '../services/api'
 import { formatFecha } from '../utils/helpers'
 import { COLORES_DISPONIBLES, MOTIVOS_PEDIDO } from '../utils/constants'
+import { eventBus, EVENT_TYPES } from '../utils/eventBus'
 
 function PedidosPage() {
   const location = useLocation()
@@ -238,6 +239,10 @@ function PedidosPage() {
         
         // Recargar la lista de pedidos
         cargarPedidos()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'updated', id: pedidoDetalle.id })
+        eventBus.emit(EVENT_TYPES.TABLERO, { action: 'updated' })
+        eventBus.emit(EVENT_TYPES.COBRANZA, { action: 'updated' })
       }
     } catch (error) {
       console.error('Error al guardar pedido:', error)
@@ -257,6 +262,10 @@ function PedidosPage() {
         alert('✅ Pedido cancelado correctamente')
         handleCerrarModal()
         cargarPedidos()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'cancelled', id: pedidoDetalle.id })
+        eventBus.emit(EVENT_TYPES.TABLERO, { action: 'cancelled' })
+        eventBus.emit(EVENT_TYPES.COBRANZA, { action: 'cancelled' })
       }
     } catch (error) {
       console.error('Error al cancelar pedido:', error)
@@ -281,10 +290,11 @@ function PedidosPage() {
         alert('✅ Pedido eliminado permanentemente')
         handleCerrarModal()
         cargarPedidos()
-        // Notificar al tablero para que se recargue en segundo plano
-        try {
-          window.dispatchEvent(new Event('refetch-tablero'))
-        } catch (e) {}
+        // Notificar a todas las páginas del cambio
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'deleted', id: pedidoDetalle.id })
+        eventBus.emit(EVENT_TYPES.TABLERO, { action: 'deleted' })
+        eventBus.emit(EVENT_TYPES.COBRANZA, { action: 'deleted' })
+        eventBus.emit(EVENT_TYPES.RUTAS, { action: 'deleted' })
       }
     } catch (error) {
       console.error('Error al eliminar pedido:', error)
@@ -917,6 +927,10 @@ function PedidosPage() {
         alert('✅ Pedido creado exitosamente: ' + nuevoPedidoId)
         handleCerrarFormulario()
         cargarPedidos()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'created', id: nuevoPedidoId })
+        eventBus.emit(EVENT_TYPES.TABLERO, { action: 'created' })
+        eventBus.emit(EVENT_TYPES.COBRANZA, { action: 'created' })
       }
     } catch (err) {
       console.error('Error al crear pedido:', err)
@@ -963,6 +977,25 @@ function PedidosPage() {
       return false
     })
   }, [pedidos, busqueda])
+  
+  // Escuchar eventos de actualización
+  useEffect(() => {
+    const unsubscribePedidos = eventBus.on(EVENT_TYPES.PEDIDOS, () => {
+      cargarPedidos()
+    })
+    const unsubscribeClientes = eventBus.on(EVENT_TYPES.CLIENTES, () => {
+      cargarPedidos()
+    })
+    const unsubscribeProductos = eventBus.on(EVENT_TYPES.PRODUCTOS, () => {
+      cargarPedidos()
+    })
+    
+    return () => {
+      unsubscribePedidos()
+      unsubscribeClientes()
+      unsubscribeProductos()
+    }
+  }, [])
   
   useEffect(() => {
     cargarPedidos()

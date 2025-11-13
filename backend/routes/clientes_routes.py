@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from extensions import db
 from models.cliente import Cliente
 from utils.telefono_helpers import normalizar_telefono
+from utils.auditoria_helper import registrar_accion
 from datetime import datetime
 from sqlalchemy import or_
 import unicodedata
@@ -169,6 +170,9 @@ def crear_cliente():
         db.session.add(cliente)
         db.session.commit()
         
+        # Registrar acción de auditoría
+        registrar_accion('crear', 'cliente', nuevo_id, {'nombre': cliente.nombre})
+        
         return jsonify({
             'success': True,
             'data': cliente.to_dict(),
@@ -216,6 +220,9 @@ def actualizar_cliente(cliente_id):
         
         db.session.commit()
         
+        # Registrar acción de auditoría
+        registrar_accion('actualizar', 'cliente', cliente_id, {'nombre': cliente.nombre})
+        
         return jsonify({
             'success': True,
             'data': cliente.to_dict(),
@@ -242,8 +249,12 @@ def eliminar_cliente(cliente_id):
                 'error': f'No se puede eliminar el cliente porque tiene {cliente.total_pedidos} pedido(s) asociado(s)'
             }), 400
         
+        nombre_cliente = cliente.nombre
         db.session.delete(cliente)
         db.session.commit()
+        
+        # Registrar acción de auditoría
+        registrar_accion('eliminar', 'cliente', cliente_id, {'nombre': nombre_cliente})
         
         return jsonify({
             'success': True,

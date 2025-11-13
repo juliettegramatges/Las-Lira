@@ -4,8 +4,11 @@ import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag,
 import { API_URL } from '../services/api'
 import { limpiarHTML } from '../utils/helpers'
 import { COLORES_PRODUCTOS } from '../utils/constants'
+import { useAuth } from '../contexts/AuthContext'
+import { eventBus, EVENT_TYPES } from '../utils/eventBus'
 
 function ProductosPage() {
+  const { canSeePrices } = useAuth()
   const [productos, setProductos] = useState([])
   const [loading, setLoading] = useState(true)
   const [editandoFoto, setEditandoFoto] = useState(null)
@@ -199,6 +202,10 @@ function ProductosPage() {
           tags: []
         })
         cargarProductos()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.PRODUCTOS, { action: 'created', id: response.data.data?.id })
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'product_created' })
+        eventBus.emit(EVENT_TYPES.EVENTOS, { action: 'product_created' })
       }
     } catch (error) {
       console.error('Error al crear producto:', error)
@@ -231,6 +238,10 @@ function ProductosPage() {
         setModalEditarProducto(false)
         setProductoEditando(null)
         cargarProductos()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.PRODUCTOS, { action: 'updated', id: productoEditando.id })
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'product_updated' })
+        eventBus.emit(EVENT_TYPES.EVENTOS, { action: 'product_updated' })
       }
     } catch (error) {
       console.error('Error al actualizar producto:', error)
@@ -251,6 +262,10 @@ function ProductosPage() {
       if (response.data.success) {
         alert(response.data.message || 'Producto eliminado exitosamente')
         cargarProductos()
+        // Notificar a otras páginas del cambio
+        eventBus.emit(EVENT_TYPES.PRODUCTOS, { action: 'deleted', id: productoId })
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'product_deleted' })
+        eventBus.emit(EVENT_TYPES.EVENTOS, { action: 'product_deleted' })
       }
     } catch (error) {
       console.error('Error al eliminar producto:', error)
@@ -729,9 +744,10 @@ function ProductosPage() {
       )
       
       if (response.data.success) {
-        alert(`✅ ${response.data.message}\n\n` +
-              `🎨 Colores actualizados: ${response.data.data.colores_actualizados}\n` +
-              `💰 Precio de venta: $${response.data.data.precio_venta.toLocaleString('es-CL')}`)
+        const mensaje = canSeePrices() 
+          ? `✅ ${response.data.message}\n\n🎨 Colores actualizados: ${response.data.data.colores_actualizados}\n💰 Precio de venta: $${response.data.data.precio_venta.toLocaleString('es-CL')}`
+          : `✅ ${response.data.message}\n\n🎨 Colores actualizados: ${response.data.data.colores_actualizados}`
+        alert(mensaje)
         
         // Recargar la configuración
         await cargarConfiguracionProducto()
@@ -748,6 +764,17 @@ function ProductosPage() {
       setGuardandoReceta(false)
     }
   }
+  
+  // Escuchar eventos de actualización
+  useEffect(() => {
+    const unsubscribe = eventBus.on(EVENT_TYPES.PRODUCTOS, () => {
+      cargarProductos()
+    })
+    
+    return () => {
+      unsubscribe()
+    }
+  }, [])
   
   useEffect(() => {
     cargarProductos()
@@ -976,9 +1003,13 @@ function ProductosPage() {
                 
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xl font-bold text-primary-600">
-                      ${(producto.precio || producto.precio_venta || 0).toLocaleString('es-CL')}
-                    </span>
+                    {canSeePrices() ? (
+                      <span className="text-xl font-bold text-primary-600">
+                        ${(producto.precio || producto.precio_venta || 0).toLocaleString('es-CL')}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Precio no disponible</span>
+                    )}
                     <button
                       onClick={() => handleVerDetalles(producto)}
                       className="text-sm text-primary-600 hover:text-primary-700 font-medium hover:underline"
@@ -1137,12 +1168,14 @@ function ProductosPage() {
                   <p className="font-semibold text-gray-900">{productoDetalle.tipo || productoDetalle.tipo_arreglo || 'N/A'}</p>
                 </div>
                 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500 mb-1">Precio</p>
-                  <p className="font-semibold text-primary-600 text-xl">
-                    ${(productoDetalle.precio || productoDetalle.precio_venta || 0).toLocaleString('es-CL')}
-                  </p>
-                </div>
+                {canSeePrices() && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-500 mb-1">Precio</p>
+                    <p className="font-semibold text-primary-600 text-xl">
+                      ${(productoDetalle.precio || productoDetalle.precio_venta || 0).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                )}
                 
                 {productoDetalle.tamano && (
                   <div className="bg-gray-50 p-4 rounded-lg">
@@ -1438,12 +1471,14 @@ function ProductosPage() {
                             ${receta.costo_total_insumos?.toLocaleString('es-CL')}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-700">Precio de Venta:</span>
-                          <span className="font-semibold text-gray-900">
-                            ${receta.precio_venta?.toLocaleString('es-CL')}
-                          </span>
-                        </div>
+                        {canSeePrices() && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-700">Precio de Venta:</span>
+                            <span className="font-semibold text-gray-900">
+                              ${receta.precio_venta?.toLocaleString('es-CL')}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between pt-2 border-t border-primary-300">
                           <span className="text-gray-700">Ganancia:</span>
                           <span className={`font-bold ${receta.ganancia > 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -1782,32 +1817,34 @@ function ProductosPage() {
                           </span>
                         </div>
                         
-                        <div className="border-t border-primary-200 pt-3">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-semibold text-gray-700">Precio Venta:</span>
-                            {precioVentaEditado !== null && (
-                              <button
-                                onClick={() => setPrecioVentaEditado(null)}
-                                className="text-xs text-gray-500 hover:text-primary-600 underline"
-                              >
-                                Restaurar original
-                              </button>
-                            )}
+                        {canSeePrices() && (
+                          <div className="border-t border-primary-200 pt-3">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-semibold text-gray-700">Precio Venta:</span>
+                              {precioVentaEditado !== null && (
+                                <button
+                                  onClick={() => setPrecioVentaEditado(null)}
+                                  className="text-xs text-gray-500 hover:text-primary-600 underline"
+                                >
+                                  Restaurar original
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-600">$</span>
+                              <input
+                                type="text"
+                                value={precioVenta}
+                                onChange={(e) => setPrecioVentaEditado(parseInt(e.target.value) || 0)}
+                                className="flex-1 px-3 py-2 border-2 border-gray-300 focus:border-green-500 rounded-lg text-lg font-bold text-green-700 text-right focus:outline-none"
+                                placeholder="Precio de venta"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {precioVentaEditado !== null ? '(Editado)' : `Original: $${productoDetalle?.precio_venta?.toLocaleString('es-CL') || 0}`}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">$</span>
-                            <input
-                              type="text"
-                              value={precioVenta}
-                              onChange={(e) => setPrecioVentaEditado(parseInt(e.target.value) || 0)}
-                              className="flex-1 px-3 py-2 border-2 border-gray-300 focus:border-green-500 rounded-lg text-lg font-bold text-green-700 text-right focus:outline-none"
-                              placeholder="Precio de venta"
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {precioVentaEditado !== null ? '(Editado)' : `Original: $${productoDetalle?.precio_venta?.toLocaleString('es-CL') || 0}`}
-                          </p>
-                        </div>
+                        )}
                         
                         <div className={`border-t border-primary-200 pt-3 ${margenActual >= 0 ? 'bg-green-50' : 'bg-red-50'} -mx-5 px-5 py-3 rounded-b-lg`}>
                           <div className="flex justify-between items-center">

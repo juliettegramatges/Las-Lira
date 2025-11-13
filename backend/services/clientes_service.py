@@ -265,12 +265,14 @@ class ClientesService:
             if not cliente:
                 return False, 'Cliente no encontrado'
 
-            # Contar pedidos
-            pedidos = Pedido.query.filter_by(cliente_id=cliente_id).all()
+            # Contar pedidos (solo activos, no cancelados)
+            pedidos = Pedido.query.filter_by(cliente_id=cliente_id).filter(
+                Pedido.estado != 'Cancelado'
+            ).all()
             cliente.total_pedidos = len(pedidos)
 
-            # Calcular total gastado
-            total_gastado = sum(p.precio_total for p in pedidos)
+            # Calcular total gastado (solo de pedidos activos)
+            total_gastado = sum((p.precio_ramo or 0) + (p.precio_envio or 0) for p in pedidos)
             cliente.total_gastado = total_gastado
 
             # Última compra

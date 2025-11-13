@@ -10,6 +10,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Importante para las sesiones
 });
 
 // === PEDIDOS ===
@@ -58,6 +59,15 @@ export const productosAPI = {
   obtener: (id) => api.get(`/productos/${id}`),
   verificarStock: (id) => api.get(`/productos/${id}/verificar-stock`),
   estimarCosto: (data) => api.post('/productos/estimar-costo', data),
+};
+
+// === AUTENTICACIÓN ===
+export const authAPI = {
+  login: (username, password) => api.post('/auth/login', { username, password }),
+  logout: () => api.post('/auth/logout'),
+  getCurrentUser: () => api.get('/auth/me'),
+  listarUsuarios: () => api.get('/auth/usuarios'),
+  crearUsuario: (data) => api.post('/auth/usuarios', data),
 };
 
 export default api;

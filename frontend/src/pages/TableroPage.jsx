@@ -4,6 +4,7 @@ import { pedidosAPI } from '../services/api'
 import ColumnaKanban from '../components/Tablero/ColumnaKanban'
 import { AlertCircle, Loader2, RefreshCw, Plus } from 'lucide-react'
 import Button from '../components/common/Button'
+import { eventBus, EVENT_TYPES } from '../utils/eventBus'
 
 function TableroPage() {
   const navigate = useNavigate()
@@ -82,11 +83,25 @@ function TableroPage() {
     cargarTablero(true) // Auto-clasificar solo al cargar inicialmente
   }, [])
 
-  // Escuchar eventos globales para forzar recarga desde otras vistas (p.ej., tras eliminar un pedido)
+  // Escuchar eventos globales para forzar recarga desde otras vistas (misma sesión)
   useEffect(() => {
-    const handler = () => cargarTablero(false)
-    window.addEventListener('refetch-tablero', handler)
-    return () => window.removeEventListener('refetch-tablero', handler)
+    const unsubscribeTablero = eventBus.on(EVENT_TYPES.TABLERO, () => {
+      cargarTablero(false)
+    })
+    const unsubscribePedidos = eventBus.on(EVENT_TYPES.PEDIDOS, () => {
+      cargarTablero(false)
+    })
+    
+    // Polling periódico para sincronización entre usuarios (cada 10 segundos)
+    const intervaloPolling = setInterval(() => {
+      cargarTablero(false) // No auto-clasificar en polling
+    }, 10000) // 10 segundos
+    
+    return () => {
+      unsubscribeTablero()
+      unsubscribePedidos()
+      clearInterval(intervaloPolling)
+    }
   }, [])
 
   // Recargar cuando cambia el número de semanas de despachados
@@ -106,6 +121,11 @@ function TableroPage() {
       await pedidosAPI.actualizarEstado(pedidoId, nuevoEstado)
       // NO auto-clasificar después de mover manualmente, respetar la decisión del usuario
       await cargarTablero(false)
+      // Notificar a otras páginas del cambio de estado
+      eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'state_changed', id: pedidoId, estado: nuevoEstado })
+      eventBus.emit(EVENT_TYPES.COBRANZA, { action: 'state_changed' })
+      eventBus.emit(EVENT_TYPES.RUTAS, { action: 'state_changed' })
+      eventBus.emit(EVENT_TYPES.TALLER, { action: 'state_changed' })
     } catch (err) {
       console.error('Error al mover pedido:', err)
       alert('Error al actualizar el estado del pedido')

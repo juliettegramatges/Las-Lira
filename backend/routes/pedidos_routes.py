@@ -7,6 +7,7 @@ import os
 from flask import Blueprint, request, jsonify
 from services.pedidos_service import PedidosService
 from extensions import db
+from utils.auditoria_helper import registrar_accion
 
 bp = Blueprint('pedidos', __name__)
 
@@ -101,6 +102,8 @@ def crear_pedido():
         success, resultado, mensaje = PedidosService.crear_pedido(data)
 
         if success:
+            # Registrar acción de auditoría
+            registrar_accion('crear', 'pedido', resultado.id, {'cliente': resultado.cliente_nombre})
             return jsonify({
                 'success': True,
                 'data': resultado.to_dict(),
@@ -127,6 +130,8 @@ def actualizar_estado(pedido_id):
         success, resultado, mensaje = PedidosService.actualizar_estado(pedido_id, nuevo_estado)
 
         if success:
+            # Registrar acción de auditoría
+            registrar_accion('cambiar_estado', 'pedido', pedido_id, {'estado_nuevo': nuevo_estado})
             return jsonify({
                 'success': True,
                 'data': resultado.to_dict(),
@@ -150,6 +155,8 @@ def cancelar_pedido(pedido_id):
         success, resultado, mensaje = PedidosService.cancelar_pedido(pedido_id, motivo)
 
         if success:
+            # Registrar acción de auditoría
+            registrar_accion('cancelar', 'pedido', pedido_id, {'motivo': motivo})
             return jsonify({
                 'success': True,
                 'data': resultado.to_dict(),
@@ -170,6 +177,8 @@ def eliminar_pedido(pedido_id):
         success, mensaje = PedidosService.eliminar_pedido(pedido_id)
 
         if success:
+            # Registrar acción de auditoría
+            registrar_accion('eliminar', 'pedido', pedido_id)
             return jsonify({
                 'success': True,
                 'message': mensaje
@@ -247,6 +256,12 @@ def actualizar_cobranza(pedido_id):
         success, resultado, mensaje = PedidosService.actualizar_cobranza(pedido_id, data)
 
         if success:
+            # Registrar acción de auditoría
+            registrar_accion('actualizar', 'cobranza', pedido_id, {
+                'estado_pago': data.get('estado_pago'),
+                'metodo_pago': data.get('metodo_pago'),
+                'documento_tributario': data.get('documento_tributario')
+            })
             return jsonify({
                 'success': True,
                 'data': resultado.to_dict(),

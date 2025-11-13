@@ -209,6 +209,8 @@ def eliminar_insumo(evento_id, insumo_id):
 def cambiar_estado(evento_id):
     """Cambia el estado de un evento"""
     try:
+        from utils.auditoria_helper import registrar_accion
+        
         data = request.get_json()
         nuevo_estado = data.get('estado')
 
@@ -219,6 +221,14 @@ def cambiar_estado(evento_id):
         success, resultado, mensaje = EventosService.cambiar_estado(evento_id, nuevo_estado)
 
         if success:
+            # Registrar en auditoría
+            accion_tipo = 'confirmar' if nuevo_estado == 'Confirmado' else 'cambiar_estado'
+            registrar_accion(accion_tipo, 'evento', evento_id, {
+                'estado_anterior': 'Cotización' if nuevo_estado == 'Confirmado' else None,
+                'estado_nuevo': nuevo_estado,
+                'nombre_evento': resultado.nombre_evento if resultado else None
+            })
+            
             return jsonify({
                 'success': True,
                 'data': resultado.to_dict(),

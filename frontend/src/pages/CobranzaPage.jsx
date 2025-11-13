@@ -4,6 +4,7 @@ import { DollarSign, FileText, AlertCircle, CheckCircle, X, Package, User, MapPi
 import { API_URL } from '../services/api'
 import { formatFecha } from '../utils/helpers'
 import { ESTADOS_PAGO, METODOS_PAGO, DOCUMENTOS_TRIBUTARIOS } from '../utils/constants'
+import { eventBus, EVENT_TYPES } from '../utils/eventBus'
 
 const CobranzaPage = () => {
   const [loading, setLoading] = useState(true)
@@ -34,6 +35,34 @@ const CobranzaPage = () => {
 
   useEffect(() => {
     cargarResumen()
+    
+    // Escuchar eventos de actualización (misma sesión)
+    const unsubscribeCobranza = eventBus.on(EVENT_TYPES.COBRANZA, () => {
+      cargarResumen()
+    })
+    const unsubscribePedidos = eventBus.on(EVENT_TYPES.PEDIDOS, () => {
+      cargarResumen()
+      cargarPagados()
+    })
+    
+    // Polling periódico para sincronización entre usuarios (cada 3 segundos)
+    const intervaloPolling = setInterval(() => {
+      // Actualizar resumen en modo silencioso (sin mostrar loading)
+      cargarResumen(true).catch(err => {
+        console.error('[Cobranza] Error en polling (resumen):', err)
+      })
+      // Actualizar pagados en modo silencioso (sin mostrar loading)
+      cargarPagados(true).catch(err => {
+        console.error('[Cobranza] Error en polling (pagados):', err)
+      })
+    }, 3000) // 3 segundos
+    
+    return () => {
+      unsubscribeCobranza()
+      unsubscribePedidos()
+      clearInterval(intervaloPolling)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -51,57 +80,82 @@ const CobranzaPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busquedaPagados])
 
-  const cargarResumen = async () => {
+  const cargarResumen = async (silent = false) => {
     try {
-      setLoading(true)
-      const response = await axios.get(`${API_URL}/pedidos/resumen-cobranza`)
+      if (!silent) {
+        setLoading(true)
+      }
+      const response = await axios.get(`${API_URL}/pedidos/resumen-cobranza`, {
+        withCredentials: true
+      })
       if (response.data.success) {
         setResumen(response.data.data)
       }
     } catch (err) {
-      console.error('Error al cargar resumen:', err)
+      console.error('[Cobranza] Error al cargar resumen:', err)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }
 
-  const cargarPagados = async () => {
+  const cargarPagados = async (silent = false) => {
     try {
-      setLoadingPagados(true)
+      if (!silent) {
+        setLoadingPagados(true)
+      }
       const params = new URLSearchParams()
       if (busquedaPagados && busquedaPagados.trim()) params.append('buscar', busquedaPagados.trim())
       params.append('page', paginaPagados)
       params.append('limit', limitePagados)
-      const response = await axios.get(`${API_URL}/pedidos/pagados?${params}`)
+      const response = await axios.get(`${API_URL}/pedidos/pagados?${params}`, {
+        withCredentials: true
+      })
       if (response.data.success) {
         setPagados(response.data.data || [])
         setTotalPaginasPagados(response.data.total_pages || 1)
       }
     } catch (err) {
-      console.error('Error al cargar pagados:', err)
+      console.error('[Cobranza] Error al cargar pagados:', err)
     } finally {
-      setLoadingPagados(false)
+      if (!silent) {
+        setLoadingPagados(false)
+      }
     }
   }
 
   const actualizarCobranza = async (pedidoId, datos) => {
     try {
-      const response = await axios.patch(`${API_URL}/pedidos/${pedidoId}/cobranza`, datos)
+      console.log('[Cobranza] Actualizando cobranza para pedido:', pedidoId, datos)
+      const response = await axios.patch(`${API_URL}/pedidos/${pedidoId}/cobranza`, datos, {
+        withCredentials: true
+      })
       if (response.data.success) {
+        console.log('[Cobranza] Actualización exitosa, recargando datos...')
         // Actualizar el pedido en el estado local
         if (editandoPedido) {
           setEditandoPedido(response.data.data)
         }
-        // Recargar resumen para actualizar las listas
+        // Recargar resumen para actualizar las listas inmediatamente
         await cargarResumen()
+        await cargarPagados()
+        // Notificar a otras páginas del cambio (misma sesión)
+        eventBus.emit(EVENT_TYPES.PEDIDOS, { action: 'cobranza_updated', id: pedidoId })
+        eventBus.emit(EVENT_TYPES.TABLERO, { action: 'cobranza_updated' })
+        eventBus.emit(EVENT_TYPES.COBRANZA, { action: 'updated', id: pedidoId })
+        console.log('[Cobranza] Datos actualizados y eventos emitidos')
         // Si se actualizó el documento a emitido, cerrar el modal
         if (datos.documento_tributario && ['Boleta emitida', 'Factura emitida'].includes(datos.documento_tributario)) {
           setEditandoPedido(null)
         }
+      } else {
+        console.error('[Cobranza] Error en respuesta:', response.data)
+        alert('❌ Error al actualizar cobranza: ' + (response.data.error || 'Error desconocido'))
       }
     } catch (err) {
-      console.error('Error al actualizar:', err)
-      alert('❌ Error al actualizar cobranza')
+      console.error('[Cobranza] Error al actualizar:', err)
+      alert('❌ Error al actualizar cobranza: ' + (err.response?.data?.error || err.message))
     }
   }
 
