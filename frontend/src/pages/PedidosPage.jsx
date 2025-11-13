@@ -246,12 +246,20 @@ function PedidosPage() {
     setModoEdicion(true) // Abrir directamente en modo edición
     setClienteDetalle(null)
     setHistorialCliente([])
-    
+
     // Limpiar estados de foto
     setArchivoSeleccionado(null)
     setPreviewUrl(null)
     setSubiendoFoto(false)
-    
+
+    // 🆕 Cargar productos del pedido si existen
+    if (pedido.productos && pedido.productos.length > 0) {
+      console.log('📦 Cargando productos del pedido:', pedido.productos)
+      setProductosDelPedido(pedido.productos)
+    } else {
+      setProductosDelPedido([])
+    }
+
     // Cargar información del cliente si tiene ID
     if (pedido.cliente_id) {
       cargarInfoCliente(pedido.cliente_id)
@@ -1580,7 +1588,78 @@ function PedidosPage() {
                       </div>
                     </div>
                   )}
-                  
+
+                  {/* 🆕 Lista de Productos en el Pedido (para pedidos con múltiples productos) */}
+                  {pedidoDetalle.productos && pedidoDetalle.productos.length > 0 && (
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase mb-4 flex items-center">
+                        <Package className="h-5 w-5 mr-2 text-blue-500" />
+                        Productos en el Pedido ({pedidoDetalle.productos.length})
+                      </h3>
+
+                      <div className="space-y-3">
+                        {pedidoDetalle.productos.map((producto, index) => {
+                          const imagenUrl = producto.foto_respaldo || producto.producto_imagen || pedidoDetalle.producto_imagen
+
+                          return (
+                            <div
+                              key={producto.id || index}
+                              className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 flex items-center gap-4"
+                            >
+                              {/* Imagen del producto */}
+                              <div className="w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center flex-shrink-0 border-2 border-primary-300 shadow-sm">
+                                {imagenUrl ? (
+                                  <img
+                                    src={imagenUrl.startsWith('http') ? imagenUrl : `/api/upload/imagen/${imagenUrl}`}
+                                    alt={producto.producto_nombre}
+                                    className="w-full h-full object-contain p-1"
+                                  />
+                                ) : (
+                                  <Package className="h-10 w-10 text-primary-400" />
+                                )}
+                              </div>
+
+                              {/* Info del producto */}
+                              <div className="flex-1">
+                                <h4 className="font-bold text-gray-900 mb-1">{producto.producto_nombre}</h4>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  Precio: <span className="font-bold text-green-600">${producto.precio.toLocaleString('es-CL')}</span>
+                                </p>
+                                {producto.producto_id && (
+                                  <p className="text-xs text-gray-500 font-mono">ID: {producto.producto_id}</p>
+                                )}
+                                {producto.insumos && producto.insumos.length > 0 && (
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    {producto.insumos.length} insumo(s) configurado(s)
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Badge de número */}
+                              {pedidoDetalle.productos.length > 1 && (
+                                <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                                  {index + 1}/{pedidoDetalle.productos.length}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Total */}
+                      {pedidoDetalle.productos.length > 1 && (
+                        <div className="mt-4 pt-4 border-t-2 border-blue-200">
+                          <p className="text-sm font-bold text-blue-900 flex justify-between">
+                            <span>Subtotal Productos:</span>
+                            <span className="text-green-600">
+                              ${pedidoDetalle.productos.reduce((sum, p) => sum + (p.precio || 0), 0).toLocaleString('es-CL')}
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Foto de Respaldo (cuando NO hay producto del catálogo) */}
                   {!pedidoDetalle.producto_nombre && (pedidoDetalle.foto_enviado_url || previewUrl || archivoSeleccionado) && (
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
@@ -2950,30 +3029,51 @@ function PedidosPage() {
                         </h4>
 
                         <div className="space-y-3">
-                          {productosDelPedido.map((producto, index) => (
-                            <div
-                              key={producto.id}
-                              className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between"
-                            >
-                              <div className="flex-1">
-                                <h5 className="font-semibold text-gray-900">{producto.producto_nombre}</h5>
-                                <p className="text-sm text-gray-600">
-                                  Precio: <span className="font-bold text-green-600">${producto.precio.toLocaleString('es-CL')}</span>
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {producto.insumos.length} insumo(s) configurado(s)
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleEliminarProductoDelPedido(index)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Eliminar producto"
+                          {productosDelPedido.map((producto, index) => {
+                            // Prioridad de imagen: foto_respaldo > producto_imagen > imagen del pedido principal
+                            const imagenUrl = producto.foto_respaldo || producto.producto_imagen || pedidoDetalle?.producto_imagen
+
+                            return (
+                              <div
+                                key={producto.id || index}
+                                className="bg-white p-3 rounded-lg border border-gray-200 flex items-center gap-3"
                               >
-                                <Trash2 className="h-5 w-5" />
-                              </button>
-                            </div>
-                          ))}
+                                {/* Imagen del producto */}
+                                <div className="w-20 h-20 rounded-lg overflow-hidden bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center flex-shrink-0 border border-primary-200">
+                                  {imagenUrl ? (
+                                    <img
+                                      src={imagenUrl.startsWith('http') ? imagenUrl : `/api/upload/imagen/${imagenUrl}`}
+                                      alt={producto.producto_nombre}
+                                      className="w-full h-full object-contain p-1"
+                                    />
+                                  ) : (
+                                    <Package className="h-8 w-8 text-primary-400" />
+                                  )}
+                                </div>
+
+                                {/* Info del producto */}
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900">{producto.producto_nombre}</h5>
+                                  <p className="text-sm text-gray-600">
+                                    Precio: <span className="font-bold text-green-600">${producto.precio.toLocaleString('es-CL')}</span>
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {producto.insumos?.length || 0} insumo(s) configurado(s)
+                                  </p>
+                                </div>
+
+                                {/* Botón eliminar */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarProductoDelPedido(index)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Eliminar producto"
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
 
                         <div className="mt-3 pt-3 border-t border-blue-300">

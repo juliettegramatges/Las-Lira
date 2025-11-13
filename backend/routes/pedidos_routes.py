@@ -3,8 +3,10 @@ Rutas para gestión de pedidos (Refactorizado)
 Las rutas ahora delegan la lógica de negocio al PedidosService
 """
 
+import os
 from flask import Blueprint, request, jsonify
 from services.pedidos_service import PedidosService
+from extensions import db
 
 bp = Blueprint('pedidos', __name__)
 
@@ -211,13 +213,17 @@ def obtener_tablero():
         
         # Convertir incluir_despachados a booleano
         incluir_despachados = request.args.get('incluir_despachados', 'false').lower() == 'true'
-        
+
+        # Número de semanas de despachados a mostrar (por defecto 1 semana = 7 días)
+        semanas_despachados = int(request.args.get('semanas_despachados', '1'))
+
         filtros = {
             'estado': request.args.get('estado'),
             'dia_entrega': request.args.get('dia_entrega'),
             'estado_pago': request.args.get('estado_pago'),
             'tipo_pedido': request.args.get('tipo_pedido'),
-            'incluir_despachados': incluir_despachados
+            'incluir_despachados': incluir_despachados,
+            'semanas_despachados': semanas_despachados
         }
 
         # Delegar al servicio
@@ -290,18 +296,66 @@ def actualizar_estados_por_fecha():
 
 @bp.route('/<pedido_id>/foto-respaldo', methods=['POST'])
 def subir_foto_respaldo(pedido_id):
-    """Sube una foto de respaldo del pedido"""
+    """Sube una foto de respaldo para un producto del pedido"""
     try:
-        # Esta funcionalidad de upload requiere manejo especial de archivos
-        # Por ahora dejamos un placeholder
-        # TODO: Implementar servicio de uploads
+        from werkzeug.utils import secure_filename
+        from models.pedido import PedidoProducto
+        import time
+
+        # Obtener el pedido_producto_id del form data (opcional)
+        pedido_producto_id = request.form.get('pedido_producto_id')
+
+        # Verificar que hay un archivo
+        if 'imagen' not in request.files:
+            return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
+
+        file = request.files['imagen']
+
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'Nombre de archivo vacío'}), 400
+
+        # Validar extensión
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS):
+            return jsonify({'success': False, 'error': 'Tipo de archivo no permitido'}), 400
+
+        # Crear carpeta de uploads si no existe
+        UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+        # Guardar archivo con nombre seguro
+        timestamp = int(time.time())
+        filename = secure_filename(f"pedido_{pedido_id}_{timestamp}_{file.filename}")
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+
+        # Si se especificó pedido_producto_id, actualizar ese producto
+        # Si no, actualizar el primer producto del pedido
+        if pedido_producto_id:
+            pedido_producto = PedidoProducto.query.filter_by(
+                id=pedido_producto_id,
+                pedido_id=pedido_id
+            ).first()
+        else:
+            # Si no se especifica, usar el primer producto
+            pedido_producto = PedidoProducto.query.filter_by(pedido_id=pedido_id).first()
+
+        if not pedido_producto:
+            return jsonify({'success': False, 'error': 'Producto del pedido no encontrado'}), 404
+
+        # Actualizar foto_respaldo
+        pedido_producto.foto_respaldo = filename
+        db.session.commit()
 
         return jsonify({
-            'success': False,
-            'error': 'Funcionalidad de upload pendiente de refactorización'
-        }), 501
+            'success': True,
+            'filename': filename,
+            'url': f'/api/upload/imagen/{filename}',
+            'pedido_producto_id': pedido_producto.id
+        })
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

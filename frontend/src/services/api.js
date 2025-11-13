@@ -19,7 +19,7 @@ export const pedidosAPI = {
   crear: (data) => api.post('/pedidos', data),
   actualizarEstado: (id, estado) => api.patch(`/pedidos/${id}/estado`, { estado }),
   eliminar: (id) => api.delete(`/pedidos/${id}`),
-  obtenerTablero: (incluirDespachados = false) => api.get('/pedidos/tablero', { params: { incluir_despachados: incluirDespachados } }),
+  obtenerTablero: (incluirDespachados = false, semanasDespachados = 1) => api.get('/pedidos/tablero', { params: { incluir_despachados: incluirDespachados, semanas_despachados: semanasDespachados } }),
   actualizarEstadosPorFecha: () => api.post('/pedidos/actualizar-estados-por-fecha'),
 };
 

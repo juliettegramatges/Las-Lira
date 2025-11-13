@@ -645,20 +645,34 @@ class PedidosService:
             list: pedidos organizados por estado
         """
         query = Pedido.query.filter(Pedido.estado != 'Cancelado')
-        
-        # Por defecto, excluir pedidos despachados para mejorar rendimiento
-        # Solo incluirlos si se solicita explícitamente con incluir_despachados=True
+
+        # Por defecto, excluir pedidos despachados ANTIGUOS (más de 7 días)
+        # Esto permite ver despachados recientes sin cargar todo el historial
         incluir_despachados = filtros and filtros.get('incluir_despachados', False) if filtros else False
-        
-        # PRIMERO: Excluir despachados si no se solicitan explícitamente
+
         if not incluir_despachados:
-            query = query.filter(Pedido.estado != 'Despachados')
-        
+            # Excluir despachados según el número de semanas solicitado
+            # Por defecto muestra 1 semana (7 días), pero puede incrementarse con semanas_despachados
+            semanas = filtros.get('semanas_despachados', 1) if filtros else 1
+            fecha_limite_despachados = datetime.now() - timedelta(weeks=semanas)
+            print(f'[DEBUG] Fecha límite despachados: {fecha_limite_despachados}')
+            query = query.filter(
+                or_(
+                    Pedido.estado != 'Despachados',
+                    and_(
+                        Pedido.estado == 'Despachados',
+                        Pedido.fecha_entrega >= fecha_limite_despachados
+                    )
+                )
+            )
+            print(f'[DEBUG] Query despachados aplicada')
+
         # Excluir pedidos con fecha de entrega muy pasada (más de 30 días atrás)
-        # Solo mostrar pedidos futuros o recientes en el tablero activo
+        # IMPORTANTE: NO aplicar este filtro a Despachados, ellos tienen su propio filtro por semanas
         fecha_limite_pasada = datetime.now() - timedelta(days=30)
         query = query.filter(
             or_(
+                Pedido.estado == 'Despachados',  # Despachados se filtran por semanas, no por 30 días
                 Pedido.fecha_entrega.is_(None),
                 Pedido.fecha_entrega >= fecha_limite_pasada
             )
@@ -707,24 +721,18 @@ class PedidosService:
             'Despachados': []
         }
 
-        # Agrupar por estado (excluyendo despachados si no se solicitan)
-        pedidos_filtrados = 0
+        # Agrupar por estado
+        # NOTA: NO filtrar despachados aquí porque ya se filtró en la consulta SQL
+        # según la fecha (los recientes sí se incluyen, los antiguos no)
         for pedido in pedidos:
             estado = pedido.estado or 'Sin Estado'
-            # Doble verificación: nunca incluir despachados si no se solicitan explícitamente
-            if not incluir_despachados and estado == 'Despachados':
-                pedidos_filtrados += 1
-                continue
             if estado not in tablero:
                 tablero[estado] = []
             tablero[estado].append(pedido.to_dict())
-        
-        # FORZAR: Si no se solicitan despachados, eliminarlos completamente del resultado
-        # Esto es una medida de seguridad adicional
-        if not incluir_despachados:
-            # Eliminar estado Despachados
-            tablero['Despachados'] = []
-            # También verificar que no haya ningún pedido con estado "Despachados" en ningún estado
+
+        # Ya no necesitamos filtrar despachados aquí porque la consulta SQL
+        # ya los filtró correctamente según la fecha
+        if False:  # Código anterior deshabilitado
             for estado, pedidos_lista in tablero.items():
                 if estado != 'Despachados':
                     # Filtrar cualquier pedido que tenga estado "Despachados"
@@ -845,12 +853,13 @@ class PedidosService:
             
             # Obtener pedidos que están en estados reclasificables o que no tienen estado de trabajo activo
             # Excluir pedidos muy pasados (más de 30 días) para no clasificar pedidos antiguos
-            # IMPORTANTE: Excluir "Despachados" para que nunca se reclasifiquen automáticamente
+            # IMPORTANTE: Excluir estados de trabajo completado para que nunca se reclasifiquen automáticamente
             fecha_limite_pasada = datetime.now() - timedelta(days=30)
             pedidos = Pedido.query.filter(
                 Pedido.estado != 'Cancelado',
                 Pedido.estado != 'Entregado',
                 Pedido.estado != 'Despachados',  # NUNCA reclasificar despachados
+                Pedido.estado != 'Listo para Despacho',  # NUNCA reclasificar listos para despacho
                 Pedido.fecha_entrega.isnot(None),
                 Pedido.fecha_entrega >= fecha_limite_pasada
             ).all()

@@ -33,6 +33,7 @@ def obtener_insumos_pedido(pedido_id):
                     insumo_dict['insumo_foto'] = flor.foto_url
                     insumo_dict['stock_disponible'] = flor.cantidad_disponible
                     insumo_dict['precio_unitario'] = float(flor.costo_unitario or 0)
+                    insumo_dict['flor_id'] = insumo.insumo_id  # Para frontend
             elif insumo.insumo_tipo == 'Contenedor':
                 contenedor = Contenedor.query.get(insumo.insumo_id)
                 if contenedor:
@@ -41,6 +42,7 @@ def obtener_insumos_pedido(pedido_id):
                     insumo_dict['insumo_foto'] = contenedor.foto_url
                     insumo_dict['stock_disponible'] = contenedor.cantidad_disponible
                     insumo_dict['precio_unitario'] = float(contenedor.costo or 0)
+                    insumo_dict['contenedor_id'] = insumo.insumo_id  # Para frontend
             
             insumos_detallados.append(insumo_dict)
         
@@ -214,22 +216,25 @@ def confirmar_insumos_y_descontar(pedido_id):
                 'detalles': errores_stock
             }), 400
         
-        # Descontar stock y liberar "en uso"
+        # CONFIRMAR USO: Descontar del stock total Y liberar de "en uso"
+        # Los insumos ya estaban reservados (en_uso), ahora los consumimos realmente
         for insumo in insumos:
             if insumo.insumo_tipo == 'Flor':
                 flor = Flor.query.get(insumo.insumo_id)
-                # Descontar del stock total
-                flor.cantidad_stock -= insumo.cantidad
-                # Liberar de "en uso" (ya se usó)
-                flor.cantidad_en_uso = max(0, flor.cantidad_en_uso - insumo.cantidad)
-            
+                if flor:
+                    # Descontar del stock total
+                    flor.cantidad_stock -= insumo.cantidad
+                    # Liberar de "en uso" (ya se usó realmente)
+                    flor.cantidad_en_uso = max(0, flor.cantidad_en_uso - insumo.cantidad)
+
             elif insumo.insumo_tipo == 'Contenedor':
                 contenedor = Contenedor.query.get(insumo.insumo_id)
-                # Descontar del stock total
-                contenedor.stock -= insumo.cantidad
-                # Liberar de "en uso" (ya se usó)
-                contenedor.cantidad_en_uso = max(0, contenedor.cantidad_en_uso - insumo.cantidad)
-            
+                if contenedor:
+                    # Descontar del stock total
+                    contenedor.stock -= insumo.cantidad
+                    # Liberar de "en uso" (ya se usó realmente)
+                    contenedor.cantidad_en_uso = max(0, contenedor.cantidad_en_uso - insumo.cantidad)
+
             # Marcar como descontado
             insumo.descontado_stock = True
         
@@ -498,28 +503,39 @@ def confirmar_insumos_detallados(pedido_id):
         for flor_sel in flores_seleccionadas:
             if flor_sel.descontado_stock:
                 continue  # Ya fue procesada
-            
+
             flor = Flor.query.get(flor_sel.flor_id)
             if not flor:
                 errores.append(f"Flor {flor_sel.flor_id} no encontrada")
                 continue
-            
+
             # Cantidad a usar (puede ser modificada en Taller)
             cantidad_a_usar = cantidades_usadas.get('flores', {}).get(str(flor_sel.id), flor_sel.cantidad)
             cantidad_reservada = flor_sel.cantidad
-            
+
             # Validar que la cantidad a usar sea válida
             if cantidad_a_usar < 0:
                 errores.append(f"{flor.tipo} {flor.color}: Cantidad inválida ({cantidad_a_usar})")
                 continue
-            
-            if cantidad_a_usar > cantidad_reservada:
-                errores.append(f"{flor.tipo} {flor.color}: No se puede usar más de lo reservado (reservado: {cantidad_reservada}, solicitado: {cantidad_a_usar})")
-                continue
-            
-            # Validar que haya stock suficiente para descontar
-            if flor.cantidad_stock < cantidad_a_usar:
-                errores.append(f"{flor.tipo} {flor.color}: Stock total insuficiente ({flor.cantidad_stock} en stock, se necesitan {cantidad_a_usar})")
+
+            # LÓGICA CORRECTA: Calcular cuánto de esta flor está reservado por ESTE pedido
+            # (puede haber múltiples líneas de la misma flor en el pedido)
+            total_reservado_esta_flor = sum(
+                f.cantidad for f in flores_seleccionadas
+                if f.flor_id == flor_sel.flor_id and not f.descontado_stock
+            )
+
+            # Stock realmente disponible = stock disponible actual + lo que este pedido tiene reservado
+            # Esto es correcto porque al confirmar, primero liberamos la reserva y luego descontamos del stock
+            stock_real_disponible = flor.cantidad_disponible + total_reservado_esta_flor
+
+            # Validar si estoy usando MÁS de lo que tenía disponible (considerando mi reserva)
+            if cantidad_a_usar > stock_real_disponible:
+                errores.append(
+                    f"{flor.tipo} {flor.color}: Stock insuficiente. "
+                    f"Disponible: {flor.cantidad_disponible}, Reservado por este pedido: {total_reservado_esta_flor}, "
+                    f"Total disponible: {stock_real_disponible}, Solicitado: {cantidad_a_usar}"
+                )
                 continue
             
             # APLICAR CAMBIOS:
@@ -547,21 +563,29 @@ def confirmar_insumos_detallados(pedido_id):
                 # Cantidad a usar (normalmente 1, pero puede variar)
                 cantidad_a_usar = cantidades_usadas.get('contenedor', contenedor_seleccionado.cantidad)
                 cantidad_reservada = contenedor_seleccionado.cantidad
-                
-                # Validar
+
+                # Validar cantidad inválida
                 if cantidad_a_usar < 0:
                     errores.append(f"{contenedor.tipo}: Cantidad inválida ({cantidad_a_usar})")
-                elif cantidad_a_usar > cantidad_reservada:
-                    errores.append(f"{contenedor.tipo}: No se puede usar más de lo reservado (reservado: {cantidad_reservada}, solicitado: {cantidad_a_usar})")
-                elif contenedor.stock < cantidad_a_usar:
-                    errores.append(f"{contenedor.tipo}: Stock total insuficiente ({contenedor.stock} en stock, se necesitan {cantidad_a_usar})")
                 else:
-                    # APLICAR CAMBIOS
-                    contenedor.stock -= cantidad_a_usar
-                    contenedor.cantidad_en_uso -= cantidad_reservada
-                    contenedor_seleccionado.descontado_stock = True
-                    contenedor_seleccionado.cantidad = cantidad_a_usar
-                    contenedor_seleccionado.costo_total = contenedor_seleccionado.costo_unitario * cantidad_a_usar
+                    # LÓGICA CORRECTA: El contenedor ya está reservado por este pedido
+                    # Stock realmente disponible = stock disponible actual + lo reservado por este pedido
+                    stock_real_disponible = contenedor.cantidad_disponible + cantidad_reservada
+
+                    # Validar si estoy usando MÁS de lo que tenía disponible (considerando mi reserva)
+                    if cantidad_a_usar > stock_real_disponible:
+                        errores.append(
+                            f"{contenedor.tipo}: Stock insuficiente. "
+                            f"Disponible: {contenedor.cantidad_disponible}, Reservado por este pedido: {cantidad_reservada}, "
+                            f"Total disponible: {stock_real_disponible}, Solicitado: {cantidad_a_usar}"
+                        )
+                    else:
+                        # APLICAR CAMBIOS
+                        contenedor.stock -= cantidad_a_usar
+                        contenedor.cantidad_en_uso -= cantidad_reservada
+                        contenedor_seleccionado.descontado_stock = True
+                        contenedor_seleccionado.cantidad = cantidad_a_usar
+                        contenedor_seleccionado.costo_total = contenedor_seleccionado.costo_unitario * cantidad_a_usar
         
         if errores:
             return jsonify({'success': False, 'error': 'Errores de validación', 'detalles': errores}), 400

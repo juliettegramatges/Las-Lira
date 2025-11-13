@@ -100,16 +100,50 @@ function TarjetaPedido({ pedido, onRecargar, onAbrirPedido }) {
         onClick={handleClick}
         className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       >
-      {/* Imagen del producto (si tiene) */}
-      {pedido.producto_imagen && (
+      {/* Imágenes de productos (si tiene) - VERTICAL */}
+      {pedido.productos && pedido.productos.length > 0 ? (
+        <div className="mb-3 -mx-4 -mt-4 space-y-0">
+          {pedido.productos.map((producto, index) => {
+            // Prioridad: foto_respaldo > producto_imagen > imagen del pedido principal
+            const imagenUrl = producto.foto_respaldo || producto.producto_imagen || pedido.producto_imagen
+
+            return (
+              <div
+                key={producto.id || index}
+                className="bg-gradient-to-br from-primary-100 to-primary-200 overflow-hidden flex items-center justify-center relative"
+                style={{height: '128px'}}
+              >
+                {imagenUrl ? (
+                  <img
+                    src={imagenUrl.startsWith('http') ? imagenUrl : `/api/upload/imagen/${imagenUrl}`}
+                    alt={producto.producto_nombre || 'Producto'}
+                    className="w-full h-full object-contain p-2"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-4 text-gray-400">
+                    <Package className="h-12 w-12 mb-2" />
+                    <span className="text-xs text-center font-medium">{producto.producto_nombre}</span>
+                  </div>
+                )}
+                {pedido.productos.length > 1 && (
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-gray-700 shadow-md">
+                    {index + 1} / {pedido.productos.length}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ) : pedido.producto_imagen ? (
+        // Fallback para pedidos antiguos con una sola imagen
         <div className="mb-3 -mx-4 -mt-4 bg-gradient-to-br from-primary-100 to-primary-200 rounded-t-lg overflow-hidden flex items-center justify-center" style={{height: '128px'}}>
-          <img 
+          <img
             src={pedido.producto_imagen.startsWith('http') ? pedido.producto_imagen : `/api/upload/imagen/${pedido.producto_imagen}`}
             alt={pedido.producto_nombre || 'Arreglo'}
             className="w-full h-full object-contain p-2"
           />
         </div>
-      )}
+      ) : null}
       
       {/* Header */}
       <div className="mb-3">

@@ -28,6 +28,7 @@ function InsumosPage() {
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [vistaActiva, setVistaActiva] = useState('flores')
+  const [soloEnUso, setSoloEnUso] = useState(false)  // 🆕 Filtro para ver solo insumos en uso
   const [guardando, setGuardando] = useState({})
   const [modalFlorAbierto, setModalFlorAbierto] = useState(false)
   const [modalContenedorAbierto, setModalContenedorAbierto] = useState(false)
@@ -249,15 +250,27 @@ function InsumosPage() {
     }
   }
 
-  const floresFiltradas = flores.filter(f =>
-    f.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    f.color?.toLowerCase().includes(busqueda.toLowerCase())
-  )
+  const floresFiltradas = flores.filter(f => {
+    // Filtro por búsqueda
+    const coincideBusqueda = f.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+                            f.color?.toLowerCase().includes(busqueda.toLowerCase())
 
-  const contenedoresFiltrados = contenedores.filter(c =>
-    c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.tipo?.toLowerCase().includes(busqueda.toLowerCase())
-  )
+    // Filtro por "en uso"
+    const cumpleFiltroEnUso = !soloEnUso || (f.cantidad_en_uso && f.cantidad_en_uso > 0)
+
+    return coincideBusqueda && cumpleFiltroEnUso
+  })
+
+  const contenedoresFiltrados = contenedores.filter(c => {
+    // Filtro por búsqueda
+    const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+                            c.tipo?.toLowerCase().includes(busqueda.toLowerCase())
+
+    // Filtro por "en uso"
+    const cumpleFiltroEnUso = !soloEnUso || (c.cantidad_en_uso && c.cantidad_en_uso > 0)
+
+    return coincideBusqueda && cumpleFiltroEnUso
+  })
 
   const getStockColor = (disponible, total) => {
     if (total === 0) return 'text-gray-400'
@@ -382,7 +395,25 @@ function InsumosPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            
+
+            {/* 🆕 Botón de filtro "Solo en Uso" */}
+            <button
+              onClick={() => setSoloEnUso(!soloEnUso)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                soloEnUso
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Package className="h-4 w-4" />
+              Solo en Uso
+              {soloEnUso && (
+                <span className="bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
+                  {floresFiltradas.length + contenedoresFiltrados.length}
+                </span>
+              )}
+            </button>
+
             <div className="flex gap-2">
               <button
                 onClick={() => setVistaActiva('flores')}
@@ -448,14 +479,22 @@ function InsumosPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {floresFiltradas.map((flor) => (
-                  <tr key={flor.id} className="hover:bg-purple-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Flower className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm font-medium text-gray-900">{flor.nombre}</span>
-                      </div>
-                    </td>
+                {floresFiltradas.map((flor) => {
+                  const estaEnUso = flor.cantidad_en_uso && flor.cantidad_en_uso > 0
+                  return (
+                    <tr
+                      key={flor.id}
+                      className={`hover:bg-purple-50 transition-colors ${estaEnUso ? 'bg-indigo-50/50 border-l-4 border-l-indigo-500' : ''}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Flower className="h-4 w-4 text-purple-600" />
+                          <span className="text-sm font-medium text-gray-900">{flor.nombre}</span>
+                          {estaEnUso && (
+                            <span className="px-2 py-0.5 bg-indigo-500 text-white text-xs font-bold rounded-full">EN USO</span>
+                          )}
+                        </div>
+                      </td>
                     <td className="px-4 py-3">
                       <select
                         value={flor.color || ''}
@@ -535,7 +574,8 @@ function InsumosPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
                 {floresFiltradas.length === 0 && (
                   <tr>
                     <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
@@ -566,14 +606,22 @@ function InsumosPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {contenedoresFiltrados.map((contenedor) => (
-                  <tr key={contenedor.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-gray-900">{contenedor.nombre}</span>
-                      </div>
-                    </td>
+                {contenedoresFiltrados.map((contenedor) => {
+                  const estaEnUso = contenedor.cantidad_en_uso && contenedor.cantidad_en_uso > 0
+                  return (
+                    <tr
+                      key={contenedor.id}
+                      className={`hover:bg-blue-50 transition-colors ${estaEnUso ? 'bg-indigo-50/50 border-l-4 border-l-indigo-500' : ''}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-medium text-gray-900">{contenedor.nombre}</span>
+                          {estaEnUso && (
+                            <span className="px-2 py-0.5 bg-indigo-500 text-white text-xs font-bold rounded-full">EN USO</span>
+                          )}
+                        </div>
+                      </td>
                     <td className="px-4 py-3">
                       <span className="text-sm text-gray-700">{contenedor.tipo || '-'}</span>
                     </td>
@@ -644,7 +692,8 @@ function InsumosPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
                 {contenedoresFiltrados.length === 0 && (
                   <tr>
                     <td colSpan="9" className="px-4 py-8 text-center text-gray-500">

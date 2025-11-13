@@ -23,6 +23,7 @@ function TableroPage() {
   const [mensajeActualizacion, setMensajeActualizacion] = useState(null)
   const [actualizando, setActualizando] = useState(false)
   const [incluirDespachados, setIncluirDespachados] = useState(false)
+  const [semanasDespachados, setSemanasDespachados] = useState(1) // Por defecto 1 semana
 
   // Estados según flujo actualizado (orden de prioridad)
   const estados = [
@@ -53,7 +54,7 @@ function TableroPage() {
       }
       
       // 📊 PASO 2: Cargar tablero con estados actualizados (excluyendo despachados por defecto)
-      const response = await pedidosAPI.obtenerTablero(incluirDespachados)
+      const response = await pedidosAPI.obtenerTablero(incluirDespachados, semanasDespachados)
       if (response.data.success) {
         setTablero(response.data.data)
       }
@@ -84,7 +85,19 @@ function TableroPage() {
     window.addEventListener('refetch-tablero', handler)
     return () => window.removeEventListener('refetch-tablero', handler)
   }, [])
-  
+
+  // Recargar cuando cambia el número de semanas de despachados
+  useEffect(() => {
+    if (semanasDespachados > 1) {
+      cargarTablero(false) // No auto-clasificar al cargar más semanas
+    }
+  }, [semanasDespachados])
+
+  const cargarMasDespachados = () => {
+    // Duplicar las semanas: 1 -> 2 -> 4 -> 8
+    setSemanasDespachados(prev => prev * 2)
+  }
+
   const moverPedido = async (pedidoId, nuevoEstado) => {
     try {
       await pedidosAPI.actualizarEstado(pedidoId, nuevoEstado)
@@ -182,6 +195,9 @@ function TableroPage() {
               setIncluirDespachados(true)
               cargarTablero(false)
             }}
+            mostrarCargarMas={estado === 'Despachados' && semanasDespachados < 8}
+            onCargarMas={cargarMasDespachados}
+            semanasCargadas={semanasDespachados}
           />
         ))}
       </div>

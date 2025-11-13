@@ -118,6 +118,31 @@ class Pedido(db.Model):
     
     def to_dict(self):
         """Convierte el pedido a diccionario"""
+        # Construir lista de productos con sus insumos
+        productos_list = []
+        for pp in self.pedido_productos:
+            # Obtener insumos asociados a este producto
+            insumos_producto = [insumo.to_dict() for insumo in pp.insumos]
+
+            # Obtener imagen del producto
+            producto_imagen = None
+            if pp.producto:
+                if pp.producto.imagen_principal:
+                    producto_imagen = pp.producto.imagen_principal
+                elif pp.producto.imagen_url:
+                    producto_imagen = pp.producto.imagen_url
+
+            productos_list.append({
+                'id': pp.id,
+                'producto_id': pp.producto_id,
+                'producto_nombre': pp.producto_nombre,
+                'precio': float(pp.precio),
+                'cantidad': pp.cantidad,
+                'foto_respaldo': pp.foto_respaldo,
+                'producto_imagen': producto_imagen,
+                'insumos': insumos_producto
+            })
+
         return {
             'id': self.id,
             'fecha_pedido': self.fecha_pedido.isoformat() if self.fecha_pedido else None,
@@ -161,6 +186,7 @@ class Pedido(db.Model):
             'tipo_personalizacion': self.tipo_personalizacion,
             'notas_personalizacion': self.notas_personalizacion,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
+            'productos': productos_list  # Lista de productos con sus insumos
         }
     
     def __repr__(self):
@@ -177,6 +203,7 @@ class PedidoProducto(db.Model):
     producto_nombre = db.Column(db.String(200))
     precio = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     cantidad = db.Column(db.Integer, nullable=False, default=1)
+    foto_respaldo = db.Column(db.String(500))  # Foto de respaldo para este producto específico
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relaciones
@@ -192,6 +219,7 @@ class PedidoProducto(db.Model):
             'producto_nombre': self.producto_nombre,
             'precio': float(self.precio),
             'cantidad': self.cantidad,
+            'foto_respaldo': self.foto_respaldo,
             'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None
         }
 

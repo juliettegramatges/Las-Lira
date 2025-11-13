@@ -22,7 +22,7 @@ const colorBadge = {
   'Eventos': 'bg-pink-100 text-pink-800',
 }
 
-function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedido, mostrarCargarDespachados = false, onCargarDespachados }) {
+function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedido, mostrarCargarDespachados = false, onCargarDespachados, mostrarCargarMas = false, onCargarMas, semanasCargadas = 1 }) {
   const [dragOver, setDragOver] = useState(false)
   
   const handleDragOver = (e) => {
@@ -84,14 +84,24 @@ function ColumnaKanban({ estado, pedidos, onMoverPedido, onRecargar, onAbrirPedi
             )}
           </div>
         ) : (
-          pedidos.map((pedido) => (
-            <TarjetaPedido
-              key={pedido.id}
-              pedido={pedido}
-              onRecargar={onRecargar}
-              onAbrirPedido={onAbrirPedido}
-            />
-          ))
+          <>
+            {pedidos.map((pedido) => (
+              <TarjetaPedido
+                key={pedido.id}
+                pedido={pedido}
+                onRecargar={onRecargar}
+                onAbrirPedido={onAbrirPedido}
+              />
+            ))}
+            {mostrarCargarMas && pedidos.length > 0 && (
+              <button
+                onClick={onCargarMas}
+                className="w-full mt-2 py-2 px-4 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-xs font-medium"
+              >
+                Cargar más antiguos ({semanasCargadas * 2} semanas)
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

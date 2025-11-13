@@ -66,10 +66,15 @@ function TallerPage() {
     try {
       setLoadingInsumos(true)
       setPedidoSeleccionado(pedido)
-      
+
       const response = await pedidoInsumosAPI.obtenerInsumos(pedido.id)
-      setInsumos(response.data.insumos || [])
-      
+      // Guardar cantidad original para cálculo de stock disponible
+      const insumosConOriginal = (response.data.insumos || []).map(insumo => ({
+        ...insumo,
+        cantidad_original: insumo.cantidad  // Guardar la cantidad original reservada
+      }))
+      setInsumos(insumosConOriginal)
+
       // Cargar flores y contenedores disponibles para poder agregar
       await cargarInsumosDisponibles()
     } catch (err) {
@@ -143,11 +148,12 @@ function TallerPage() {
     }
 
     // Calcular el stock realmente disponible para este pedido
+    // IMPORTANTE: Usar cantidad_original (lo reservado) no cantidad (que puede estar modificada)
     const reservadoEnEstePedido = insumos
       .filter(i => i.insumo_tipo === nuevoInsumo.tipo)
       .filter(i => (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === insumoSeleccionado.id)
-      .reduce((sum, i) => sum + (i.cantidad || 0), 0)
-    
+      .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+
     const stockDisponibleReal = (insumoSeleccionado.cantidad_disponible || 0) + reservadoEnEstePedido
 
     // Crear nuevo insumo para la lista
@@ -158,6 +164,7 @@ function TallerPage() {
       insumo_color: insumoSeleccionado.color || null,
       insumo_foto: insumoSeleccionado.imagen || null,
       cantidad: parseInt(nuevoInsumo.cantidad),
+      cantidad_original: parseInt(nuevoInsumo.cantidad), // Para nuevos insumos, cantidad_original = cantidad
       costo_unitario: insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0,
       costo_total: (insumoSeleccionado.costo_unitario || insumoSeleccionado.costo || 0) * parseInt(nuevoInsumo.cantidad),
       stock_disponible: stockDisponibleReal, // Stock real incluyendo lo reservado en este pedido
@@ -178,26 +185,25 @@ function TallerPage() {
 
   const handleConfirmarInsumos = async () => {
     if (!pedidoSeleccionado) return
-    
+
     // Validar stock antes de confirmar
-    // IMPORTANTE: El stock_disponible en cada insumo YA incluye lo reservado para este pedido
-    // (se calculó en handleAgregarInsumo con stockDisponibleReal)
-    // Pero para insumos existentes (no nuevos), necesitamos recalcular
+    // IMPORTANTE: Debemos considerar que los insumos YA están reservados (en cantidad_en_uso)
+    // El stock disponible real = cantidad_disponible + lo reservado por ESTE pedido
     const insumosConStockActualizado = insumos.map(insumo => {
-      // Para insumos que ya existían, recalcular el stock disponible real
       const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
       const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
-      
+
       if (insumoInventario) {
         // Calcular cuánto de este insumo está reservado en ESTE pedido
+        // IMPORTANTE: Usar cantidad_original (lo reservado), no cantidad (que puede estar modificada)
         const reservadoEnEstePedido = insumos
           .filter(i => i.insumo_tipo === insumo.insumo_tipo)
           .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
-          .reduce((sum, i) => sum + (i.cantidad || 0), 0)
-        
-        // Stock real = disponible en inventario + lo que ya tenemos reservado
+          .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+
+        // Stock real disponible = lo que está libre + lo que este pedido tiene reservado
         const stockDisponibleReal = (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
-        
+
         return {
           ...insumo,
           stock_disponible: stockDisponibleReal
@@ -205,14 +211,14 @@ function TallerPage() {
       }
       return insumo
     })
-    
+
     const faltaStock = insumosConStockActualizado.some(i => i.cantidad > i.stock_disponible)
     if (faltaStock) {
       const detalles = insumosConStockActualizado
         .filter(i => i.cantidad > i.stock_disponible)
         .map(i => `${i.insumo_nombre}: necesita ${i.cantidad}, disponible ${i.stock_disponible}`)
         .join('\n')
-      
+
       if (!confirm(`⚠️ ADVERTENCIA: Algunos insumos superan el stock disponible:\n\n${detalles}\n\n¿Deseas continuar de todos modos?`)) {
         return
       }
@@ -461,18 +467,19 @@ function TallerPage() {
                           // Calcular el stock real disponible (incluyendo lo reservado para este pedido)
                           const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
                           const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
-                          
-                          // Calcular cuánto de este insumo está reservado en ESTE pedido (suma de todas las cantidades)
+
+                          // Calcular cuánto de este insumo está reservado en ESTE pedido
+                          // IMPORTANTE: Usar cantidad_original, no cantidad (que puede estar modificada)
                           const reservadoEnEstePedido = insumos
                             .filter(i => i.insumo_tipo === insumo.insumo_tipo)
                             .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
-                            .reduce((sum, i) => sum + (i.cantidad || 0), 0)
-                          
+                            .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+
                           // Stock real = disponible en inventario + lo que ya tenemos reservado
-                          const stockDisponibleReal = insumoInventario 
+                          const stockDisponibleReal = insumoInventario
                             ? (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
                             : (insumo.stock_disponible || 0)
-                          
+
                           const stockSuficiente = stockDisponibleReal >= insumo.cantidad
                           
                           return (
@@ -564,19 +571,39 @@ function TallerPage() {
                   </div>
 
                   {/* Alertas */}
-                  {insumos.some(i => i.stock_disponible < i.cantidad) && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                        <div>
-                          <h3 className="font-semibold text-red-900">Stock insuficiente</h3>
-                          <p className="text-red-700 text-sm mt-1">
-                            Algunos insumos no tienen stock suficiente. Debes reponer inventario antes de confirmar este pedido.
-                          </p>
+                  {(() => {
+                    // Calcular si hay stock insuficiente considerando lo reservado por ESTE pedido
+                    const hayStockInsuficiente = insumos.some(insumo => {
+                      const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
+                      const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
+
+                      // Usar cantidad_original (lo que está reservado) no cantidad (que puede estar modificada)
+                      const reservadoEnEstePedido = insumos
+                        .filter(i => i.insumo_tipo === insumo.insumo_tipo)
+                        .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
+                        .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+
+                      const stockDisponibleReal = insumoInventario
+                        ? (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
+                        : (insumo.stock_disponible || 0)
+
+                      return insumo.cantidad > stockDisponibleReal
+                    })
+
+                    return hayStockInsuficiente && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                          <div>
+                            <h3 className="font-semibold text-red-900">Stock insuficiente</h3>
+                            <p className="text-red-700 text-sm mt-1">
+                              Algunos insumos no tienen stock suficiente. Debes reponer inventario antes de confirmar este pedido.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
                 </>
               )}
                 </div>
@@ -594,7 +621,25 @@ function TallerPage() {
               {insumos.length > 0 && (
                 <button
                   onClick={handleConfirmarInsumos}
-                  disabled={confirmando || insumos.some(i => i.stock_disponible < i.cantidad)}
+                  disabled={confirmando || (() => {
+                    // Validar considerando lo reservado por ESTE pedido
+                    return insumos.some(insumo => {
+                      const lista = insumo.insumo_tipo === 'Flor' ? flores : contenedores
+                      const insumoInventario = lista?.find(i => i.id === (insumo.flor_id || insumo.contenedor_id))
+
+                      // Usar cantidad_original (lo que está reservado) no cantidad (que puede estar modificada)
+                      const reservadoEnEstePedido = insumos
+                        .filter(i => i.insumo_tipo === insumo.insumo_tipo)
+                        .filter(i => (i.flor_id || i.contenedor_id) === (insumo.flor_id || insumo.contenedor_id))
+                        .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+
+                      const stockDisponibleReal = insumoInventario
+                        ? (insumoInventario.cantidad_disponible || 0) + reservadoEnEstePedido
+                        : (insumo.stock_disponible || 0)
+
+                      return insumo.cantidad > stockDisponibleReal
+                    })
+                  })()}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <CheckCircle className="h-4 w-4" />
@@ -661,11 +706,12 @@ function TallerPage() {
                     
                     return listaSegura.map((insumo) => {
                       // Calcular cuánto de este insumo ya está reservado en ESTE pedido
+                      // IMPORTANTE: Usar cantidad_original (lo reservado) no cantidad (que puede estar modificada)
                       const reservadoEnEstePedido = insumos
                         .filter(i => i.insumo_tipo === nuevoInsumo.tipo)
                         .filter(i => (nuevoInsumo.tipo === 'Flor' ? i.flor_id : i.contenedor_id) === insumo.id)
-                        .reduce((sum, i) => sum + (i.cantidad || 0), 0)
-                      
+                        .reduce((sum, i) => sum + (i.cantidad_original || i.cantidad || 0), 0)
+
                       // El stock "realmente disponible" incluye lo que ya tenemos reservado
                       const stockDisponibleReal = (insumo.cantidad_disponible || 0) + reservadoEnEstePedido
                       
