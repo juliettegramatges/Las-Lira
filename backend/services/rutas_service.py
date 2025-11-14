@@ -329,13 +329,21 @@ class RutasService:
             for idx, p in enumerate(pedidos_con_coords):
                 print(f"   {idx + 1}. Pedido {p.id}: ({p.latitud:.6f}, {p.longitud:.6f}) - {p.direccion_entrega}")
 
-            # Waypoints intermedios (todos los pedidos excepto el último)
+            # IMPORTANTE: Para optimizar TODOS los pedidos, debemos incluirlos todos como waypoints
+            # y usar el punto de inicio como destino (volver a la tienda después de todas las entregas)
+            # Esto permite que Google optimice el orden de TODOS los pedidos
+            
             waypoints = []
-            for pedido in pedidos_con_coords[:-1]:
+            for pedido in pedidos_con_coords:
                 waypoints.append(f"{pedido.latitud},{pedido.longitud}")
 
-            # Destino (último pedido)
-            destino = f"{pedidos_con_coords[-1].latitud},{pedidos_con_coords[-1].longitud}"
+            # Destino: volver al punto de inicio (tienda) después de todas las entregas
+            # Esto permite que Google optimice el orden de TODOS los pedidos
+            destino = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
+            
+            print(f"📊 Configuración de optimización:")
+            print(f"   Waypoints a optimizar: {len(waypoints)} pedidos")
+            print(f"   Destino: Punto de inicio (volver a tienda)")
 
             # Construir URL
             base_url = "https://maps.googleapis.com/maps/api/directions/json"
@@ -401,16 +409,23 @@ class RutasService:
             orden_pedidos = []
 
             print(f"\n🔄 Orden optimizado de waypoints: {waypoint_order}")
+            print(f"   Total waypoints optimizados: {len(waypoint_order)}")
             
-            # Agregar waypoints según orden optimizado
+            # Agregar waypoints según orden optimizado de Google
+            # waypoint_order contiene los índices de los waypoints en orden optimizado
             for idx in waypoint_order:
-                if idx < len(pedidos_con_coords) - 1:  # Excluir el último que es destino
+                if idx < len(pedidos_con_coords):
                     orden_pedidos.append(pedidos_con_coords[idx])
-                    print(f"   Waypoint {len(orden_pedidos)}: Pedido {pedidos_con_coords[idx].id}")
+                    print(f"   Parada {len(orden_pedidos)}: Pedido {pedidos_con_coords[idx].id}")
 
-            # Agregar el último pedido (destino)
-            orden_pedidos.append(pedidos_con_coords[-1])
-            print(f"   Destino final: Pedido {pedidos_con_coords[-1].id}")
+            # Verificar que todos los pedidos estén incluidos
+            if len(orden_pedidos) != len(pedidos_con_coords):
+                print(f"⚠️  ADVERTENCIA: Se esperaban {len(pedidos_con_coords)} pedidos, pero solo se optimizaron {len(orden_pedidos)}")
+                # Agregar los pedidos faltantes al final
+                pedidos_faltantes = [p for p in pedidos_con_coords if p not in orden_pedidos]
+                for pedido in pedidos_faltantes:
+                    orden_pedidos.append(pedido)
+                    print(f"   Parada {len(orden_pedidos)} (agregado): Pedido {pedido.id}")
             
             print(f"\n✅ Total pedidos en ruta optimizada: {len(orden_pedidos)} - IDs: {[p.id for p in orden_pedidos]}")
 
@@ -421,7 +436,29 @@ class RutasService:
             # Parsear hora de inicio
             hora_inicio_dt = datetime.strptime(hora_inicio, '%H:%M')
 
-            for idx, (pedido, leg) in enumerate(zip(orden_pedidos, legs)):
+            # Los legs de Google Maps incluyen:
+            # - legs[0]: origen -> primer waypoint optimizado
+            # - legs[1]: primer waypoint -> segundo waypoint
+            # - ...
+            # - legs[N-1]: penúltimo waypoint -> último waypoint
+            # - legs[N]: último waypoint -> destino (punto de inicio, vuelta a tienda)
+            # 
+            # Si tenemos N pedidos como waypoints, tendremos N+1 legs (incluye el de vuelta a la tienda)
+            # Solo procesamos los primeros N legs (los que van a pedidos)
+            
+            if len(legs) == len(orden_pedidos) + 1:
+                # Hay un leg extra para volver a la tienda, lo excluimos
+                legs_para_pedidos = legs[:-1]
+                distancia_vuelta_tienda = legs[-1]['distance']['value'] / 1000
+                tiempo_vuelta_tienda = legs[-1]['duration']['value'] / 60
+                print(f"📏 Procesando {len(legs_para_pedidos)} legs para {len(orden_pedidos)} pedidos")
+                print(f"   Distancia de vuelta a tienda: {distancia_vuelta_tienda:.2f} km ({tiempo_vuelta_tienda:.1f} min)")
+            else:
+                # No hay leg de vuelta (caso especial), usar todos los legs
+                legs_para_pedidos = legs[:len(orden_pedidos)]
+                print(f"📏 Procesando {len(legs_para_pedidos)} legs para {len(orden_pedidos)} pedidos")
+
+            for idx, (pedido, leg) in enumerate(zip(orden_pedidos, legs_para_pedidos)):
                 distancia_km = leg['distance']['value'] / 1000  # Convertir a km
                 tiempo_min = leg['duration']['value'] / 60  # Convertir a minutos
 
@@ -531,6 +568,20 @@ class RutasService:
             waypoints_coords = [f"{p['latitud']},{p['longitud']}" for p in ruta_optimizada if p.get('latitud') and p.get('longitud')]
             google_maps_url = f"https://www.google.com/maps/dir/{origen}/" + "/".join(waypoints_coords)
 
+            # La distancia total es solo hasta el último pedido (sin incluir vuelta a tienda)
+            distancia_total_km = round(distancia_acumulada, 2)
+            tiempo_total_min = int(tiempo_acumulado)
+            
+            # Si hay leg de vuelta a la tienda, mostrarlo en el mensaje pero no incluirlo en la distancia total
+            if len(legs) == len(orden_pedidos) + 1:
+                distancia_vuelta = legs[-1]['distance']['value'] / 1000
+                tiempo_vuelta = legs[-1]['duration']['value'] / 60
+                print(f"📊 Resumen de ruta:")
+                print(f"   Distancia total (hasta último pedido): {distancia_total_km} km")
+                print(f"   Tiempo total (hasta último pedido): {tiempo_total_min} min")
+                print(f"   Distancia de vuelta a tienda: {distancia_vuelta:.2f} km ({tiempo_vuelta:.1f} min)")
+                print(f"   Distancia total (incluyendo vuelta): {distancia_total_km + distancia_vuelta:.2f} km")
+
             mensaje_final = 'Ruta optimizada con Google Maps Directions API'
             if pedidos_sin_coords:
                 mensaje_final += f'. {len(pedidos_sin_coords)} pedido(s) sin coordenadas insertado(s) en la ruta.'
@@ -538,8 +589,8 @@ class RutasService:
             return True, {
                 'ruta_optimizada': ruta_optimizada,
                 'metodo': 'google_directions',
-                'distancia_total_km': round(distancia_acumulada, 2),
-                'tiempo_total_min': int(tiempo_acumulado),
+                'distancia_total_km': distancia_total_km,
+                'tiempo_total_min': tiempo_total_min,
                 'punto_inicio': PUNTO_INICIO,
                 'hora_inicio': hora_inicio,
                 'polyline': route.get('overview_polyline', {}).get('points'),  # Para dibujar ruta en mapa
