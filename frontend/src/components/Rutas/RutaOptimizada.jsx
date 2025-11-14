@@ -92,58 +92,68 @@ function RutaOptimizada({ rutaData }) {
       markersRef.current.push(marker)
     })
 
-    // Dibujar ruta si usamos Google Directions API
+    // Dibujar ruta si usamos Google Directions API con polyline
     if (rutaData.metodo === 'google_directions' && rutaData.polyline) {
-      if (directionsRendererRef.current) {
-        directionsRendererRef.current.setMap(null)
-      }
+      try {
+        // Decodificar polyline de Google y dibujarla
+        const path = window.google.maps.geometry.encoding.decodePath(rutaData.polyline)
 
-      const directionsRenderer = new window.google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true, // Usar nuestros markers personalizados
-        polylineOptions: {
+        const routePath = new window.google.maps.Polyline({
+          path: path,
+          geodesic: true,
           strokeColor: '#4285F4',
+          strokeOpacity: 0.8,
           strokeWeight: 5,
-          strokeOpacity: 0.7
-        }
-      })
+          map: map
+        })
 
-      directionsRendererRef.current = directionsRenderer
+        // Ajustar zoom para mostrar toda la ruta
+        const bounds = new window.google.maps.LatLngBounds()
+        bounds.extend({ lat: puntoInicio.latitud, lng: puntoInicio.longitud })
 
-      // Decodificar polyline (si está disponible)
-      const path = window.google.maps.geometry.encoding.decodePath(rutaData.polyline)
+        rutaData.ruta_optimizada.forEach(parada => {
+          bounds.extend({ lat: parada.latitud, lng: parada.longitud })
+        })
 
-      const bounds = new window.google.maps.LatLngBounds()
-      bounds.extend({ lat: puntoInicio.latitud, lng: puntoInicio.longitud })
-
-      rutaData.ruta_optimizada.forEach(parada => {
-        bounds.extend({ lat: parada.latitud, lng: parada.longitud })
-      })
-
-      map.fitBounds(bounds)
+        map.fitBounds(bounds)
+      } catch (error) {
+        console.error('Error al decodificar polyline:', error)
+        // Fallback a líneas simples
+        dibujarLineaSimple(map, puntoInicio, rutaData.ruta_optimizada)
+      }
     } else {
       // Dibujar líneas simples entre puntos
-      const lineCoordinates = [
-        { lat: puntoInicio.latitud, lng: puntoInicio.longitud },
-        ...rutaData.ruta_optimizada.map(p => ({ lat: p.latitud, lng: p.longitud }))
-      ]
-
-      const routePath = new window.google.maps.Polyline({
-        path: lineCoordinates,
-        geodesic: true,
-        strokeColor: '#4285F4',
-        strokeOpacity: 0.7,
-        strokeWeight: 4,
-        map: map
-      })
-
-      // Ajustar zoom para mostrar toda la ruta
-      const bounds = new window.google.maps.LatLngBounds()
-      lineCoordinates.forEach(coord => bounds.extend(coord))
-      map.fitBounds(bounds)
+      dibujarLineaSimple(map, puntoInicio, rutaData.ruta_optimizada)
     }
 
     setMapaListo(true)
+  }
+
+  const dibujarLineaSimple = (map, puntoInicio, rutaOptimizada) => {
+    const lineCoordinates = [
+      { lat: puntoInicio.latitud, lng: puntoInicio.longitud },
+      ...rutaOptimizada.map(p => ({ lat: p.latitud, lng: p.longitud }))
+    ]
+
+    const routePath = new window.google.maps.Polyline({
+      path: lineCoordinates,
+      geodesic: true,
+      strokeColor: '#4285F4',
+      strokeOpacity: 0.7,
+      strokeWeight: 4,
+      map: map
+    })
+
+    // Ajustar zoom para mostrar toda la ruta
+    const bounds = new window.google.maps.LatLngBounds()
+    lineCoordinates.forEach(coord => bounds.extend(coord))
+    map.fitBounds(bounds)
+  }
+
+  const abrirEnGoogleMaps = () => {
+    if (rutaData && rutaData.google_maps_url) {
+      window.open(rutaData.google_maps_url, '_blank')
+    }
   }
 
   if (!rutaData) {
@@ -212,19 +222,23 @@ function RutaOptimizada({ rutaData }) {
 
         {/* Botón para abrir en Google Maps */}
         {rutaData.google_maps_url && (
-          <div className="mt-3">
+          <div className="mt-4 space-y-2">
             <a
               href={rutaData.google_maps_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-3 text-lg"
+              className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              <Navigation className="h-6 w-6" />
-              Abrir Ruta en Google Maps
-              <span className="text-sm opacity-90">(Navegación)</span>
+              <div className="flex items-center justify-center gap-3">
+                <Navigation className="h-7 w-7" />
+                <div className="text-left">
+                  <div className="text-lg">Abrir Navegación en Google Maps</div>
+                  <div className="text-xs opacity-90 font-normal">Ruta en auto con todos los puntos de entrega</div>
+                </div>
+              </div>
             </a>
-            <p className="text-xs text-center text-gray-600 mt-2">
-              Se abrirá la ruta completa con todos los puntos de entrega en orden
+            <p className="text-xs text-center text-gray-600">
+              🚗 Se abrirá Google Maps con la ruta optimizada lista para navegar
             </p>
           </div>
         )}

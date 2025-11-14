@@ -133,11 +133,18 @@ class RutasService:
                 # Fallback a optimización simple
                 print("⚠️  No se encontró API Key de Google, usando optimización simple")
                 ruta_simple = RutasService.optimizar_ruta_simple(pedidos)
+
+                # Generar link de Google Maps para navegación
+                origen = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
+                waypoints_coords = [f"{p['latitud']},{p['longitud']}" for p in ruta_simple]
+                google_maps_url = f"https://www.google.com/maps/dir/{origen}/" + "/".join(waypoints_coords)
+
                 return True, {
                     'ruta_optimizada': ruta_simple,
                     'metodo': 'simple',
                     'distancia_total_km': ruta_simple[-1]['distancia_acumulada_km'] if ruta_simple else 0,
-                    'punto_inicio': PUNTO_INICIO
+                    'punto_inicio': PUNTO_INICIO,
+                    'google_maps_url': google_maps_url
                 }, 'Ruta optimizada con algoritmo simple (sin Google Maps)'
 
             # Filtrar pedidos con coordenadas
@@ -149,6 +156,12 @@ class RutasService:
             if len(pedidos_con_coords) == 1:
                 # Solo un pedido, no es necesario optimizar
                 pedido = pedidos_con_coords[0]
+
+                # Generar link de Google Maps para navegación
+                origen = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
+                destino = f"{pedido.latitud},{pedido.longitud}"
+                google_maps_url = f"https://www.google.com/maps/dir/{origen}/{destino}"
+
                 return True, {
                     'ruta_optimizada': [{
                         'pedido_id': pedido.id,
@@ -160,7 +173,8 @@ class RutasService:
                         'longitud': pedido.longitud
                     }],
                     'metodo': 'unico',
-                    'punto_inicio': PUNTO_INICIO
+                    'punto_inicio': PUNTO_INICIO,
+                    'google_maps_url': google_maps_url
                 }, 'Ruta con un solo pedido'
 
             # Construir URL para Directions API
@@ -272,11 +286,18 @@ class RutasService:
             print(f"❌ Error de red al consultar Google Maps: {e}")
             # Fallback a optimización simple
             ruta_simple = RutasService.optimizar_ruta_simple(pedidos)
+
+            # Generar link de Google Maps para navegación
+            origen = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
+            waypoints_coords = [f"{p['latitud']},{p['longitud']}" for p in ruta_simple]
+            google_maps_url = f"https://www.google.com/maps/dir/{origen}/" + "/".join(waypoints_coords)
+
             return True, {
                 'ruta_optimizada': ruta_simple,
                 'metodo': 'simple_fallback',
                 'distancia_total_km': ruta_simple[-1]['distancia_acumulada_km'] if ruta_simple else 0,
-                'punto_inicio': PUNTO_INICIO
+                'punto_inicio': PUNTO_INICIO,
+                'google_maps_url': google_maps_url
             }, 'Usando optimización simple (error de conexión con Google)'
 
         except Exception as e:
