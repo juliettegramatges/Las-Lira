@@ -6,8 +6,8 @@ Configuración para optimización de rutas
 PUNTO_INICIO = {
     'nombre': 'Las Lira - Tienda',
     'direccion': 'Gran Vía 8113, Vitacura, Región Metropolitana, Chile',
-    'latitud': -33.4006,
-    'longitud': -70.5721,
+    'latitud': -33.3730812,
+    'longitud': -70.560421,
     'comuna': 'Vitacura'
 }
 
