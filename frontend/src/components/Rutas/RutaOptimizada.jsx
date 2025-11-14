@@ -209,6 +209,25 @@ function RutaOptimizada({ rutaData }) {
           <span className="font-medium">Inicio:</span>
           <span className="text-gray-700">{rutaData.punto_inicio.direccion}</span>
         </div>
+
+        {/* Botón para abrir en Google Maps */}
+        {rutaData.google_maps_url && (
+          <div className="mt-3">
+            <a
+              href={rutaData.google_maps_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-3 text-lg"
+            >
+              <Navigation className="h-6 w-6" />
+              Abrir Ruta en Google Maps
+              <span className="text-sm opacity-90">(Navegación)</span>
+            </a>
+            <p className="text-xs text-center text-gray-600 mt-2">
+              Se abrirá la ruta completa con todos los puntos de entrega en orden
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Mapa */}

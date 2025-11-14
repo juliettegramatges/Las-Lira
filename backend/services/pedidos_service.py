@@ -243,6 +243,8 @@ class PedidosService:
                 firma=data.get('firma'),
                 direccion_entrega=data['direccion_entrega'],
                 comuna=data.get('comuna'),
+                latitud=data.get('latitud'),
+                longitud=data.get('longitud'),
                 motivo=data.get('motivo'),
                 plazo_pago_dias=plazo_pago,
                 fecha_maxima_pago=fecha_maxima_pago,
@@ -659,6 +661,7 @@ class PedidosService:
                 'cliente_nombre', 'cliente_telefono', 'cliente_email',
                 'arreglo_pedido', 'detalles_adicionales', 'precio_ramo', 'precio_envio',
                 'destinatario', 'mensaje', 'firma', 'direccion_entrega', 'comuna',
+                'latitud', 'longitud',
                 'motivo', 'estado', 'estado_pago', 'metodo_pago', 'documento_tributario',
                 'fecha_entrega', 'dia_entrega'
             ]

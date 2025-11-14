@@ -87,7 +87,7 @@ class RutasService:
             if pedido_mas_cercano:
                 # Agregar a la ruta
                 distancia_total += min_distancia
-                tiempo_estimado = int((min_distancia / 25) * 60)  # Asumiendo 25 km/h promedio
+                tiempo_estimado = int((min_distancia / 40) * 60)  # Asumiendo 40 km/h promedio en auto urbano
 
                 ruta_optimizada.append({
                     'pedido_id': pedido_mas_cercano.id,
@@ -185,6 +185,7 @@ class RutasService:
                 'origin': origen,
                 'destination': destino,
                 'waypoints': 'optimize:true|' + '|'.join(waypoints),
+                'mode': 'driving',  # Modo auto para entregas
                 'key': api_key,
                 'language': 'es',
                 'region': 'CL'
@@ -251,6 +252,11 @@ class RutasService:
                     'es_urgente': pedido.es_urgente
                 })
 
+            # Generar link de Google Maps para navegación
+            # Formato: https://www.google.com/maps/dir/origin/waypoint1/waypoint2/.../destination
+            waypoints_coords = [f"{p['latitud']},{p['longitud']}" for p in ruta_optimizada]
+            google_maps_url = f"https://www.google.com/maps/dir/{origen}/" + "/".join(waypoints_coords)
+
             return True, {
                 'ruta_optimizada': ruta_optimizada,
                 'metodo': 'google_directions',
@@ -259,6 +265,7 @@ class RutasService:
                 'punto_inicio': PUNTO_INICIO,
                 'hora_inicio': hora_inicio,
                 'polyline': route.get('overview_polyline', {}).get('points'),  # Para dibujar ruta en mapa
+                'google_maps_url': google_maps_url  # Link para abrir en Google Maps
             }, 'Ruta optimizada con Google Maps Directions API'
 
         except requests.exceptions.RequestException as e:
