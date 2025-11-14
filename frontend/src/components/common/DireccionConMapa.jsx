@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { MapPin, Loader2, AlertCircle, Navigation } from 'lucide-react'
+import { MapPin, Loader2, AlertCircle, Navigation, Clock, Car } from 'lucide-react'
+
+// Coordenadas de la tienda (Gran Vía 8113, Vitacura)
+const TIENDA_LAT = -33.3730812
+const TIENDA_LNG = -70.560421
 
 /**
  * Componente para seleccionar dirección usando Google Maps Autocomplete y Geocoding
@@ -22,6 +26,8 @@ function DireccionConMapa({
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false)
   const [loadingGeocoding, setLoadingGeocoding] = useState(false)
   const [error, setError] = useState(null)
+  const [tiempoEstimado, setTiempoEstimado] = useState(null) // Nuevo: tiempo en minutos
+  const [distanciaEstimada, setDistanciaEstimada] = useState(null) // Nuevo: distancia en km
   const inputRef = useRef(null)
   const autocompleteRef = useRef(null)
   const mapRef = useRef(null)
@@ -58,6 +64,26 @@ function DireccionConMapa({
     }
   }, [])
 
+  // Calcular distancia y tiempo desde la tienda
+  const calcularDistanciaYTiempo = (lat, lng) => {
+    // Fórmula de Haversine para calcular distancia
+    const R = 6371 // Radio de la Tierra en km
+    const dLat = (lat - TIENDA_LAT) * Math.PI / 180
+    const dLon = (lng - TIENDA_LNG) * Math.PI / 180
+    const a =
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(TIENDA_LAT * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    const distancia = R * c // Distancia en km
+
+    // Calcular tiempo estimado (40 km/h promedio en ciudad)
+    const tiempo = (distancia / 40) * 60 // Tiempo en minutos
+
+    setDistanciaEstimada(distancia.toFixed(1))
+    setTiempoEstimado(Math.round(tiempo))
+  }
+
   // Inicializar mapa cuando Google Maps esté cargado
   useEffect(() => {
     if (!googleMapsLoaded || !mapContainerRef.current) return
@@ -92,6 +118,9 @@ function DireccionConMapa({
       const position = marker.getPosition()
       const lat = position.lat()
       const lng = position.lng()
+
+      // Calcular distancia y tiempo desde la tienda
+      calcularDistanciaYTiempo(lat, lng)
 
       if (onCoordenadasChange) {
         onCoordenadasChange(lat, lng)
@@ -144,6 +173,9 @@ function DireccionConMapa({
         mapRef.current.setZoom(16)
         markerRef.current.setPosition({ lat, lng })
       }
+
+      // Calcular distancia y tiempo desde la tienda
+      calcularDistanciaYTiempo(lat, lng)
 
       // Callback con la información
       if (onDireccionChange) {
@@ -304,6 +336,32 @@ function DireccionConMapa({
         ref={mapContainerRef}
         className="w-full h-64 rounded-lg border-2 border-gray-300 overflow-hidden"
       />
+
+      {/* Información de distancia y tiempo estimado */}
+      {tiempoEstimado !== null && distanciaEstimada !== null && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-xs text-gray-600">Desde la tienda (Gran Vía, Vitacura)</p>
+                <p className="text-sm font-semibold text-green-800">
+                  📏 {distanciaEstimada} km
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <div className="text-right">
+                <p className="text-xs text-gray-600">Tiempo estimado en auto</p>
+                <p className="text-lg font-bold text-blue-700">
+                  ~{tiempoEstimado} min
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="text-xs text-gray-500">
         <strong>Tip:</strong> Puedes arrastrar el marcador rojo en el mapa para ajustar la ubicación exacta
