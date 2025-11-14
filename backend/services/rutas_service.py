@@ -79,7 +79,7 @@ class RutasService:
         orden = 1
 
         while pendientes:
-            # Encontrar el pedido más cercano
+            # Encontrar el pedido más cercano (prioridad: distancia mínima)
             min_distancia = float('inf')
             pedido_mas_cercano = None
 
@@ -88,6 +88,7 @@ class RutasService:
                     lat_actual, lon_actual,
                     pedido.latitud, pedido.longitud
                 )
+                # Siempre elegir el más cercano, independiente de la hora de entrega
                 if distancia < min_distancia:
                     min_distancia = distancia
                     pedido_mas_cercano = pedido
@@ -101,6 +102,13 @@ class RutasService:
                 # Calcular hora estimada de llegada
                 hora_llegada_estimada = hora_inicio_dt + timedelta(minutes=tiempo_total + (TIEMPO_ENTREGA_PROMEDIO * (orden - 1)))
 
+                # Verificar si llegará tarde (solo como advertencia, no afecta la ruta)
+                llegara_tarde = False
+                if pedido_mas_cercano.fecha_entrega:
+                    hora_solicitada = pedido_mas_cercano.fecha_entrega.time()
+                    hora_estimada = hora_llegada_estimada.time()
+                    llegara_tarde = hora_estimada > hora_solicitada
+
                 ruta_optimizada.append({
                     'pedido_id': pedido_mas_cercano.id,
                     'orden': orden,
@@ -108,6 +116,7 @@ class RutasService:
                     'tiempo_desde_anterior_min': tiempo_estimado,
                     'distancia_acumulada_km': round(distancia_total, 2),
                     'hora_llegada_estimada': hora_llegada_estimada.strftime('%H:%M'),
+                    'llegara_tarde': llegara_tarde,  # Advertencia si llegará tarde
                     'latitud': pedido_mas_cercano.latitud,
                     'longitud': pedido_mas_cercano.longitud,
                     'direccion': pedido_mas_cercano.direccion_entrega,
@@ -278,6 +287,13 @@ class RutasService:
                 # Calcular hora estimada de llegada (hora inicio + tiempo acumulado + tiempo de entrega)
                 hora_llegada_estimada = hora_inicio_dt + timedelta(minutes=int(tiempo_acumulado) + (TIEMPO_ENTREGA_PROMEDIO * idx))
 
+                # Verificar si llegará tarde (solo como advertencia)
+                llegara_tarde = False
+                if pedido.fecha_entrega:
+                    hora_solicitada = pedido.fecha_entrega.time()
+                    hora_estimada = hora_llegada_estimada.time()
+                    llegara_tarde = hora_estimada > hora_solicitada
+
                 ruta_optimizada.append({
                     'pedido_id': pedido.id,
                     'orden': idx + 1,
@@ -285,7 +301,8 @@ class RutasService:
                     'tiempo_desde_anterior_min': int(tiempo_min),
                     'distancia_acumulada_km': round(distancia_acumulada, 2),
                     'tiempo_acumulado_min': int(tiempo_acumulado),
-                    'hora_llegada_estimada': hora_llegada_estimada.strftime('%H:%M'),  # Nueva: hora estimada de llegada
+                    'hora_llegada_estimada': hora_llegada_estimada.strftime('%H:%M'),
+                    'llegara_tarde': llegara_tarde,  # Advertencia si llegará tarde
                     'latitud': pedido.latitud,
                     'longitud': pedido.longitud,
                     'direccion': pedido.direccion_entrega,

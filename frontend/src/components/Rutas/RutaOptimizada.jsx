@@ -300,9 +300,16 @@ function RutaOptimizada({ rutaData }) {
 
                   <div className="flex items-center gap-4 mt-2 flex-wrap">
                     {parada.hora_llegada_estimada && (
-                      <div className="flex items-center gap-2 text-sm text-purple-700 font-bold bg-purple-50 px-3 py-1 rounded">
+                      <div className={`flex items-center gap-2 text-sm font-bold px-3 py-1 rounded ${
+                        parada.llegara_tarde
+                          ? 'text-red-700 bg-red-50 border border-red-200'
+                          : 'text-purple-700 bg-purple-50'
+                      }`}>
                         <Clock className="h-4 w-4" />
                         Llegada estimada: {parada.hora_llegada_estimada}
+                        {parada.llegara_tarde && (
+                          <AlertCircle className="h-4 w-4 ml-1" />
+                        )}
                       </div>
                     )}
                     {parada.hora_entrega && (
