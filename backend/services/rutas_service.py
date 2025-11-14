@@ -41,10 +41,14 @@ class RutasService:
         return c * r
 
     @staticmethod
-    def optimizar_ruta_simple(pedidos: List[Pedido]) -> List[Dict]:
+    def optimizar_ruta_simple(pedidos: List[Pedido], hora_inicio: str = HORA_INICIO_DEFAULT) -> List[Dict]:
         """
         Optimiza ruta usando algoritmo greedy (vecino más cercano)
         No requiere API de Google, usa coordenadas GPS directamente
+
+        Args:
+            pedidos: Lista de pedidos a optimizar
+            hora_inicio: Hora de inicio de la ruta (formato HH:MM)
         """
         if not pedidos:
             return []
@@ -65,9 +69,13 @@ class RutasService:
         lat_actual = PUNTO_INICIO['latitud']
         lon_actual = PUNTO_INICIO['longitud']
 
+        # Parsear hora de inicio
+        hora_inicio_dt = datetime.strptime(hora_inicio, '%H:%M')
+
         pendientes = pedidos_con_coords.copy()
         ruta_optimizada = []
         distancia_total = 0
+        tiempo_total = 0
         orden = 1
 
         while pendientes:
@@ -88,6 +96,10 @@ class RutasService:
                 # Agregar a la ruta
                 distancia_total += min_distancia
                 tiempo_estimado = int((min_distancia / 40) * 60)  # Asumiendo 40 km/h promedio en auto urbano
+                tiempo_total += tiempo_estimado
+
+                # Calcular hora estimada de llegada
+                hora_llegada_estimada = hora_inicio_dt + timedelta(minutes=tiempo_total + (TIEMPO_ENTREGA_PROMEDIO * (orden - 1)))
 
                 ruta_optimizada.append({
                     'pedido_id': pedido_mas_cercano.id,
@@ -95,13 +107,15 @@ class RutasService:
                     'distancia_desde_anterior_km': round(min_distancia, 2),
                     'tiempo_desde_anterior_min': tiempo_estimado,
                     'distancia_acumulada_km': round(distancia_total, 2),
+                    'hora_llegada_estimada': hora_llegada_estimada.strftime('%H:%M'),
                     'latitud': pedido_mas_cercano.latitud,
                     'longitud': pedido_mas_cercano.longitud,
                     'direccion': pedido_mas_cercano.direccion_entrega,
                     'comuna': pedido_mas_cercano.comuna,
                     'cliente': pedido_mas_cercano.cliente_nombre,
                     'telefono': pedido_mas_cercano.cliente_telefono,
-                    'hora_entrega': pedido_mas_cercano.fecha_entrega.strftime('%H:%M') if pedido_mas_cercano.fecha_entrega else None
+                    'hora_entrega': pedido_mas_cercano.fecha_entrega.strftime('%H:%M') if pedido_mas_cercano.fecha_entrega else None,
+                    'es_urgente': pedido_mas_cercano.es_urgente
                 })
 
                 # Actualizar posición actual
@@ -132,7 +146,7 @@ class RutasService:
             if not api_key:
                 # Fallback a optimización simple
                 print("⚠️  No se encontró API Key de Google, usando optimización simple")
-                ruta_simple = RutasService.optimizar_ruta_simple(pedidos)
+                ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
 
                 # Generar link de Google Maps para navegación
                 origen = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
@@ -144,6 +158,7 @@ class RutasService:
                     'metodo': 'simple',
                     'distancia_total_km': ruta_simple[-1]['distancia_acumulada_km'] if ruta_simple else 0,
                     'punto_inicio': PUNTO_INICIO,
+                    'hora_inicio': hora_inicio,
                     'google_maps_url': google_maps_url
                 }, 'Ruta optimizada con algoritmo simple (sin Google Maps)'
 
@@ -214,12 +229,20 @@ class RutasService:
                 error_msg = data.get('error_message', data['status'])
                 print(f"❌ Error de Google Maps API: {error_msg}")
                 # Fallback a optimización simple
-                ruta_simple = RutasService.optimizar_ruta_simple(pedidos)
+                ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
+
+                # Generar link de Google Maps para navegación
+                origen = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
+                waypoints_coords = [f"{p['latitud']},{p['longitud']}" for p in ruta_simple]
+                google_maps_url = f"https://www.google.com/maps/dir/{origen}/" + "/".join(waypoints_coords)
+
                 return True, {
                     'ruta_optimizada': ruta_simple,
                     'metodo': 'simple_fallback',
                     'distancia_total_km': ruta_simple[-1]['distancia_acumulada_km'] if ruta_simple else 0,
-                    'punto_inicio': PUNTO_INICIO
+                    'punto_inicio': PUNTO_INICIO,
+                    'hora_inicio': hora_inicio,
+                    'google_maps_url': google_maps_url
                 }, f'Usando optimización simple (Google API error: {error_msg})'
 
             # Procesar respuesta
@@ -242,12 +265,18 @@ class RutasService:
             distancia_acumulada = 0
             tiempo_acumulado = 0
 
+            # Parsear hora de inicio
+            hora_inicio_dt = datetime.strptime(hora_inicio, '%H:%M')
+
             for idx, (pedido, leg) in enumerate(zip(orden_pedidos, legs)):
                 distancia_km = leg['distance']['value'] / 1000  # Convertir a km
                 tiempo_min = leg['duration']['value'] / 60  # Convertir a minutos
 
                 distancia_acumulada += distancia_km
                 tiempo_acumulado += tiempo_min
+
+                # Calcular hora estimada de llegada (hora inicio + tiempo acumulado + tiempo de entrega)
+                hora_llegada_estimada = hora_inicio_dt + timedelta(minutes=int(tiempo_acumulado) + (TIEMPO_ENTREGA_PROMEDIO * idx))
 
                 ruta_optimizada.append({
                     'pedido_id': pedido.id,
@@ -256,6 +285,7 @@ class RutasService:
                     'tiempo_desde_anterior_min': int(tiempo_min),
                     'distancia_acumulada_km': round(distancia_acumulada, 2),
                     'tiempo_acumulado_min': int(tiempo_acumulado),
+                    'hora_llegada_estimada': hora_llegada_estimada.strftime('%H:%M'),  # Nueva: hora estimada de llegada
                     'latitud': pedido.latitud,
                     'longitud': pedido.longitud,
                     'direccion': pedido.direccion_entrega,
@@ -285,7 +315,7 @@ class RutasService:
         except requests.exceptions.RequestException as e:
             print(f"❌ Error de red al consultar Google Maps: {e}")
             # Fallback a optimización simple
-            ruta_simple = RutasService.optimizar_ruta_simple(pedidos)
+            ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
 
             # Generar link de Google Maps para navegación
             origen = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
@@ -297,6 +327,7 @@ class RutasService:
                 'metodo': 'simple_fallback',
                 'distancia_total_km': ruta_simple[-1]['distancia_acumulada_km'] if ruta_simple else 0,
                 'punto_inicio': PUNTO_INICIO,
+                'hora_inicio': hora_inicio,
                 'google_maps_url': google_maps_url
             }, 'Usando optimización simple (error de conexión con Google)'
 
