@@ -444,6 +444,19 @@ def optimizar_ruta():
         if not pedidos:
             return jsonify({'success': False, 'error': 'No se encontraron pedidos'}), 404
 
+        # Verificar que se encontraron todos los pedidos solicitados
+        pedidos_encontrados = len(pedidos)
+        pedidos_solicitados = len(pedidos_ids)
+        if pedidos_encontrados < pedidos_solicitados:
+            print(f"⚠️  Solo se encontraron {pedidos_encontrados} de {pedidos_solicitados} pedidos solicitados")
+            print(f"   IDs solicitados: {pedidos_ids}")
+            print(f"   IDs encontrados: {[p.id for p in pedidos]}")
+
+        # Log detallado de cada pedido
+        print(f"\n🔍 Analizando {len(pedidos)} pedido(s) para optimización:")
+        for p in pedidos:
+            print(f"   - Pedido {p.id}: lat={p.latitud}, lng={p.longitud}, direccion='{p.direccion_entrega}', retiro_en_tienda={p.retiro_en_tienda}")
+
         # Optimizar ruta
         success, resultado, mensaje = RutasService.optimizar_ruta_google(pedidos, hora_inicio)
 

@@ -6,24 +6,117 @@ import { MapPin, Clock, Navigation, TrendingUp, AlertCircle, Loader2, Package, P
  */
 function RutaOptimizada({ rutaData }) {
   const [mapaListo, setMapaListo] = useState(false)
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false)
+  const [errorCarga, setErrorCarga] = useState(null)
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const markersRef = useRef([])
   const directionsRendererRef = useRef(null)
 
+  // Cargar Google Maps API si no está disponible
   useEffect(() => {
-    if (!rutaData || !window.google || !window.google.maps) return
+    // Verificar si ya está cargado
+    if (window.google && window.google.maps) {
+      setGoogleMapsLoaded(true)
+      return
+    }
 
-    initMap()
-  }, [rutaData])
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      setErrorCarga('API Key de Google Maps no configurada')
+      return
+    }
+
+    // Verificar si el script ya está en el DOM
+    const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`)
+    if (existingScript) {
+      // Esperar a que se cargue
+      const checkLoaded = setInterval(() => {
+        if (window.google && window.google.maps) {
+          setGoogleMapsLoaded(true)
+          clearInterval(checkLoaded)
+        }
+      }, 100)
+      return () => clearInterval(checkLoaded)
+    }
+
+    // Cargar el script de Google Maps
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&language=es&region=CL&loading=async`
+    script.async = true
+    script.defer = true
+    script.onload = () => {
+      if (window.google && window.google.maps) {
+        setGoogleMapsLoaded(true)
+      }
+    }
+    script.onerror = () => {
+      setErrorCarga('Error al cargar Google Maps. Verifica tu API Key y que esté autorizada para localhost:3001')
+    }
+
+    document.head.appendChild(script)
+
+    return () => {
+      // No remover el script para evitar problemas de recarga
+    }
+  }, [])
+
+  // Inicializar mapa cuando Google Maps esté cargado y haya datos
+  useEffect(() => {
+    if (!rutaData || !googleMapsLoaded) return
+
+    // Esperar a que el contenedor esté en el DOM y sea visible
+    const checkAndInit = () => {
+      if (!mapContainerRef.current) {
+        // Si el contenedor aún no existe, esperar un poco más
+        setTimeout(checkAndInit, 50)
+        return
+      }
+
+      // Verificar que el contenedor tenga dimensiones
+      const rect = mapContainerRef.current.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        // Si no tiene dimensiones, esperar un poco más
+        setTimeout(checkAndInit, 50)
+        return
+      }
+
+      // Ahora sí inicializar el mapa
+      initMap()
+    }
+
+    // Pequeño delay inicial para asegurar que el DOM esté listo
+    const timer = setTimeout(checkAndInit, 100)
+
+    return () => clearTimeout(timer)
+  }, [rutaData, googleMapsLoaded])
 
   const initMap = () => {
-    if (!mapContainerRef.current) return
+    try {
+      if (!mapContainerRef.current || !window.google || !window.google.maps) {
+        console.error('No se puede inicializar el mapa: contenedor o Google Maps no disponible')
+        return
+      }
 
-    const puntoInicio = rutaData.punto_inicio
+      // Verificar que el contenedor esté en el DOM y tenga dimensiones
+      const rect = mapContainerRef.current.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        console.warn('El contenedor del mapa no tiene dimensiones, reintentando...')
+        setTimeout(() => initMap(), 100)
+        return
+      }
 
-    // Crear mapa
-    const map = new window.google.maps.Map(mapContainerRef.current, {
+      // Limpiar mapa anterior si existe
+      if (mapRef.current) {
+        markersRef.current.forEach(marker => marker.setMap(null))
+        markersRef.current = []
+        mapRef.current = null
+      }
+
+      const puntoInicio = rutaData.punto_inicio
+
+      // Crear mapa
+      const map = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: puntoInicio.latitud, lng: puntoInicio.longitud },
       zoom: 12,
       mapTypeControl: false,
@@ -31,10 +124,7 @@ function RutaOptimizada({ rutaData }) {
     })
 
     mapRef.current = map
-
-    // Limpiar markers anteriores
-    markersRef.current.forEach(marker => marker.setMap(null))
-    markersRef.current = []
+    markersRef.current = [] // Inicializar array de markers
 
     // Marcador de inicio (tienda)
     const markerInicio = new window.google.maps.Marker({
@@ -127,6 +217,10 @@ function RutaOptimizada({ rutaData }) {
     }
 
     setMapaListo(true)
+    } catch (error) {
+      console.error('Error al inicializar el mapa:', error)
+      setErrorCarga(`Error al inicializar el mapa: ${error.message}`)
+    }
   }
 
   const dibujarLineaSimple = (map, puntoInicio, rutaOptimizada) => {
@@ -246,10 +340,39 @@ function RutaOptimizada({ rutaData }) {
 
       {/* Mapa */}
       <div className="bg-white rounded-lg overflow-hidden shadow-lg border border-gray-200">
-        <div
-          ref={mapContainerRef}
-          className="w-full h-96"
-        />
+        {errorCarga ? (
+          <div className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+            <p className="text-red-600 font-semibold">{errorCarga}</p>
+            <div className="text-sm text-gray-600 mt-4 max-w-2xl mx-auto text-left">
+              <p className="font-semibold mb-2">Para solucionar el error "RefererNotAllowedMapError":</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Ve a <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Google Cloud Console → Credenciales</a></li>
+                <li>Haz clic en tu API Key para editarla</li>
+                <li>En <strong>"Restricciones de aplicación"</strong>, selecciona <strong>"Referentes HTTP (sitios web)"</strong></li>
+                <li>Agrega estos referentes:
+                  <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                    <li><code className="bg-gray-100 px-1 rounded">http://localhost:3001/*</code></li>
+                    <li><code className="bg-gray-100 px-1 rounded">http://127.0.0.1:3001/*</code></li>
+                    <li><code className="bg-gray-100 px-1 rounded">http://localhost:*/*</code></li>
+                  </ul>
+                </li>
+                <li>Haz clic en <strong>"Guardar"</strong> y espera 1-2 minutos</li>
+              </ol>
+            </div>
+          </div>
+        ) : !googleMapsLoaded ? (
+          <div className="p-8 text-center">
+            <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-3 animate-spin" />
+            <p className="text-gray-600">Cargando Google Maps...</p>
+          </div>
+        ) : (
+          <div
+            ref={mapContainerRef}
+            className="w-full h-96"
+            style={{ minHeight: '384px' }}
+          />
+        )}
       </div>
 
       {/* Lista de paradas */}

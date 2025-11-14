@@ -315,6 +315,19 @@ function PedidosPage() {
       delete datosActualizacion.fecha_entrega_edit
       delete datosActualizacion.hora_entrega_edit
       
+      // Asegurar que latitud y longitud se envíen (pueden ser null)
+      if ('latitud' in datosActualizacion || 'longitud' in datosActualizacion) {
+        datosActualizacion.latitud = datosActualizacion.latitud || null
+        datosActualizacion.longitud = datosActualizacion.longitud || null
+      }
+      
+      console.log('📤 Enviando actualización de pedido:', {
+        id: pedidoDetalle.id,
+        latitud: datosActualizacion.latitud,
+        longitud: datosActualizacion.longitud,
+        direccion: datosActualizacion.direccion_entrega
+      })
+      
       const response = await pedidosAPI.actualizar(pedidoDetalle.id, datosActualizacion)
       
       if (response.data.success) {
@@ -1015,6 +1028,8 @@ function PedidosPage() {
         firma: formData.firma || null,
         direccion_entrega: formData.retiro_en_tienda ? 'Retiro en Tienda' : formData.direccion_entrega,
         comuna: formData.retiro_en_tienda ? null : (formData.comuna || null),
+        latitud: formData.retiro_en_tienda ? null : (formData.latitud || null),
+        longitud: formData.retiro_en_tienda ? null : (formData.longitud || null),
         retiro_en_tienda: formData.retiro_en_tienda,
         motivo: formData.motivo || null,
         fecha_entrega: fechaEntregaCompleta,
@@ -1027,6 +1042,12 @@ function PedidosPage() {
           insumos: producto.insumos
         }))
       }
+
+      console.log('📤 Creando pedido con coordenadas:', {
+        latitud: pedidoData.latitud,
+        longitud: pedidoData.longitud,
+        direccion: pedidoData.direccion_entrega
+      })
 
       const response = await pedidosAPI.crear(pedidoData)
 
