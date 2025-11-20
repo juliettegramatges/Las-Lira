@@ -534,11 +534,11 @@ def actualizar_stock_contenedor(contenedor_id):
         operacion = data.get('operacion', 'set')
         
         if operacion == 'set':
-            contenedor.stock = cantidad
+            contenedor.cantidad_stock = cantidad
         elif operacion == 'add':
-            contenedor.stock += cantidad
+            contenedor.cantidad_stock += cantidad
         elif operacion == 'subtract':
-            contenedor.stock = max(0, contenedor.stock - cantidad)
+            contenedor.cantidad_stock = max(0, contenedor.cantidad_stock - cantidad)
         
         from datetime import date
         contenedor.fecha_actualizacion = date.today()

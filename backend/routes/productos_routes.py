@@ -35,6 +35,7 @@ def listar_productos():
             ''', (id_prod,))
 
             imagenes = []
+            imagen_principal_found = None
             for img_url, pos, alt, es_principal in cursor_shopify.fetchall():
                 imagenes.append({
                     'url': img_url,
@@ -42,8 +43,14 @@ def listar_productos():
                     'alt_text': alt,
                     'es_principal': bool(es_principal)
                 })
+                # Si hay una imagen principal en imagenes_productos, usarla
+                if es_principal:
+                    imagen_principal_found = img_url
 
             metafields_dict = json.loads(metafields) if metafields else {}
+
+            # Usar imagen_principal de imagenes_productos si existe, sino usar imagen_url de productos
+            imagen_principal_final = imagen_principal_found if imagen_principal_found else imagen_url
 
             productos_con_imagenes.append({
                 'id': id_prod,
@@ -53,7 +60,8 @@ def listar_productos():
                 'costo_estimado': precio,  # Agregar costo_estimado para compatibilidad con eventos
                 'categoria': categoria,
                 'tipo': tipo,
-                'imagen_principal': imagen_url,
+                'imagen_principal': imagen_principal_final,
+                'imagen_url': imagen_url,  # También incluir imagen_url para compatibilidad
                 'imagenes': imagenes,
                 'sku': sku,
                 'peso': peso,
@@ -70,14 +78,14 @@ def listar_productos():
         cursor_internal = conn_internal.cursor()
 
         cursor_internal.execute('''
-            SELECT id, nombre, descripcion, precio_venta, tipo_arreglo, tamano, activo
+            SELECT id, nombre, descripcion, precio_venta, tipo_arreglo, tamano, activo, imagen_url
             FROM productos
-            WHERE activo = 1
+            WHERE activo = 1 OR activo IS NULL
             ORDER BY nombre
         ''')
 
         for producto in cursor_internal.fetchall():
-            id_prod, nombre, descripcion, precio_venta, tipo_arreglo, tamano, activo = producto
+            id_prod, nombre, descripcion, precio_venta, tipo_arreglo, tamano, activo, imagen_url = producto
 
             productos_con_imagenes.append({
                 'id': id_prod,  # Este es un string tipo "PR001"
@@ -89,7 +97,8 @@ def listar_productos():
                 'categoria': 'Productos Las Lira',
                 'tipo': tipo_arreglo or 'Arreglo Floral',
                 'tamano': tamano or '',
-                'imagen_principal': '',
+                'imagen_principal': imagen_url or '',
+                'imagen_url': imagen_url or '',
                 'imagenes': [],
                 'sku': id_prod,
                 'peso': 0,
@@ -449,12 +458,12 @@ def obtener_receta_producto(producto_id):
                 'es_opcional': bool(es_opcional),
             }
             if insumo_tipo == 'Flor':
-                cursor.execute('SELECT id, tipo, color, costo_unitario, cantidad_stock, foto_url FROM flores WHERE id = ?', (insumo_id,))
+                cursor.execute('SELECT id, tipo, color, nombre, costo_unitario, cantidad_stock, foto_url FROM flores WHERE id = ?', (insumo_id,))
                 row = cursor.fetchone()
                 if row:
-                    fid, tipo, color, costo_unitario, stock, foto = row
-                    # Crear nombre descriptivo: "Tipo - Color"
-                    nombre_descriptivo = f"{tipo} {color}" if color else tipo
+                    fid, tipo, color, nombre, costo_unitario, stock, foto = row
+                    # Usar nombre si existe, sino crear nombre descriptivo: "Tipo - Color"
+                    nombre_descriptivo = nombre if nombre else (f"{tipo} {color}" if color else tipo)
                     item.update({
                         'nombre': nombre_descriptivo,
                         'insumo_nombre': nombre_descriptivo,
@@ -466,12 +475,12 @@ def obtener_receta_producto(producto_id):
                         'unidad_stock': 'Tallos',
                     })
             elif insumo_tipo == 'Contenedor':
-                cursor.execute('SELECT id, tipo, material, forma, tamano, color, costo, stock, foto_url FROM contenedores WHERE id = ?', (insumo_id,))
+                cursor.execute('SELECT id, tipo, material, forma, tamano, color, nombre, costo, stock, foto_url FROM contenedores WHERE id = ?', (insumo_id,))
                 row = cursor.fetchone()
                 if row:
-                    cid, tipo, material, forma, tamano, color, costo, stock, foto = row
-                    # Crear nombre descriptivo: "Tipo Material Tamaño"
-                    nombre_descriptivo = f"{tipo} {material} {tamano}".strip()
+                    cid, tipo, material, forma, tamano, color, nombre, costo, stock, foto = row
+                    # Usar nombre si existe, sino crear nombre descriptivo: "Tipo Material Tamaño"
+                    nombre_descriptivo = nombre if nombre else f"{tipo or ''} {material or ''} {tamano or ''}".strip()
                     item.update({
                         'nombre': nombre_descriptivo,
                         'insumo_nombre': nombre_descriptivo,
@@ -531,7 +540,7 @@ def obtener_receta_producto(producto_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<int:producto_id>/receta', methods=['POST'])
+@bp.route('/<producto_id>/receta', methods=['POST'])
 def agregar_insumo_receta(producto_id):
     """Agrega un insumo a la receta del producto"""
     try:
@@ -573,7 +582,7 @@ def agregar_insumo_receta(producto_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@bp.route('/<int:producto_id>/receta', methods=['PUT'])
+@bp.route('/<producto_id>/receta', methods=['PUT'])
 def actualizar_receta_completa(producto_id):
     """Actualiza la receta completa del producto (reemplaza todos los insumos)"""
     try:

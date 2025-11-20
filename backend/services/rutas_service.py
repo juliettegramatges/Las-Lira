@@ -57,11 +57,9 @@ class RutasService:
                 location = data['results'][0]['geometry']['location']
                 return (location['lat'], location['lng'])
             else:
-                print(f"⚠️  Geocodificación falló para '{direccion}': {data.get('status')}")
                 return None
-                
+
         except Exception as e:
-            print(f"⚠️  Error al geocodificar '{direccion}': {e}")
             return None
 
     @staticmethod
@@ -200,7 +198,6 @@ class RutasService:
 
             if not api_key:
                 # Fallback a optimización simple
-                print("⚠️  No se encontró API Key de Google, usando optimización simple")
                 ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
 
                 # Generar link de Google Maps para navegación
@@ -221,16 +218,9 @@ class RutasService:
             # IMPORTANTE: Incluir TODOS los pedidos, incluso retiro_en_tienda (pueden tener coordenadas)
             pedidos_con_coords = [p for p in pedidos if p.latitud and p.longitud]
             pedidos_sin_coords = [p for p in pedidos if not (p.latitud and p.longitud)]
-            
-            print(f"\n📍 Análisis de pedidos para optimización:")
-            print(f"   Total pedidos recibidos: {len(pedidos)}")
-            print(f"   Con coordenadas: {len(pedidos_con_coords)} - IDs: {[p.id for p in pedidos_con_coords]}")
-            print(f"   Sin coordenadas: {len(pedidos_sin_coords)} - IDs: {[p.id for p in pedidos_sin_coords]}")
 
             # Intentar geocodificar pedidos sin coordenadas
             if pedidos_sin_coords:
-                print(f"📍 Intentando geocodificar {len(pedidos_sin_coords)} pedido(s) sin coordenadas...")
-                geocodificados = 0
                 for pedido in pedidos_sin_coords:
                     if pedido.direccion_entrega:
                         coords = RutasService._geocodificar_direccion(
@@ -245,30 +235,15 @@ class RutasService:
                                 from extensions import db
                                 db.session.add(pedido)
                                 db.session.commit()
-                                geocodificados += 1
-                                print(f"   ✅ Pedido {pedido.id}: Coordenadas obtenidas ({coords[0]:.6f}, {coords[1]:.6f})")
                             except Exception as e:
-                                print(f"   ⚠️  Pedido {pedido.id}: Error al guardar coordenadas: {e}")
                                 db.session.rollback()
-                        else:
-                            print(f"   ❌ Pedido {pedido.id}: No se pudieron obtener coordenadas")
-                    else:
-                        print(f"   ⚠️  Pedido {pedido.id}: Sin dirección para geocodificar")
-                
+
                 # Re-filtrar después de geocodificación
                 pedidos_con_coords = [p for p in pedidos if p.latitud and p.longitud]
                 pedidos_sin_coords = [p for p in pedidos if not (p.latitud and p.longitud)]
-                
-                if geocodificados > 0:
-                    print(f"✅ {geocodificados} pedido(s) geocodificado(s) exitosamente")
-            
-            # Si aún hay pedidos sin coordenadas, intentar posicionarlos inteligentemente
-            if pedidos_sin_coords:
-                print(f"⚠️  {len(pedidos_sin_coords)} pedido(s) aún sin coordenadas. Se intentará posicionarlos en la ruta.")
 
             if len(pedidos_con_coords) == 0:
                 # Si ningún pedido tiene coordenadas, usar optimización simple que incluye todos
-                print("⚠️  Ningún pedido tiene coordenadas GPS, usando optimización simple")
                 ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
                 
                 # Generar link de Google Maps para navegación (solo con los que tienen dirección)
@@ -322,17 +297,11 @@ class RutasService:
             # Google permite máximo 25 waypoints
             if len(pedidos_con_coords) > 25:
                 pedidos_con_coords = pedidos_con_coords[:25]
-                print(f"⚠️  Limitando a 25 pedidos (máximo de Google Maps API)")
-                print(f"   Pedidos incluidos: {[p.id for p in pedidos_con_coords]}")
-
-            print(f"\n🗺️  Construyendo ruta con {len(pedidos_con_coords)} pedido(s) con coordenadas:")
-            for idx, p in enumerate(pedidos_con_coords):
-                print(f"   {idx + 1}. Pedido {p.id}: ({p.latitud:.6f}, {p.longitud:.6f}) - {p.direccion_entrega}")
 
             # IMPORTANTE: Para optimizar TODOS los pedidos, debemos incluirlos todos como waypoints
             # y usar el punto de inicio como destino (volver a la tienda después de todas las entregas)
             # Esto permite que Google optimice el orden de TODOS los pedidos
-            
+
             waypoints = []
             for pedido in pedidos_con_coords:
                 waypoints.append(f"{pedido.latitud},{pedido.longitud}")
@@ -340,10 +309,6 @@ class RutasService:
             # Destino: volver al punto de inicio (tienda) después de todas las entregas
             # Esto permite que Google optimice el orden de TODOS los pedidos
             destino = f"{PUNTO_INICIO['latitud']},{PUNTO_INICIO['longitud']}"
-            
-            print(f"📊 Configuración de optimización:")
-            print(f"   Waypoints a optimizar: {len(waypoints)} pedidos")
-            print(f"   Destino: Punto de inicio (volver a tienda)")
 
             # Construir URL
             base_url = "https://maps.googleapis.com/maps/api/directions/json"
@@ -364,24 +329,6 @@ class RutasService:
 
             if data['status'] != 'OK':
                 error_msg = data.get('error_message', data['status'])
-                print(f"❌ Error de Google Maps API: {error_msg}")
-                
-                # Si el error es por restricciones de referente, dar instrucciones claras
-                if 'referer' in error_msg.lower() or 'restriction' in error_msg.lower():
-                    print("\n" + "="*60)
-                    print("⚠️  PROBLEMA DE CONFIGURACIÓN DE API KEY")
-                    print("="*60)
-                    print("La API key tiene restricciones de referente HTTP, pero el backend")
-                    print("necesita una API key SIN restricciones de referente o con restricciones de IP.")
-                    print("\nSOLUCIÓN:")
-                    print("1. Ve a: https://console.cloud.google.com/apis/credentials")
-                    print("2. Crea una NUEVA API Key para el backend")
-                    print("3. Configura:")
-                    print("   - Restricciones de aplicación: 'Restricciones de IP' (o 'Ninguna' para desarrollo)")
-                    print("   - Restricciones de API: Habilita 'Directions API' y 'Geocoding API'")
-                    print("4. Actualiza backend/.env con: GOOGLE_MAPS_API_KEY=nueva_api_key")
-                    print("="*60 + "\n")
-                
                 # Fallback a optimización simple
                 ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
 
@@ -408,26 +355,18 @@ class RutasService:
             ruta_optimizada = []
             orden_pedidos = []
 
-            print(f"\n🔄 Orden optimizado de waypoints: {waypoint_order}")
-            print(f"   Total waypoints optimizados: {len(waypoint_order)}")
-            
             # Agregar waypoints según orden optimizado de Google
             # waypoint_order contiene los índices de los waypoints en orden optimizado
             for idx in waypoint_order:
                 if idx < len(pedidos_con_coords):
                     orden_pedidos.append(pedidos_con_coords[idx])
-                    print(f"   Parada {len(orden_pedidos)}: Pedido {pedidos_con_coords[idx].id}")
 
             # Verificar que todos los pedidos estén incluidos
             if len(orden_pedidos) != len(pedidos_con_coords):
-                print(f"⚠️  ADVERTENCIA: Se esperaban {len(pedidos_con_coords)} pedidos, pero solo se optimizaron {len(orden_pedidos)}")
                 # Agregar los pedidos faltantes al final
                 pedidos_faltantes = [p for p in pedidos_con_coords if p not in orden_pedidos]
                 for pedido in pedidos_faltantes:
                     orden_pedidos.append(pedido)
-                    print(f"   Parada {len(orden_pedidos)} (agregado): Pedido {pedido.id}")
-            
-            print(f"\n✅ Total pedidos en ruta optimizada: {len(orden_pedidos)} - IDs: {[p.id for p in orden_pedidos]}")
 
             # Construir respuesta detallada
             distancia_acumulada = 0
@@ -449,14 +388,9 @@ class RutasService:
             if len(legs) == len(orden_pedidos) + 1:
                 # Hay un leg extra para volver a la tienda, lo excluimos
                 legs_para_pedidos = legs[:-1]
-                distancia_vuelta_tienda = legs[-1]['distance']['value'] / 1000
-                tiempo_vuelta_tienda = legs[-1]['duration']['value'] / 60
-                print(f"📏 Procesando {len(legs_para_pedidos)} legs para {len(orden_pedidos)} pedidos")
-                print(f"   Distancia de vuelta a tienda: {distancia_vuelta_tienda:.2f} km ({tiempo_vuelta_tienda:.1f} min)")
             else:
                 # No hay leg de vuelta (caso especial), usar todos los legs
                 legs_para_pedidos = legs[:len(orden_pedidos)]
-                print(f"📏 Procesando {len(legs_para_pedidos)} legs para {len(orden_pedidos)} pedidos")
 
             for idx, (pedido, leg) in enumerate(zip(orden_pedidos, legs_para_pedidos)):
                 distancia_km = leg['distance']['value'] / 1000  # Convertir a km
@@ -498,8 +432,6 @@ class RutasService:
             # ANTES de generar el URL de Google Maps
             # basándose en la comuna o en la hora de entrega
             if pedidos_sin_coords:
-                print(f"📍 Insertando {len(pedidos_sin_coords)} pedido(s) sin coordenadas en la ruta optimizada...")
-                
                 # Agrupar pedidos sin coordenadas por comuna
                 pedidos_por_comuna = {}
                 for pedido in pedidos_sin_coords:
@@ -560,8 +492,6 @@ class RutasService:
                 # Re-numerar órdenes después de las inserciones
                 for idx, parada in enumerate(ruta_optimizada):
                     parada['orden'] = idx + 1
-                
-                print(f"✅ {len(pedidos_sin_coords)} pedido(s) insertado(s) en la ruta optimizada")
 
             # Generar link de Google Maps para navegación (solo con pedidos que tienen coordenadas)
             # Formato: https://www.google.com/maps/dir/origin/waypoint1/waypoint2/.../destination
@@ -571,16 +501,6 @@ class RutasService:
             # La distancia total es solo hasta el último pedido (sin incluir vuelta a tienda)
             distancia_total_km = round(distancia_acumulada, 2)
             tiempo_total_min = int(tiempo_acumulado)
-            
-            # Si hay leg de vuelta a la tienda, mostrarlo en el mensaje pero no incluirlo en la distancia total
-            if len(legs) == len(orden_pedidos) + 1:
-                distancia_vuelta = legs[-1]['distance']['value'] / 1000
-                tiempo_vuelta = legs[-1]['duration']['value'] / 60
-                print(f"📊 Resumen de ruta:")
-                print(f"   Distancia total (hasta último pedido): {distancia_total_km} km")
-                print(f"   Tiempo total (hasta último pedido): {tiempo_total_min} min")
-                print(f"   Distancia de vuelta a tienda: {distancia_vuelta:.2f} km ({tiempo_vuelta:.1f} min)")
-                print(f"   Distancia total (incluyendo vuelta): {distancia_total_km + distancia_vuelta:.2f} km")
 
             mensaje_final = 'Ruta optimizada con Google Maps Directions API'
             if pedidos_sin_coords:
@@ -599,7 +519,6 @@ class RutasService:
             }, mensaje_final
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error de red al consultar Google Maps: {e}")
             # Fallback a optimización simple
             ruta_simple = RutasService.optimizar_ruta_simple(pedidos, hora_inicio)
 
@@ -618,7 +537,6 @@ class RutasService:
             }, 'Usando optimización simple (error de conexión con Google)'
 
         except Exception as e:
-            print(f"❌ Error inesperado en optimización de ruta: {e}")
             return False, None, f'Error al optimizar ruta: {str(e)}'
 
     @staticmethod

@@ -4,14 +4,18 @@ Contiene toda la lógica de negocio relacionada con pedidos
 """
 
 from extensions import db
-from models.pedido import Pedido, PedidoInsumo
+from models.pedido import Pedido, PedidoInsumo, PedidoProducto, HistorialEstado
 from models.cliente import Cliente
 from models.inventario import Flor, Contenedor
 from config.plazos_pago import obtener_plazo_pago
 from utils.fecha_helpers import clasificar_pedido
 from utils.telefono_helpers import normalizar_telefono
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from sqlalchemy import or_, and_, func
+from sqlalchemy.orm import joinedload
+from services.inventario_service import InventarioService
+from services.clientes_service import ClientesService
+import re
 
 
 class PedidosService:
@@ -129,7 +133,6 @@ class PedidosService:
 
         # Cliente no existe, crear uno nuevo
         # Generar ID del cliente
-        import re
         clientes = Cliente.query.all()
         numeros = []
         for c in clientes:
@@ -262,7 +265,6 @@ class PedidosService:
 
             # Procesar múltiples productos con sus insumos
             if 'productos' in data and isinstance(data['productos'], list):
-                from models.pedido import PedidoProducto, PedidoInsumo
 
                 for producto_data in data['productos']:
                     # Crear relación pedido-producto
@@ -497,7 +499,6 @@ class PedidosService:
             pedido.fecha_actualizacion = datetime.now()  # Actualizar timestamp
 
             # Registrar en historial (marcar como cambio manual)
-            from models.pedido import HistorialEstado
             historial = HistorialEstado(
                 pedido_id=pedido_id,
                 estado_anterior=estado_anterior,
@@ -551,7 +552,6 @@ class PedidosService:
                 return False, None, 'Pedido no encontrado'
 
             # Devolver stock si fue descontado (insumos que ya pasaron por "Listo para Despacho")
-            from services.inventario_service import InventarioService
             success_devolucion, mensaje_stock = InventarioService.devolver_stock_pedido(pedido_id)
 
             # Liberar insumos reservados (insumos que no fueron descontados aún)
@@ -564,7 +564,6 @@ class PedidosService:
 
             # Actualizar estadísticas del cliente (recalcular desde pedidos activos)
             if pedido.cliente_id:
-                from services.clientes_service import ClientesService
                 ClientesService.actualizar_estadisticas_cliente(pedido.cliente_id)
             
             db.session.commit()
@@ -602,7 +601,6 @@ class PedidosService:
                 return False, 'Pedido no encontrado'
 
             # Devolver stock si fue descontado (insumos consumidos físicamente)
-            from services.inventario_service import InventarioService
             InventarioService.devolver_stock_pedido(pedido_id)
 
             # Liberar insumos reservados (insumos que no fueron descontados aún)
@@ -613,11 +611,9 @@ class PedidosService:
             precio_total_pedido = (pedido.precio_ramo or 0) + (pedido.precio_envio or 0)
 
             # Eliminar historial de estados (debe hacerse antes de eliminar el pedido)
-            from models.pedido import HistorialEstado
             HistorialEstado.query.filter_by(pedido_id=pedido_id).delete()
 
             # Eliminar productos del pedido (si existen)
-            from models.pedido import PedidoProducto
             PedidoProducto.query.filter_by(pedido_id=pedido_id).delete()
 
             # Eliminar insumos asociados
@@ -628,7 +624,6 @@ class PedidosService:
             
             # Actualizar estadísticas del cliente (recalcular desde pedidos activos)
             if cliente_id:
-                from services.clientes_service import ClientesService
                 ClientesService.actualizar_estadisticas_cliente(cliente_id)
             
             db.session.commit()
@@ -682,7 +677,6 @@ class PedidosService:
                     # Si también viene hora_entrega, combinarla con la fecha
                     if 'hora_entrega' in data and data['hora_entrega']:
                         try:
-                            from datetime import time
                             hora_parts = data['hora_entrega'].split(':')
                             if len(hora_parts) >= 2:
                                 hora = int(hora_parts[0])
@@ -1018,7 +1012,6 @@ class PedidosService:
             # Excluir pedidos muy pasados (más de 30 días) para no clasificar pedidos antiguos
             # IMPORTANTE: Excluir estados de trabajo completado para que nunca se reclasifiquen automáticamente
             fecha_limite_pasada = datetime.now() - timedelta(days=30)
-            from sqlalchemy.orm import joinedload
             pedidos = Pedido.query.options(
                 joinedload(Pedido.historial_estados)
             ).filter(

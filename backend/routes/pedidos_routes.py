@@ -4,9 +4,15 @@ Las rutas ahora delegan la lógica de negocio al PedidosService
 """
 
 import os
-from flask import Blueprint, request, jsonify, session
+import time
+from datetime import datetime, timedelta
+from io import BytesIO
+from flask import Blueprint, request, jsonify, session, send_file
+from werkzeug.utils import secure_filename
 from services.pedidos_service import PedidosService
+from services.rutas_service import RutasService
 from extensions import db
+from models.pedido import Pedido, PedidoProducto
 from utils.auditoria_helper import registrar_accion
 from routes.auth_routes import require_auth
 
@@ -225,7 +231,6 @@ def actualizar_pedido(pedido_id):
 def obtener_tablero():
     """Obtiene pedidos organizados para vista Kanban"""
     try:
-        from extensions import db
         # Forzar refresh de la sesión para evitar datos en caché
         db.session.expire_all()
         
@@ -322,10 +327,6 @@ def actualizar_estados_por_fecha():
 def subir_foto_respaldo(pedido_id):
     """Sube una foto de respaldo para un producto del pedido"""
     try:
-        from werkzeug.utils import secure_filename
-        from models.pedido import PedidoProducto
-        import time
-
         # Obtener el pedido_producto_id del form data (opcional)
         pedido_producto_id = request.form.get('pedido_producto_id')
 
@@ -391,8 +392,6 @@ def subir_foto_respaldo(pedido_id):
 def obtener_rutas():
     """Obtiene pedidos agrupados por comuna para planificar rutas"""
     try:
-        from datetime import datetime, timedelta
-
         # Parámetros de filtro
         filtro_fecha = request.args.get('fecha', 'hoy')  # 'hoy', 'manana', 'YYYY-MM-DD'
 
@@ -428,9 +427,6 @@ def obtener_rutas():
 def optimizar_ruta():
     """Optimiza la ruta de entrega para una lista de pedidos"""
     try:
-        from services.rutas_service import RutasService
-        from models.pedido import Pedido
-
         data = request.get_json()
         pedidos_ids = data.get('pedidos_ids', [])
         hora_inicio = data.get('hora_inicio', '09:00')
@@ -443,19 +439,6 @@ def optimizar_ruta():
 
         if not pedidos:
             return jsonify({'success': False, 'error': 'No se encontraron pedidos'}), 404
-
-        # Verificar que se encontraron todos los pedidos solicitados
-        pedidos_encontrados = len(pedidos)
-        pedidos_solicitados = len(pedidos_ids)
-        if pedidos_encontrados < pedidos_solicitados:
-            print(f"⚠️  Solo se encontraron {pedidos_encontrados} de {pedidos_solicitados} pedidos solicitados")
-            print(f"   IDs solicitados: {pedidos_ids}")
-            print(f"   IDs encontrados: {[p.id for p in pedidos]}")
-
-        # Log detallado de cada pedido
-        print(f"\n🔍 Analizando {len(pedidos)} pedido(s) para optimización:")
-        for p in pedidos:
-            print(f"   - Pedido {p.id}: lat={p.latitud}, lng={p.longitud}, direccion='{p.direccion_entrega}', retiro_en_tienda={p.retiro_en_tienda}")
 
         # Optimizar ruta
         success, resultado, mensaje = RutasService.optimizar_ruta_google(pedidos, hora_inicio)
@@ -470,7 +453,6 @@ def optimizar_ruta():
             return jsonify({'success': False, 'error': mensaje}), 500
 
     except Exception as e:
-        print(f"❌ Error al optimizar ruta: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -478,8 +460,6 @@ def optimizar_ruta():
 def obtener_retiro_tienda():
     """Obtiene pedidos con retiro en tienda para una fecha específica"""
     try:
-        from datetime import datetime, timedelta
-
         # Parámetros de filtro
         filtro_fecha = request.args.get('fecha', 'hoy')
 
@@ -565,10 +545,6 @@ def marcar_despachados():
 def generar_documento_repartidor():
     """Genera documento imprimible para el repartidor"""
     try:
-        from datetime import datetime, timedelta
-        from flask import send_file
-        from io import BytesIO
-
         # Parámetros
         filtro_fecha = request.args.get('fecha', 'hoy')
         formato = request.args.get('formato', 'html')  # 'html', 'json' o 'pdf'

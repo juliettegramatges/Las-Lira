@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-import { API_URL } from '../services/api'
+import { Flower2, CheckCircle, XCircle, Upload, X, Camera, Package, ShoppingBag, DollarSign, AlertCircle, Calculator, RefreshCw, Plus, Trash2, Save, Download, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit2 } from 'lucide-react'
+import { API_URL, uploadAPI } from '../services/api'
 import { limpiarHTML } from '../utils/helpers'
 import { COLORES_PRODUCTOS } from '../utils/constants'
 import { useAuth } from '../contexts/AuthContext'
@@ -65,16 +65,44 @@ function ProductosPage() {
   const [modalAgregarInsumo, setModalAgregarInsumo] = useState(false)
   const [tipoInsumoNuevo, setTipoInsumoNuevo] = useState('Flor')
 
+  // Estados para zoom de imágenes
+  const [imagenZoom, setImagenZoom] = useState(null)
+  const [posicionZoom, setPosicionZoom] = useState({ x: 0, y: 0 })
+
   const cargarProductos = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${API_URL}/productos/`)
+      // Agregar timestamp para evitar caché
+      const response = await axios.get(`${API_URL}/productos/?_t=${Date.now()}`)
       
-      if (response.data.success) {
-        // El backend devuelve los productos directamente en el array o en response.data.data
-        const productosData = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data.data || response.data.productos || [])
+      // El backend puede devolver los productos de diferentes formas
+      let productosData = []
+      if (Array.isArray(response.data)) {
+        productosData = response.data
+      } else if (response.data.success && response.data.data) {
+        productosData = Array.isArray(response.data.data) ? response.data.data : []
+      } else if (response.data.productos) {
+        productosData = Array.isArray(response.data.productos) ? response.data.productos : []
+      } else if (response.data.data) {
+        productosData = Array.isArray(response.data.data) ? response.data.data : []
+      }
+      
+      console.log('📦 Productos cargados:', productosData.length)
+      const productoPR0025 = productosData.find(p => p.id === 'PR0025')
+      if (productoPR0025) {
+        console.log('🔍 Producto PR0025 en la lista:', {
+          id: productoPR0025.id,
+          nombre: productoPR0025.nombre,
+          imagen_url: productoPR0025.imagen_url,
+          imagen_principal: productoPR0025.imagen_principal,
+          imagenes: productoPR0025.imagenes,
+          tieneImagen: !!(productoPR0025.imagen_url || productoPR0025.imagen_principal || (productoPR0025.imagenes && productoPR0025.imagenes.length > 0))
+        })
+      } else {
+        console.warn('⚠️ Producto PR0025 no encontrado en la lista')
+      }
+      
+      if (productosData.length > 0) {
         
         // Aplicar filtro de búsqueda si existe
         let productosFiltrados = productosData
@@ -91,6 +119,17 @@ function ProductosPage() {
         const fin = inicio + limitePorPagina
         const productosPaginados = productosFiltrados.slice(inicio, fin)
         
+        // Log para debuggear productos con imágenes
+        const productosConImagen = productosPaginados.filter(p => p.imagen_url || p.imagen_principal)
+        if (productosConImagen.length > 0) {
+          console.log('📦 Productos con imagen en la lista:', productosConImagen.map(p => ({
+            id: p.id,
+            nombre: p.nombre,
+            imagen_url: p.imagen_url,
+            imagen_principal: p.imagen_principal
+          })))
+        }
+        
         setProductos(productosPaginados)
         setTotalProductos(productosFiltrados.length)
         setTotalPaginas(Math.ceil(productosFiltrados.length / limitePorPagina))
@@ -98,8 +137,8 @@ function ProductosPage() {
         // Calcular estadísticas básicas
         const stats = {
           total_global: productosData.length,
-          con_foto: productosData.filter(p => p.imagen_principal || (p.imagenes && p.imagenes.length > 0)).length,
-          sin_foto: productosData.filter(p => !p.imagen_principal && (!p.imagenes || p.imagenes.length === 0)).length,
+          con_foto: productosData.filter(p => p.imagen_principal || p.imagen_url || (p.imagenes && p.imagenes.length > 0)).length,
+          sin_foto: productosData.filter(p => !p.imagen_principal && !p.imagen_url && (!p.imagenes || p.imagenes.length === 0)).length,
           disponibles_shopify: productosData.filter(p => p.sku && p.sku.trim() !== '').length
         }
         setStatsGlobales(stats)
@@ -130,25 +169,77 @@ function ProductosPage() {
     
     try {
       setUploadingFoto(true)
-      const formData = new FormData()
-      formData.append('file', file)  // ✅ Cambiado de 'imagen' a 'file'
       
-      const response = await axios.post(
-        `${API_URL}/upload/producto/${productoId}/foto`,
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        }
-      )
+      const response = await uploadAPI.actualizarFotoProducto(productoId, file)
       
       if (response.data.success) {
+        console.log('✅ Foto actualizada. Datos recibidos:', response.data.data)
+        const imagenActualizada = response.data.data.imagen_url || response.data.data.imagen_principal
+        console.log('📸 URL de imagen actualizada:', imagenActualizada)
         alert('✅ Foto actualizada exitosamente')
         setEditandoFoto(null)
-        cargarProductos() // Recargar productos
+        
+        // Actualizar el producto en la lista directamente antes de recargar
+        setProductos(prevProductos => {
+          const actualizados = prevProductos.map(p => 
+            p.id === productoId 
+              ? { 
+                  ...p, 
+                  imagen_url: response.data.data.imagen_url,
+                  imagen_principal: response.data.data.imagen_principal || response.data.data.imagen_url
+                }
+              : p
+          )
+          console.log('🔄 Productos actualizados en estado local:', actualizados.find(p => p.id === productoId))
+          return actualizados
+        })
+        
+        // Forzar recarga completa de productos para ver la nueva imagen
+        // Agregar timestamp para evitar caché
+        setTimeout(async () => {
+          await cargarProductos()
+        }, 100)
+        
+        // Actualizar el producto en los detalles si es el mismo
+        if (productoDetalle && productoDetalle.id === productoId) {
+          // Recargar el producto desde el servidor para obtener la imagen actualizada
+          try {
+            const productoResponse = await axios.get(`${API_URL}/productos/${productoId}`)
+            if (productoResponse.data && productoResponse.data.success !== false) {
+              const productoActualizado = Array.isArray(productoResponse.data) 
+                ? productoResponse.data[0]
+                : (productoResponse.data.data || productoResponse.data)
+              setProductoDetalle(productoActualizado)
+            } else {
+              // Fallback: actualizar con los datos de la respuesta
+              setProductoDetalle({
+                ...productoDetalle,
+                imagen_url: response.data.data.imagen_url,
+                imagen_principal: response.data.data.imagen_principal || response.data.data.imagen_url
+              })
+            }
+          } catch (err) {
+            console.warn('No se pudo recargar el producto desde el servidor:', err)
+            // Fallback: actualizar con los datos de la respuesta
+            setProductoDetalle({
+              ...productoDetalle,
+              imagen_url: response.data.data.imagen_url,
+              imagen_principal: response.data.data.imagen_principal || response.data.data.imagen_url
+            })
+          }
+        }
+      } else {
+        throw new Error(response.data.error || 'Error al actualizar la foto')
       }
     } catch (err) {
       console.error('Error al subir foto:', err)
-      alert('❌ Error al subir la foto: ' + (err.response?.data?.error || err.message))
+      const errorMessage = err.response?.data?.error || err.message || 'Error desconocido al subir la foto'
+      alert(`❌ Error al subir la foto: ${errorMessage}`)
+      
+      // Si es error de autenticación, sugerir recargar
+      if (err.response?.status === 401) {
+        console.warn('Error de autenticación. Verifica que estés logueado.')
+      }
     } finally {
       setUploadingFoto(false)
     }
@@ -159,7 +250,7 @@ function ProductosPage() {
       setLoadingReceta(true)
       const response = await axios.get(`${API_URL}/productos/${productoId}/receta`)
       if (response.data.success) {
-        setReceta(response.data.data)
+        setReceta(response.data)
       }
     } catch (error) {
       console.error('Error al cargar receta:', error)
@@ -173,6 +264,29 @@ function ProductosPage() {
     setProductoDetalle(producto)
     setReceta(null)
     cargarReceta(producto.id)
+  }
+
+  // ============================================
+  // FUNCIONES DE ZOOM DE IMÁGENES
+  // ============================================
+
+  const handleMouseMoveZoom = (e, imgSrc) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const xPercent = ((e.clientX - rect.left) / rect.width) * 100
+    const yPercent = ((e.clientY - rect.top) / rect.height) * 100
+
+    // Posición absoluta del cursor en la pantalla
+    setPosicionZoom({
+      x: e.clientX,
+      y: e.clientY,
+      xPercent,
+      yPercent
+    })
+    setImagenZoom(imgSrc)
+  }
+
+  const handleMouseLeaveZoom = () => {
+    setImagenZoom(null)
   }
 
   // ============================================
@@ -507,6 +621,14 @@ function ProductosPage() {
     } catch (error) {
       console.error('Error al cargar contenedores:', error)
     }
+  }
+
+  const abrirModalAgregarInsumo = async () => {
+    setModalAgregarInsumo(true)
+    await Promise.all([
+      cargarTodasLasFlores(),
+      cargarContenedores()
+    ])
   }
   
   const handleAgregarFlor = (colorId) => {
@@ -893,19 +1015,87 @@ function ProductosPage() {
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
               {/* Imagen */}
-              <div className="relative h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group">
-                {(producto.imagen_principal || (producto.imagenes && producto.imagenes.length > 0)) ? (
-                  <img 
-                    src={producto.imagen_principal || producto.imagenes[0]?.url}
+              <div
+                className="relative h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group overflow-hidden rounded-t-lg cursor-crosshair"
+                onMouseMove={(e) => {
+                  const imgSrc = (() => {
+                    let src = null
+                    if (producto.imagen_principal) {
+                      src = producto.imagen_principal.startsWith('http') || producto.imagen_principal.startsWith('/api')
+                        ? producto.imagen_principal
+                        : `${API_URL}/upload/imagen/${producto.imagen_principal}`
+                    } else if (producto.imagen_url) {
+                      src = producto.imagen_url.startsWith('http') || producto.imagen_url.startsWith('/api')
+                        ? producto.imagen_url
+                        : `${API_URL}/upload/imagen/${producto.imagen_url}`
+                    } else if (producto.imagenes && producto.imagenes.length > 0) {
+                      src = producto.imagenes[0]?.url?.startsWith('http') || producto.imagenes[0]?.url?.startsWith('/api')
+                        ? producto.imagenes[0]?.url
+                        : `${API_URL}/upload/imagen/${producto.imagenes[0]?.url}`
+                    }
+                    return src
+                  })()
+                  if (imgSrc) handleMouseMoveZoom(e, imgSrc)
+                }}
+                onMouseLeave={handleMouseLeaveZoom}
+              >
+                {(producto.imagen_principal || producto.imagen_url || (producto.imagenes && producto.imagenes.length > 0)) ? (
+                  <img
+                    src={(() => {
+                      let imgSrc = null
+                      // Prioridad: imagen_principal > imagen_url > imagenes[0]
+                      if (producto.imagen_principal) {
+                        if (producto.imagen_principal.startsWith('http') || producto.imagen_principal.startsWith('/api')) {
+                          imgSrc = producto.imagen_principal
+                        } else {
+                          imgSrc = `${API_URL}/upload/imagen/${producto.imagen_principal}`
+                        }
+                      } else if (producto.imagen_url) {
+                        // Si imagen_principal es null pero imagen_url existe, usarla
+                        if (producto.imagen_url.startsWith('http') || producto.imagen_url.startsWith('/api')) {
+                          imgSrc = producto.imagen_url
+                        } else {
+                          imgSrc = `${API_URL}/upload/imagen/${producto.imagen_url}`
+                        }
+                        // Log para debuggear
+                        if (producto.id === 'PR0025') {
+                          console.log(`🔍 Producto PR0025 - Construyendo URL:`, {
+                            imagen_url: producto.imagen_url,
+                            API_URL,
+                            imgSrc
+                          })
+                        }
+                      } else if (producto.imagenes && producto.imagenes.length > 0) {
+                        if (producto.imagenes[0]?.url?.startsWith('http') || producto.imagenes[0]?.url?.startsWith('/api')) {
+                          imgSrc = producto.imagenes[0]?.url
+                        } else {
+                          imgSrc = `${API_URL}/upload/imagen/${producto.imagenes[0]?.url}`
+                        }
+                      }
+                      // Agregar timestamp para evitar caché del navegador
+                      if (imgSrc) {
+                        const separator = imgSrc.includes('?') ? '&' : '?'
+                        imgSrc = `${imgSrc}${separator}_t=${Date.now()}`
+                      }
+                      return imgSrc
+                    })()}
                     alt={producto.nombre}
                     className="w-full h-full object-contain p-2"
-                    onError={(e) => {
-                      e.target.style.display = 'none'
-                      e.target.nextSibling.style.display = 'flex'
+                    onLoad={() => {
+                      console.log('✅ Imagen cargada exitosamente:', producto.imagen_url || producto.imagen_principal)
                     }}
+                    onError={(e) => {
+                      console.error('❌ Error al cargar imagen:', e.target.src)
+                      console.error('Producto:', producto.id, 'imagen_url:', producto.imagen_url, 'imagen_principal:', producto.imagen_principal)
+                      e.target.style.display = 'none'
+                      if (e.target.nextSibling) {
+                        e.target.nextSibling.style.display = 'flex'
+                      }
+                    }}
+                    key={`img-${producto.id}-${producto.imagen_principal || producto.imagen_url || (producto.imagenes?.[0]?.url || 'no-img')}`}
                   />
                 ) : null}
-                <div className={(producto.imagen_principal || (producto.imagenes && producto.imagenes.length > 0)) ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
+                <div className={(producto.imagen_principal || producto.imagen_url || (producto.imagenes && producto.imagenes.length > 0)) ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
                   <Flower2 className="h-16 w-16 text-primary-600" />
                 </div>
                 
@@ -1138,22 +1328,108 @@ function ProductosPage() {
             {/* Contenido del modal */}
             <div className="p-6 space-y-6">
               {/* Imagen */}
-              <div className="relative h-64 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden flex items-center justify-center">
-                {(productoDetalle.imagen_principal || (productoDetalle.imagenes && productoDetalle.imagenes.length > 0)) ? (
-                  <img 
-                    src={productoDetalle.imagen_principal || productoDetalle.imagenes[0]?.url}
+              <div
+                className="relative h-64 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg overflow-hidden flex items-center justify-center group cursor-crosshair"
+                onMouseMove={(e) => {
+                  const imgSrc = (() => {
+                    let src = null
+                    if (productoDetalle.imagen_principal) {
+                      src = productoDetalle.imagen_principal.startsWith('http') || productoDetalle.imagen_principal.startsWith('/api')
+                        ? productoDetalle.imagen_principal
+                        : `${API_URL}/upload/imagen/${productoDetalle.imagen_principal}`
+                    } else if (productoDetalle.imagen_url) {
+                      src = productoDetalle.imagen_url.startsWith('http') || productoDetalle.imagen_url.startsWith('/api')
+                        ? productoDetalle.imagen_url
+                        : `${API_URL}/upload/imagen/${productoDetalle.imagen_url}`
+                    } else if (productoDetalle.imagenes && productoDetalle.imagenes.length > 0) {
+                      src = productoDetalle.imagenes[0]?.url
+                    }
+                    return src
+                  })()
+                  if (imgSrc) handleMouseMoveZoom(e, imgSrc)
+                }}
+                onMouseLeave={handleMouseLeaveZoom}
+              >
+                {(productoDetalle.imagen_principal || productoDetalle.imagen_url || (productoDetalle.imagenes && productoDetalle.imagenes.length > 0)) ? (
+                  <img
+                    src={(() => {
+                      let imgSrc = null
+                      if (productoDetalle.imagen_principal) {
+                        imgSrc = productoDetalle.imagen_principal.startsWith('http') || productoDetalle.imagen_principal.startsWith('/api')
+                          ? productoDetalle.imagen_principal
+                          : `${API_URL}/upload/imagen/${productoDetalle.imagen_principal}`
+                      } else if (productoDetalle.imagen_url) {
+                        imgSrc = productoDetalle.imagen_url.startsWith('http') || productoDetalle.imagen_url.startsWith('/api')
+                          ? productoDetalle.imagen_url
+                          : `${API_URL}/upload/imagen/${productoDetalle.imagen_url}`
+                      } else if (productoDetalle.imagenes && productoDetalle.imagenes.length > 0) {
+                        imgSrc = productoDetalle.imagenes[0]?.url
+                      }
+                      if (imgSrc) {
+                        const separator = imgSrc.includes('?') ? '&' : '?'
+                        imgSrc = `${imgSrc}${separator}_t=${Date.now()}`
+                      }
+                      return imgSrc
+                    })()}
                     alt={productoDetalle.nombre}
                     className="w-full h-full object-contain"
                     onError={(e) => {
+                      console.error('Error al cargar imagen en detalles:', e.target.src)
                       e.target.style.display = 'none'
-                      e.target.nextSibling.style.display = 'flex'
+                      if (e.target.nextSibling) {
+                        e.target.nextSibling.style.display = 'flex'
+                      }
                     }}
+                    key={`detail-img-${productoDetalle.id}-${productoDetalle.imagen_principal || productoDetalle.imagen_url || 'no-img'}`}
                   />
                 ) : null}
-                <div className={(productoDetalle.imagen_principal || (productoDetalle.imagenes && productoDetalle.imagenes.length > 0)) ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
+                <div className={(productoDetalle.imagen_principal || productoDetalle.imagen_url || (productoDetalle.imagenes && productoDetalle.imagenes.length > 0)) ? 'hidden' : 'flex items-center justify-center w-full h-full'}>
                   <Flower2 className="h-24 w-24 text-primary-600" />
                 </div>
+                
+                {/* Botón para cambiar foto */}
+                <button
+                  onClick={() => setEditandoFoto(productoDetalle.id)}
+                  className="absolute top-2 right-2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Cambiar foto"
+                >
+                  <Camera className="h-4 w-4 text-gray-700" />
+                </button>
               </div>
+              
+              {/* Modal de edición de foto para detalles */}
+              {editandoFoto === productoDetalle?.id && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditandoFoto(null)}>
+                  <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Cambiar Foto - {productoDetalle?.nombre}</h3>
+                      <button onClick={() => setEditandoFoto(null)} className="text-gray-400 hover:text-gray-600">
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleSubirFoto(productoDetalle?.id, e.target.files[0])}
+                          className="hidden"
+                          id={`file-detail-${productoDetalle?.id}`}
+                          disabled={uploadingFoto}
+                        />
+                        <label htmlFor={`file-detail-${productoDetalle?.id}`} className="cursor-pointer">
+                          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">
+                            {uploadingFoto ? 'Subiendo...' : 'Haz clic para seleccionar una imagen'}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG (máx. 5MB)</p>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Información básica */}
               <div>
@@ -1348,7 +1624,7 @@ function ProductosPage() {
 
                     {/* Botón agregar insumo */}
                     <button
-                      onClick={() => setModalAgregarInsumo(true)}
+                      onClick={abrirModalAgregarInsumo}
                       className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary-500 hover:text-primary-600 flex items-center justify-center gap-2"
                     >
                       <Plus className="h-5 w-5" />
@@ -1764,7 +2040,7 @@ function ProductosPage() {
                     {/* Foto del Producto */}
                     <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
                       <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Vista Previa</h3>
-                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3 relative group">
                         {productoDetalle.imagen_url ? (
                           <img 
                             src={`${API_URL}/upload/imagen/${productoDetalle.imagen_url}`}
@@ -1783,10 +2059,53 @@ function ProductosPage() {
                             <Flower2 className="h-16 w-16 text-primary-600" />
                           </div>
                         )}
+                        
+                        {/* Botón para cambiar foto */}
+                        <button
+                          onClick={() => setEditandoFoto(productoDetalle.id)}
+                          className="absolute top-2 right-2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Cambiar foto"
+                        >
+                          <Camera className="h-4 w-4 text-gray-700" />
+                        </button>
                       </div>
                       <p className="text-sm text-gray-700 font-semibold">{productoDetalle.nombre}</p>
                       <p className="text-xs text-gray-500 mt-1">{productoDetalle.tipo_arreglo}</p>
                     </div>
+                    
+                    {/* Modal de edición de foto para vista expandida */}
+                    {editandoFoto === productoDetalle?.id && (
+                      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditandoFoto(null)}>
+                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold">Cambiar Foto - {productoDetalle?.nombre}</h3>
+                            <button onClick={() => setEditandoFoto(null)} className="text-gray-400 hover:text-gray-600">
+                              <X className="h-5 w-5" />
+                            </button>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleSubirFoto(productoDetalle?.id, e.target.files[0])}
+                                className="hidden"
+                                id={`file-expanded-${productoDetalle?.id}`}
+                                disabled={uploadingFoto}
+                              />
+                              <label htmlFor={`file-expanded-${productoDetalle?.id}`} className="cursor-pointer">
+                                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                                <p className="text-sm text-gray-600">
+                                  {uploadingFoto ? 'Subiendo...' : 'Haz clic para seleccionar una imagen'}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG (máx. 5MB)</p>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Resumen de Costos */}
                     <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-200 rounded-lg p-5 shadow-sm">
@@ -2365,6 +2684,30 @@ function ProductosPage() {
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lupa rectangular de zoom */}
+      {imagenZoom && (
+        <div
+          className="fixed bg-white rounded-xl shadow-2xl border-4 border-primary-400 overflow-hidden pointer-events-none z-[100]"
+          style={{
+            left: `${posicionZoom.x}px`,
+            top: `${posicionZoom.y}px`,
+            transform: 'translate(-50%, -50%)',
+            width: '300px',
+            height: '300px',
+            backgroundImage: `url(${imagenZoom})`,
+            backgroundSize: '400%',
+            backgroundPosition: `${posicionZoom.xPercent}% ${posicionZoom.yPercent}%`,
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="absolute top-2 left-2 right-2 text-center">
+            <span className="bg-primary-600/90 text-white text-xs px-3 py-1 rounded-full shadow-lg backdrop-blur-sm">
+              🔍 Zoom 4x
+            </span>
           </div>
         </div>
       )}

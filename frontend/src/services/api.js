@@ -99,5 +99,37 @@ export const authAPI = {
   crearUsuario: (data) => api.post('/auth/usuarios', data),
 };
 
+// === UPLOAD ===
+export const uploadAPI = {
+  subirImagen: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload/imagen', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  actualizarFotoProducto: (productoId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/upload/producto/${productoId}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  actualizarFotoFlor: (florId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/upload/flor/${florId}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  actualizarFotoContenedor: (contenedorId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/upload/contenedor/${contenedorId}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+};
+
 export default api;
 

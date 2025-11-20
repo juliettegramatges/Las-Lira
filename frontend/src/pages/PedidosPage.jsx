@@ -50,6 +50,10 @@ function PedidosPage() {
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [historialPedidos, setHistorialPedidos] = useState([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
+
+  // Estados para buscador de productos
+  const [busquedaProducto, setBusquedaProducto] = useState('')
+  const [mostrarSugerenciasProducto, setMostrarSugerenciasProducto] = useState(false)
   
   // Estados para modal de exportación
   const [mostrarModalExportar, setMostrarModalExportar] = useState(false)
@@ -521,7 +525,31 @@ function PedidosPage() {
       precio_envio: comunaData?.precio || prev.precio_envio
     }))
   }
-  
+
+  // Filtrar productos según búsqueda
+  const productosFiltrados = useMemo(() => {
+    if (!busquedaProducto.trim()) return productos || []
+
+    const busquedaLower = busquedaProducto.toLowerCase()
+    const filtrados = (productos || []).filter(producto =>
+      producto.nombre?.toLowerCase().includes(busquedaLower) ||
+      producto.descripcion?.toLowerCase().includes(busquedaLower) ||
+      producto.categoria?.toLowerCase().includes(busquedaLower)
+    )
+
+    // Debug: verificar imágenes
+    if (filtrados.length > 0) {
+      console.log('🔍 Productos filtrados con imágenes:', filtrados.map(p => ({
+        id: p.id,
+        nombre: p.nombre,
+        imagen_url: p.imagen_url,
+        imagen_principal: p.imagen_principal
+      })))
+    }
+
+    return filtrados
+  }, [productos, busquedaProducto])
+
   const handleProductoChange = async (productoId) => {
     console.log('🔍 Debug handleProductoChange:', {
       productoId,
@@ -1167,6 +1195,18 @@ function PedidosPage() {
       navigate(location.pathname, { replace: true, state: {} })
     }
   }, [location.state])
+
+  // Cerrar dropdown de productos cuando se hace clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mostrarSugerenciasProducto && !e.target.closest('.relative')) {
+        setMostrarSugerenciasProducto(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [mostrarSugerenciasProducto])
   
   const estadoColor = {
     'Pedido': 'bg-blue-100 text-blue-800',
@@ -3072,25 +3112,109 @@ function PedidosPage() {
                         placeholder="Pasión Roja, Ramo de Rosas, etc."
                       />
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Producto de Catálogo (opcional)
                         {formData.producto_id && (
                           <span className="ml-2 text-xs text-green-600">✓ Precio auto-rellenado</span>
                         )}
                       </label>
-                      <select
-                        value={formData.producto_id}
-                        onChange={(e) => handleProductoChange(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option value="">-- Sin producto asociado --</option>
-                        {(productos || []).map(prod => (
-                          <option key={prod.id} value={prod.id}>
-                            {prod.nombre} - ${(prod.precio || prod.precio_venta || 0).toLocaleString('es-CL')}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={busquedaProducto}
+                          onChange={(e) => {
+                            setBusquedaProducto(e.target.value)
+                            setMostrarSugerenciasProducto(true)
+                          }}
+                          onFocus={() => setMostrarSugerenciasProducto(true)}
+                          placeholder="Buscar producto por nombre..."
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                        {formData.producto_id && (
+                          <button
+                            onClick={() => {
+                              setFormData({...formData, producto_id: ''})
+                              setBusquedaProducto('')
+                            }}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Sugerencias de productos */}
+                      {mostrarSugerenciasProducto && !formData.producto_id && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+                          {productosFiltrados.length > 0 ? (
+                            productosFiltrados.slice(0, 10).map(producto => {
+                              const imgSrc = producto.imagen_principal || producto.imagen_url
+                              let imgUrl = null
+                              if (imgSrc) {
+                                if (imgSrc.startsWith('http') || imgSrc.startsWith('/api')) {
+                                  imgUrl = imgSrc
+                                } else {
+                                  imgUrl = `${API_URL}/upload/imagen/${imgSrc}`
+                                }
+                              }
+
+                              // Debug
+                              if (producto.id === 'PR0025') {
+                                console.log('🖼️ Debug imagen PR0025 en dropdown:', {
+                                  imgSrc,
+                                  imgUrl,
+                                  hasImage: !!imgUrl
+                                })
+                              }
+
+                              return (
+                                <button
+                                  key={producto.id}
+                                  onClick={() => {
+                                    handleProductoChange(producto.id)
+                                    setBusquedaProducto(producto.nombre)
+                                    setMostrarSugerenciasProducto(false)
+                                  }}
+                                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                                >
+                                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center flex-shrink-0 border border-pink-200">
+                                    {imgUrl ? (
+                                      <img
+                                        src={imgUrl}
+                                        alt={producto.nombre}
+                                        className="w-full h-full object-contain p-1"
+                                        onError={(e) => {
+                                          console.error('❌ Error cargando imagen:', imgUrl)
+                                          e.target.style.display = 'none'
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-2xl">🌸</span>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 truncate">{producto.nombre}</p>
+                                    <p className="text-sm text-green-600 font-bold">
+                                      ${(producto.precio || producto.precio_venta || 0).toLocaleString('es-CL')}
+                                    </p>
+                                    {producto.categoria && (
+                                      <p className="text-xs text-gray-500 truncate">{producto.categoria}</p>
+                                    )}
+                                  </div>
+                                </button>
+                              )
+                            })
+                          ) : (
+                            <div className="px-4 py-8 text-center text-gray-500">
+                              <Package className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                              <p>No se encontraron productos</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {formData.producto_id && (
                         <p className="text-xs text-gray-500 mt-1">
                           💡 El nombre y precio se rellenaron automáticamente, pero puedes modificarlos
@@ -3101,19 +3225,58 @@ function PedidosPage() {
                     {/* Mostrar producto seleccionado */}
                     {formData.producto_id && (() => {
                       const productoSeleccionado = (productos || []).find(p => p.id == formData.producto_id)
+
+                      if (productoSeleccionado) {
+                        const imgSrc = productoSeleccionado.imagen_principal || productoSeleccionado.imagen_url
+                        let imgUrl = null
+                        if (imgSrc) {
+                          if (imgSrc.startsWith('http') || imgSrc.startsWith('/api')) {
+                            imgUrl = imgSrc
+                          } else {
+                            imgUrl = `${API_URL}/upload/imagen/${imgSrc}`
+                          }
+                        }
+
+                        // Debug
+                        if (productoSeleccionado.id === 'PR0025') {
+                          console.log('🖼️ Debug imagen PR0025 en tarjeta:', {
+                            imgSrc,
+                            imgUrl,
+                            hasImage: !!imgUrl,
+                            producto: productoSeleccionado
+                          })
+                        }
+                      }
+
                       return productoSeleccionado ? (
                         <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
                           <div className="flex items-center space-x-4">
-                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
-                              {productoSeleccionado.imagen_principal ? (
-                                <img 
-                                  src={productoSeleccionado.imagen_principal} 
-                                  alt={productoSeleccionado.nombre}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-2xl">🌸</span>
-                              )}
+                            <div className="w-32 h-32 rounded-lg overflow-hidden bg-white flex items-center justify-center border-2 border-pink-300 flex-shrink-0 shadow-sm">
+                              {(() => {
+                                const imgSrc = productoSeleccionado.imagen_principal || productoSeleccionado.imagen_url
+                                let imgUrl = null
+                                if (imgSrc) {
+                                  if (imgSrc.startsWith('http') || imgSrc.startsWith('/api')) {
+                                    imgUrl = imgSrc
+                                  } else {
+                                    imgUrl = `${API_URL}/upload/imagen/${imgSrc}`
+                                  }
+                                }
+
+                                return imgUrl ? (
+                                  <img
+                                    src={imgUrl}
+                                    alt={productoSeleccionado.nombre}
+                                    className="w-full h-full object-contain p-2"
+                                    onError={(e) => {
+                                      console.error('❌ Error cargando imagen en tarjeta:', imgUrl)
+                                      e.target.style.display = 'none'
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-5xl">🌸</span>
+                                )
+                              })()}
                             </div>
                             <div className="flex-1">
                               <h4 className="text-lg font-semibold text-gray-900">{productoSeleccionado.nombre}</h4>
@@ -3337,26 +3500,38 @@ function PedidosPage() {
                                     </span>
                                   </td>
                                   <td className="px-3 py-2">
-                                    <select
-                                      value={insumo.insumo_id}
-                                      onChange={(e) => handleCambiarInsumo(index, e.target.value, insumo.insumo_tipo)}
-                                      className="text-sm border border-gray-300 rounded px-2 py-1 w-full"
-                                    >
-                                      <option value="">-- Seleccionar --</option>
-                                      {insumo.insumo_tipo === 'Flor' ? (
-                                        flores.map(flor => (
-                                          <option key={flor.id} value={flor.id}>
-                                            {flor.tipo} - {flor.color}
-                                          </option>
-                                        ))
-                                      ) : (
-                                        contenedores.map(cont => (
-                                          <option key={cont.id} value={cont.id}>
-                                            {cont.nombre || `${cont.tipo || 'Sin tipo'} - ${cont.material || 'Sin material'} ${cont.tamano ? `(${cont.tamano})` : ''}`}
-                                          </option>
-                                        ))
+                                    <div className="space-y-1">
+                                      {/* Display the insumo name from recipe */}
+                                      {insumo.insumo_nombre && (
+                                        <div className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                          {insumo.insumo_nombre}
+                                          {insumo.insumo_color && (
+                                            <span className="text-xs text-purple-600">({insumo.insumo_color})</span>
+                                          )}
+                                        </div>
                                       )}
-                                    </select>
+                                      {/* Dropdown for changing */}
+                                      <select
+                                        value={insumo.insumo_id || ''}
+                                        onChange={(e) => handleCambiarInsumo(index, e.target.value, insumo.insumo_tipo)}
+                                        className="text-xs border border-gray-300 rounded px-2 py-1 w-full text-gray-600"
+                                      >
+                                        <option value="">-- Cambiar insumo --</option>
+                                        {insumo.insumo_tipo === 'Flor' ? (
+                                          flores.map(flor => (
+                                            <option key={flor.id} value={flor.id}>
+                                              {flor.tipo} - {flor.color}
+                                            </option>
+                                          ))
+                                        ) : (
+                                          contenedores.map(cont => (
+                                            <option key={cont.id} value={cont.id}>
+                                              {cont.nombre || `${cont.tipo || 'Sin tipo'} - ${cont.material || 'Sin material'} ${cont.tamano ? `(${cont.tamano})` : ''}`}
+                                            </option>
+                                          ))
+                                        )}
+                                      </select>
+                                    </div>
                                   </td>
                                   <td className="px-3 py-2 text-center">
                                     <input
@@ -3411,81 +3586,6 @@ function PedidosPage() {
                             </tr>
                           </tfoot>
                         </table>
-                      </div>
-                    )}
-                    
-                    {/* Vista previa visual de la receta (SIEMPRE que exista) */}
-                    {receta.length > 0 && (
-                      <div className="py-4 bg-white rounded-lg border-2 border-dashed border-green-300 mt-4">
-                        <div className="text-center mb-4">
-                          <div className="mb-2">
-                            <CheckCircle className="h-10 w-10 mx-auto text-green-500" />
-                          </div>
-                          <p className="text-gray-700 font-medium mb-1">
-                            ✅ Receta cargada: {receta.length} insumo{receta.length > 1 ? 's' : ''}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            La receta del producto está lista. Estos insumos se usarán automáticamente.
-                          </p>
-                        </div>
-                        
-                        <div className="max-w-2xl mx-auto px-4 space-y-2">
-                          {receta.map((insumo, idx) => (
-                            <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-300 transition-colors">
-                              {/* Foto del insumo */}
-                              <div className="flex-shrink-0">
-                                {insumo.insumo_foto ? (
-                                  <img 
-                                    src={`${API_URL}/upload/imagen/${insumo.insumo_foto}`}
-                                    alt={insumo.insumo_nombre}
-                                    className="w-16 h-16 object-cover rounded-lg border-2 border-gray-200"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none'
-                                      e.target.nextSibling.style.display = 'flex'
-                                    }}
-                                  />
-                                ) : null}
-                                <div className={insumo.insumo_foto ? 'hidden' : 'flex items-center justify-center w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg'}>
-                                  <Package className="h-8 w-8 text-gray-400" />
-                                </div>
-                              </div>
-                              
-                              {/* Info del insumo */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${insumo.insumo_tipo === 'Flor' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {insumo.insumo_tipo}
-                                  </span>
-                                  {insumo.insumo_color && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
-                                      <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                                      {insumo.insumo_color}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="font-semibold text-gray-900 truncate">
-                                  {insumo.insumo_nombre}
-                                </p>
-                                {insumo.stock_disponible !== undefined && (
-                                  <p className="text-xs text-gray-500 mt-0.5">
-                                    Stock disponible: {insumo.stock_disponible}
-                                  </p>
-                                )}
-                              </div>
-                              
-                              {/* Cantidad */}
-                              <div className="flex-shrink-0 text-right">
-                                <div className="bg-white px-3 py-2 rounded-lg border-2 border-green-300">
-                                  <span className="text-lg font-bold text-green-700">x{insumo.cantidad}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        <p className="text-xs text-gray-400 mt-4 text-center">
-                          💡 Puedes agregar más insumos usando los botones arriba
-                        </p>
                       </div>
                     )}
                     
